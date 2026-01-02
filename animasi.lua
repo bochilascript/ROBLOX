@@ -598,13 +598,14 @@ local function applyAnimation(animate, animationData)
         return false
     end
     
-    local success = true
+    local success = false
     
     local function setAnimation(part, animationId)
         if part and part:IsA("Animation") then
             pcall(function()
                 part.AnimationId = normalizeAssetId(animationId)
             end)
+            success = true
         end
     end
     
@@ -652,6 +653,49 @@ local function applyAnimation(animate, animationData)
     end
     
     return success
+end
+
+-- Fallback: apply using Humanoid.Animator tracks when Animate tree is missing/incomplete
+local function applyAnimationWithAnimator(character, data)
+    if not character then return false end
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return false end
+    local animator = humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator", humanoid)
+
+    local function loadTrack(id)
+        if not id then return nil end
+        local anim = Instance.new("Animation")
+        anim.AnimationId = normalizeAssetId(id)
+        local ok, track = pcall(function() return animator:LoadAnimation(anim) end)
+        if ok then return track end
+        return nil
+    end
+
+    local idle = loadTrack(data.idle1) or loadTrack(data.idle2)
+    local walk = loadTrack(data.walk)
+    local run  = loadTrack(data.run)
+    local jump = loadTrack(data.jump)
+    local fall = loadTrack(data.fall)
+    local climb= loadTrack(data.climb)
+
+    -- Simple state-driven playback
+    if idle then pcall(function() idle:Play(0.15, 1, 1.0) end) end
+    humanoid.Running:Connect(function(speed)
+        if speed > 0.5 then
+            if run then pcall(function() run:Play(0.1,1,1.0) end) elseif walk then pcall(function() walk:Play(0.1,1,1.0) end) end
+        else
+            if idle then pcall(function() idle:Play(0.1,1,1.0) end) end
+        end
+    end)
+    humanoid.Jumping:Connect(function()
+        if jump then pcall(function() jump:Play(0.05,1,1.0) end) end
+    end)
+    humanoid.StateChanged:Connect(function(_, new)
+        if new == Enum.HumanoidStateType.Freefall and fall then pcall(function() fall:Play(0.05,1,1.0) end) end
+        if new == Enum.HumanoidStateType.Climbing and climb then pcall(function() climb:Play(0.05,1,1.0) end) end
+    end)
+
+    return true
 end
 
 -- Fungsi untuk reset tombol ke state normal
@@ -785,11 +829,14 @@ local function createAnimationButton(animationName, animationData)
         end
         
         local animate = getAnimateFolder(character)
-        
+        local ok = false
         if animate then
-            local success = applyAnimation(animate, animationData)
-            
-            if success then
+            ok = applyAnimation(animate, animationData)
+        end
+        if not ok then
+            ok = applyAnimationWithAnimator(character, animationData)
+        end
+        if ok then
                 if activeButton then
                     resetButtonToNormal(activeButton)
                 end
