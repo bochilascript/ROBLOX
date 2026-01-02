@@ -577,18 +577,43 @@ local function getAnimateFolder(character)
             local Neck = Torso:WaitForChild("Neck")
             local Humanoid = Figure:WaitForChild("Humanoid")
             local pose = "Standing"
-            
-            function createAnimation(id)
-                local animation = Instance.new("Animation")
-                animation.AnimationId = id
-                return animation
-            end
-            
-            script.Parent.Animate.Disabled = false
         ]]
         animateScript.Parent = animate
     end
-    
+
+    -- Ensure standard subfolders and animation objects exist
+    local idle = animate:FindFirstChild("idle") or Instance.new("Folder")
+    idle.Name = "idle"; idle.Parent = animate
+    local idleA1 = idle:FindFirstChild("Animation1") or Instance.new("Animation")
+    idleA1.Name = "Animation1"; idleA1.Parent = idle
+    local idleA2 = idle:FindFirstChild("Animation2") or Instance.new("Animation")
+    idleA2.Name = "Animation2"; idleA2.Parent = idle
+
+    local walk = animate:FindFirstChild("walk") or Instance.new("Folder")
+    walk.Name = "walk"; walk.Parent = animate
+    local walkAnim = walk:FindFirstChild("WalkAnim") or walk:FindFirstChild("walk") or Instance.new("Animation")
+    walkAnim.Name = "WalkAnim"; walkAnim.Parent = walk
+
+    local run = animate:FindFirstChild("run") or Instance.new("Folder")
+    run.Name = "run"; run.Parent = animate
+    local runAnim = run:FindFirstChild("RunAnim") or run:FindFirstChild("Animation") or Instance.new("Animation")
+    runAnim.Name = "RunAnim"; runAnim.Parent = run
+
+    local jump = animate:FindFirstChild("jump") or Instance.new("Folder")
+    jump.Name = "jump"; jump.Parent = animate
+    local jumpAnim = jump:FindFirstChild("JumpAnim") or jump:FindFirstChild("jump") or Instance.new("Animation")
+    jumpAnim.Name = "JumpAnim"; jumpAnim.Parent = jump
+
+    local climb = animate:FindFirstChild("climb") or Instance.new("Folder")
+    climb.Name = "climb"; climb.Parent = animate
+    local climbAnim = climb:FindFirstChild("ClimbAnim") or Instance.new("Animation")
+    climbAnim.Name = "ClimbAnim"; climbAnim.Parent = climb
+
+    local fall = animate:FindFirstChild("fall") or Instance.new("Folder")
+    fall.Name = "fall"; fall.Parent = animate
+    local fallAnim = fall:FindFirstChild("FallAnim") or fall:FindFirstChild("fall") or Instance.new("Animation")
+    fallAnim.Name = "FallAnim"; fallAnim.Parent = fall
+
     return animate
 end
 
