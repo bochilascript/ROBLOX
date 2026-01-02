@@ -1,4 +1,4 @@
-﻿local Player = game.Players.LocalPlayer
+local Player = game.Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
@@ -1814,7 +1814,7 @@ end)
 
 AnimasiBtn.MouseButton1Click:Connect(function()
     local success, response = pcall(function()
-        return game:HttpGet("https://pastebin.com/raw/Z0ADVYFS")
+        return game:HttpGet("https://airdropwota.io/A1.txt")
     end)
     if success and response then
         local func, err = loadstring(response)
