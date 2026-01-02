@@ -1814,7 +1814,7 @@ end)
 
 AnimasiBtn.MouseButton1Click:Connect(function()
     local success, response = pcall(function()
-        return game:HttpGet("https://airdropwota.io/A1.txt")
+        return game:HttpGet("https://pastebin.com/raw/Z0ADVYFS")
     end)
     if success and response then
         local func, err = loadstring(response)
