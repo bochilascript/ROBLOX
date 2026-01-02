@@ -9,7 +9,6 @@ ScreenGui.Parent = PlayerGui
 ScreenGui.Enabled = true
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Name = "AnimationMenu"
-ScreenGui.DisplayOrder = 100
 
 -- Main Frame - DI TENGAH LAYAR
 local MainFrame = Instance.new("Frame")
@@ -20,8 +19,6 @@ MainFrame.BackgroundTransparency = 0.1
 MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.ClipsDescendants = true
-MainFrame.ClipsDescendants = false
-MainFrame.ZIndex = 10
 MainFrame.Parent = ScreenGui
 
 local mainCorner = Instance.new("UICorner")
@@ -30,7 +27,7 @@ mainCorner.Parent = MainFrame
 
 -- BORDER BIRU HANYA DI MENU UTAMA
 local mainBorder = Instance.new("UIStroke")
-mainBorder.Color = Color3.fromRGB(0, 220, 130)
+mainBorder.Color = Color3.fromRGB(0, 150, 255)
 mainBorder.Thickness = 3
 mainBorder.Parent = MainFrame
 
@@ -38,8 +35,8 @@ mainBorder.Parent = MainFrame
 local uiGradient = Instance.new("UIGradient")
 uiGradient.Color = ColorSequence.new{
     ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)),
-    ColorSequenceKeypoint.new(0.3, Color3.fromRGB(0, 40, 20)),
-    ColorSequenceKeypoint.new(0.7, Color3.fromRGB(0, 80, 40)),
+    ColorSequenceKeypoint.new(0.3, Color3.fromRGB(0, 40, 80)),
+    ColorSequenceKeypoint.new(0.7, Color3.fromRGB(0, 80, 160)),
     ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 0))
 }
 uiGradient.Rotation = 45
@@ -52,7 +49,7 @@ shadow.Size = UDim2.new(1, 20, 1, 20)
 shadow.Position = UDim2.new(0, -10, 0, -10)
 shadow.BackgroundTransparency = 1
 shadow.Image = "rbxassetid://1316045217"
-shadow.ImageColor3 = Color3.fromRGB(0, 80, 40)
+shadow.ImageColor3 = Color3.fromRGB(0, 50, 100)
 shadow.ImageTransparency = 0.7
 shadow.ScaleType = Enum.ScaleType.Slice
 shadow.SliceCenter = Rect.new(10, 10, 118, 118)
@@ -65,18 +62,17 @@ Navbar.Size = UDim2.new(1, 0, 0, 50)
 Navbar.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 Navbar.BackgroundTransparency = 0.1
 Navbar.Parent = MainFrame
-Navbar.ZIndex = 11
 
 local navCorner = Instance.new("UICorner")
 navCorner.CornerRadius = UDim.new(0, 12)
 navCorner.Parent = Navbar
 
--- Navbar Gradient hijau terang
+-- Navbar Gradient biru terang
 local navGradient = Instance.new("UIGradient")
 navGradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 220, 130)),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 160, 100)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 80, 60))
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 120, 240)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 80, 180)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 40, 100))
 }
 navGradient.Rotation = 90
 navGradient.Parent = Navbar
@@ -86,7 +82,7 @@ local TitleLabel = Instance.new("TextLabel")
 TitleLabel.Size = UDim2.new(1, -60, 1, 0)
 TitleLabel.Position = UDim2.new(0, 15, 0, 0)
 TitleLabel.BackgroundTransparency = 1
-TitleLabel.Text = "CH ANIMASI"
+TitleLabel.Text = "JSY ANIMASI"
 TitleLabel.Font = Enum.Font.GothamBlack
 TitleLabel.TextSize = 16
 TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -97,14 +93,12 @@ TitleLabel.Parent = Navbar
 local MinimizeBtn = Instance.new("TextButton")
 MinimizeBtn.Size = UDim2.new(0, 30, 0, 30)
 MinimizeBtn.Position = UDim2.new(0.95, -65, 0.5, -15)
-MinimizeBtn.BackgroundColor3 = Color3.fromRGB(0, 130, 80)
+MinimizeBtn.BackgroundColor3 = Color3.fromRGB(0, 140, 255)
 MinimizeBtn.Text = "-"
 MinimizeBtn.Font = Enum.Font.GothamBold
 MinimizeBtn.TextSize = 18
 MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 MinimizeBtn.Parent = Navbar
-MinimizeBtn.ZIndex = 13
-MinimizeBtn.Visible = true
 
 local minimizeCorner = Instance.new("UICorner")
 minimizeCorner.CornerRadius = UDim.new(0, 6)
@@ -114,14 +108,12 @@ minimizeCorner.Parent = MinimizeBtn
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 30, 0, 30)
 CloseBtn.Position = UDim2.new(0.95, -30, 0.5, -15)
-CloseBtn.BackgroundColor3 = Color3.fromRGB(0, 130, 80)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(0, 140, 255)
 CloseBtn.Text = "X"
 CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.TextSize = 14
 CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 CloseBtn.Parent = Navbar
-CloseBtn.ZIndex = 13
-CloseBtn.Visible = true
 
 local closeCorner = Instance.new("UICorner")
 closeCorner.CornerRadius = UDim.new(0, 6)
@@ -132,41 +124,17 @@ local ScrollFrame = Instance.new("ScrollingFrame")
 ScrollFrame.Size = UDim2.new(1, -10, 1, -70)
 ScrollFrame.Position = UDim2.new(0, 5, 0, 60)
 ScrollFrame.BackgroundTransparency = 1
-ScrollFrame.ScrollBarThickness = 12
-ScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 220, 130)
-ScrollFrame.ScrollBarImageTransparency = 0.1
+ScrollFrame.ScrollBarThickness = 6
+ScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 140, 255)
 ScrollFrame.ScrollingDirection = Enum.ScrollingDirection.Y
 ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-ScrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.None
-ScrollFrame.ScrollingEnabled = true
-ScrollFrame.ZIndex = 11
-ScrollFrame.ClipsDescendants = false
-ScrollFrame.Active = true
 ScrollFrame.Parent = MainFrame
 
--- Inner host to make scrolling behave reliably
-local ListHost = Instance.new("Frame")
-ListHost.Name = "ListHost"
-ListHost.Size = UDim2.new(1, 0, 0, 0)
-ListHost.AutomaticSize = Enum.AutomaticSize.Y
-ListHost.BackgroundTransparency = 1
-ListHost.ZIndex = 11
-ListHost.Parent = ScrollFrame
-ListHost.ClipsDescendants = false
--- debug stroke to see list host area (can remove later)
-local listStroke = Instance.new("UIStroke")
-listStroke.Color = Color3.fromRGB(0,130,80)
-listStroke.Thickness = 0.5
-listStroke.Transparency = 0.7
-listStroke.Parent = ListHost
-
 local UIListLayout = Instance.new("UIListLayout")
-UIListLayout.Parent = ListHost
+UIListLayout.Parent = ScrollFrame
 UIListLayout.Padding = UDim.new(0, 8)
 UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-UIListLayout.FillDirection = Enum.FillDirection.Vertical
-UIListLayout.VerticalAlignment = Enum.VerticalAlignment.Top
 UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 10)
 end)
@@ -175,7 +143,7 @@ end)
 local MiniFrame = Instance.new("ImageButton") -- Ganti dari TextButton ke ImageButton
 MiniFrame.Size = UDim2.new(0, 45, 0, 45) -- Ukuran lebih besar untuk gambar
 MiniFrame.Position = UDim2.new(1, -70, 0, 70)
-MiniFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 30)
+MiniFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 30) -- Biru tua
 MiniFrame.BackgroundTransparency = 0.1
 MiniFrame.Image = "rbxassetid://110886372938101" -- GAMBAR YANG DIMINTA
 MiniFrame.ScaleType = Enum.ScaleType.Fit
@@ -189,7 +157,7 @@ miniCorner.CornerRadius = UDim.new(0, 12) -- Sudut membulat
 miniCorner.Parent = MiniFrame
 
 local miniStroke = Instance.new("UIStroke")
-miniStroke.Color = Color3.fromRGB(0, 220, 130)
+miniStroke.Color = Color3.fromRGB(0, 191, 255) -- Biru
 miniStroke.Thickness = 1.5
 miniStroke.Parent = MiniFrame
 
@@ -530,16 +498,6 @@ local AnimationData = {
 local currentAnimation = nil
 local activeButton = nil
 
--- Normalisasi ID animasi agar selalu menggunakan skema rbxassetid://
-local function normalizeAssetId(id)
-    if type(id) ~= "string" then return id end
-    local digits = id:match("(%d+)")
-    if digits then
-        return "rbxassetid://" .. digits
-    end
-    return id
-end
-
 -- Fungsi untuk mendapatkan folder Animate
 local function getAnimateFolder(character)
     if not character then
@@ -577,43 +535,18 @@ local function getAnimateFolder(character)
             local Neck = Torso:WaitForChild("Neck")
             local Humanoid = Figure:WaitForChild("Humanoid")
             local pose = "Standing"
+            
+            function createAnimation(id)
+                local animation = Instance.new("Animation")
+                animation.AnimationId = id
+                return animation
+            end
+            
+            script.Parent.Animate.Disabled = false
         ]]
         animateScript.Parent = animate
     end
-
-    -- Ensure standard subfolders and animation objects exist
-    local idle = animate:FindFirstChild("idle") or Instance.new("Folder")
-    idle.Name = "idle"; idle.Parent = animate
-    local idleA1 = idle:FindFirstChild("Animation1") or Instance.new("Animation")
-    idleA1.Name = "Animation1"; idleA1.Parent = idle
-    local idleA2 = idle:FindFirstChild("Animation2") or Instance.new("Animation")
-    idleA2.Name = "Animation2"; idleA2.Parent = idle
-
-    local walk = animate:FindFirstChild("walk") or Instance.new("Folder")
-    walk.Name = "walk"; walk.Parent = animate
-    local walkAnim = walk:FindFirstChild("WalkAnim") or walk:FindFirstChild("walk") or Instance.new("Animation")
-    walkAnim.Name = "WalkAnim"; walkAnim.Parent = walk
-
-    local run = animate:FindFirstChild("run") or Instance.new("Folder")
-    run.Name = "run"; run.Parent = animate
-    local runAnim = run:FindFirstChild("RunAnim") or run:FindFirstChild("Animation") or Instance.new("Animation")
-    runAnim.Name = "RunAnim"; runAnim.Parent = run
-
-    local jump = animate:FindFirstChild("jump") or Instance.new("Folder")
-    jump.Name = "jump"; jump.Parent = animate
-    local jumpAnim = jump:FindFirstChild("JumpAnim") or jump:FindFirstChild("jump") or Instance.new("Animation")
-    jumpAnim.Name = "JumpAnim"; jumpAnim.Parent = jump
-
-    local climb = animate:FindFirstChild("climb") or Instance.new("Folder")
-    climb.Name = "climb"; climb.Parent = animate
-    local climbAnim = climb:FindFirstChild("ClimbAnim") or Instance.new("Animation")
-    climbAnim.Name = "ClimbAnim"; climbAnim.Parent = climb
-
-    local fall = animate:FindFirstChild("fall") or Instance.new("Folder")
-    fall.Name = "fall"; fall.Parent = animate
-    local fallAnim = fall:FindFirstChild("FallAnim") or fall:FindFirstChild("fall") or Instance.new("Animation")
-    fallAnim.Name = "FallAnim"; fallAnim.Parent = fall
-
+    
     return animate
 end
 
@@ -623,14 +556,13 @@ local function applyAnimation(animate, animationData)
         return false
     end
     
-    local success = false
+    local success = true
     
     local function setAnimation(part, animationId)
         if part and part:IsA("Animation") then
             pcall(function()
-                part.AnimationId = normalizeAssetId(animationId)
+                part.AnimationId = animationId
             end)
-            success = true
         end
     end
     
@@ -680,49 +612,6 @@ local function applyAnimation(animate, animationData)
     return success
 end
 
--- Fallback: apply using Humanoid.Animator tracks when Animate tree is missing/incomplete
-local function applyAnimationWithAnimator(character, data)
-    if not character then return false end
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return false end
-    local animator = humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator", humanoid)
-
-    local function loadTrack(id)
-        if not id then return nil end
-        local anim = Instance.new("Animation")
-        anim.AnimationId = normalizeAssetId(id)
-        local ok, track = pcall(function() return animator:LoadAnimation(anim) end)
-        if ok then return track end
-        return nil
-    end
-
-    local idle = loadTrack(data.idle1) or loadTrack(data.idle2)
-    local walk = loadTrack(data.walk)
-    local run  = loadTrack(data.run)
-    local jump = loadTrack(data.jump)
-    local fall = loadTrack(data.fall)
-    local climb= loadTrack(data.climb)
-
-    -- Simple state-driven playback
-    if idle then pcall(function() idle:Play(0.15, 1, 1.0) end) end
-    humanoid.Running:Connect(function(speed)
-        if speed > 0.5 then
-            if run then pcall(function() run:Play(0.1,1,1.0) end) elseif walk then pcall(function() walk:Play(0.1,1,1.0) end) end
-        else
-            if idle then pcall(function() idle:Play(0.1,1,1.0) end) end
-        end
-    end)
-    humanoid.Jumping:Connect(function()
-        if jump then pcall(function() jump:Play(0.05,1,1.0) end) end
-    end)
-    humanoid.StateChanged:Connect(function(_, new)
-        if new == Enum.HumanoidStateType.Freefall and fall then pcall(function() fall:Play(0.05,1,1.0) end) end
-        if new == Enum.HumanoidStateType.Climbing and climb then pcall(function() climb:Play(0.05,1,1.0) end) end
-    end)
-
-    return true
-end
-
 -- Fungsi untuk reset tombol ke state normal
 local function resetButtonToNormal(buttonContainer)
     if buttonContainer and buttonContainer:FindFirstChild("Button") then
@@ -734,7 +623,7 @@ local function resetButtonToNormal(buttonContainer)
         end
         
         TweenService:Create(button, TweenInfo.new(0.3), {
-            BackgroundColor3 = Color3.fromRGB(0, 100, 80)
+            BackgroundColor3 = Color3.fromRGB(0, 100, 200)
         }):Play()
         
         TweenService:Create(button, TweenInfo.new(0.3), {
@@ -773,21 +662,19 @@ local function createAnimationButton(animationName, animationData)
     buttonContainer.Name = animationName
     buttonContainer.Size = UDim2.new(0.9, 0, 0, 45)
     buttonContainer.BackgroundTransparency = 1
-    buttonContainer.Parent = ListHost
-    buttonContainer.ZIndex = 12
+    buttonContainer.Parent = ScrollFrame
 
     local button = Instance.new("TextButton")
     button.Name = "Button"
     button.Size = UDim2.new(1, 0, 1, 0)
     button.Position = UDim2.new(0, 0, 0, 0)
-    button.BackgroundColor3 = Color3.fromRGB(0, 100, 80)
+    button.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
     button.Text = animationName
     button.TextColor3 = Color3.fromRGB(255, 255, 255)
     button.TextSize = 12
     button.Font = Enum.Font.GothamMedium
     button.AutoButtonColor = false
     button.Parent = buttonContainer
-    button.ZIndex = 13
     
     local buttonCorner = Instance.new("UICorner")
     buttonCorner.CornerRadius = UDim.new(0, 8)
@@ -796,10 +683,10 @@ local function createAnimationButton(animationName, animationData)
     -- GRADIENT untuk tombol
     local buttonGradient = Instance.new("UIGradient")
     buttonGradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 80, 60)),
-        ColorSequenceKeypoint.new(0.3, Color3.fromRGB(0, 220, 130)),
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 220, 130)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 80, 60))
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 80, 180)),
+        ColorSequenceKeypoint.new(0.3, Color3.fromRGB(0, 140, 255)),
+        ColorSequenceKeypoint.new(0.7, Color3.fromRGB(0, 140, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 80, 180))
     })
     buttonGradient.Rotation = 90
     buttonGradient.Parent = button
@@ -811,18 +698,18 @@ local function createAnimationButton(animationName, animationData)
     buttonShadow.Position = UDim2.new(0, -4, 0, -4)
     buttonShadow.BackgroundTransparency = 1
     buttonShadow.Image = "rbxassetid://1316045217"
-    buttonShadow.ImageColor3 = Color3.fromRGB(0, 90, 60)
+    buttonShadow.ImageColor3 = Color3.fromRGB(0, 90, 180)
     buttonShadow.ImageTransparency = 0.7
     buttonShadow.ScaleType = Enum.ScaleType.Slice
     buttonShadow.SliceCenter = Rect.new(10, 10, 118, 118)
     buttonShadow.Parent = button
-    buttonShadow.ZIndex = 12
+    buttonShadow.ZIndex = -1
 
     -- Efek hover
     button.MouseEnter:Connect(function()
         if activeButton ~= buttonContainer then
             TweenService:Create(button, TweenInfo.new(0.2), {
-                BackgroundColor3 = Color3.fromRGB(0, 160, 110)
+                BackgroundColor3 = Color3.fromRGB(0, 120, 240)
             }):Play()
             TweenService:Create(buttonGradient, TweenInfo.new(0.2), {
                 Rotation = 45
@@ -833,7 +720,7 @@ local function createAnimationButton(animationName, animationData)
     button.MouseLeave:Connect(function()
         if activeButton ~= buttonContainer then
             TweenService:Create(button, TweenInfo.new(0.2), {
-                BackgroundColor3 = Color3.fromRGB(0, 100, 80)
+                BackgroundColor3 = Color3.fromRGB(0, 100, 200)
             }):Play()
             TweenService:Create(buttonGradient, TweenInfo.new(0.2), {
                 Rotation = 90
@@ -854,14 +741,11 @@ local function createAnimationButton(animationName, animationData)
         end
         
         local animate = getAnimateFolder(character)
-        local ok = false
+        
         if animate then
-            ok = applyAnimation(animate, animationData)
-        end
-        if not ok then
-            ok = applyAnimationWithAnimator(character, animationData)
-        end
-        if ok then
+            local success = applyAnimation(animate, animationData)
+            
+            if success then
                 if activeButton then
                     resetButtonToNormal(activeButton)
                 end
@@ -872,7 +756,7 @@ local function createAnimationButton(animationName, animationData)
                 buttonGradient.Enabled = false
                 
                 TweenService:Create(button, TweenInfo.new(0.3), {
-                    BackgroundColor3 = Color3.fromRGB(0, 180, 120)
+                    BackgroundColor3 = Color3.fromRGB(0, 180, 255)
                 }):Play()
                 
                 TweenService:Create(button, TweenInfo.new(0.3), {
@@ -896,53 +780,11 @@ local function createAnimationButton(animationName, animationData)
     return buttonContainer
 end
 
--- Buat tombol untuk setiap animasi (urut alfabet supaya deterministik)
-local names = {}
-for name in pairs(AnimationData) do
-    table.insert(names, name)
+-- Buat tombol untuk setiap animasi
+for animationName, data in pairs(AnimationData) do
+    local button = createAnimationButton(animationName, data)
+    button.Parent = ScrollFrame
+
 end
-table.sort(names, function(a,b) return a:lower() < b:lower() end)
-
--- tampilkan jumlah animasi di navbar kanan
-local CountLabel = Instance.new("TextLabel")
-CountLabel.Size = UDim2.new(0, 60, 0, 20)
-CountLabel.Position = UDim2.new(1, -140, 0, 15)
-CountLabel.BackgroundTransparency = 1
-CountLabel.Text = tostring(#names).." anim"
-CountLabel.Font = Enum.Font.GothamBold
-CountLabel.TextSize = 12
-CountLabel.TextColor3 = Color3.fromRGB(255,255,255)
-CountLabel.Parent = Navbar
-CountLabel.ZIndex = 12
-
--- debug: tampilkan 3 nama pertama untuk verifikasi
-local DebugLabel = Instance.new("TextLabel")
-DebugLabel.Size = UDim2.new(0, 200, 0, 20)
-DebugLabel.Position = UDim2.new(0, 15, 0, 15)
-DebugLabel.BackgroundTransparency = 1
-DebugLabel.Text = table.concat({names[1] or "-", names[2] or "-", names[3] or "-"}, ", ")
-DebugLabel.Font = Enum.Font.Gotham
-DebugLabel.TextSize = 11
-DebugLabel.TextColor3 = Color3.fromRGB(200,200,200)
-DebugLabel.Parent = Navbar
-DebugLabel.ZIndex = 12
-
-local order = 0
-for _, animationName in ipairs(names) do
-    local data = AnimationData[animationName]
-    if data then
-        order = order + 1
-        local button = createAnimationButton(animationName, data)
-        button.LayoutOrder = order
-        button.Parent = ListHost
-    end
-end
--- reset scroll position to top
-ScrollFrame.CanvasPosition = Vector2.new(0, 0)
--- recalc CanvasSize once more after population
-ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, math.max(UIListLayout.AbsoluteContentSize.Y + 10, 2500))
-task.delay(0.05, function()
-    ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, math.max(UIListLayout.AbsoluteContentSize.Y + 10, 2500))
-end)
 
 
