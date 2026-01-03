@@ -2106,24 +2106,6 @@ local TeleBtn = createButton("", "Teleport")
 local AnimasiBtn = createButton("", "Animasi")
 local AvatarBtn = createButton("", "Avatar")
 local FishBtn = createButton("", "Fish it")
-local EmoteBtn = createButton("", "Emote")
-EmoteBtn.Name = "EmoteBtn"
-
-EmoteBtn.MouseButton1Click:Connect(function()
-    local success, response = pcall(function()
-        return game:HttpGet("https://raw.githubusercontent.com/bochilascript/ROBLOX/refs/heads/main/emote.lua")
-    end)
-    if success and response then
-        local func, err = loadstring(response)
-        if func then 
-            func() 
-        else 
-            warn("Loadstring error: "..tostring(err)) 
-        end
-    else 
-        warn("HttpGet failed for Emote") 
-    end
-end)
 
 SpectatorBtn.MouseButton1Click:Connect(function()
     local success, response = pcall(function()
@@ -2244,14 +2226,13 @@ FishBtn.LayoutOrder = 18
 ClickTPBtn.LayoutOrder = 19
 FreeCamBtn.LayoutOrder = 21
 TPBox.LayoutOrder = 20
-EmoteBtn.LayoutOrder = 21
 
 -- A->Z sort all action buttons and place input boxes under their buttons
 do
     local btns = {
         AirwalkBtn, ESPBtn, ESPTeamBtn, LampBtn, JumpBtn, SpeedBtn, NoclipBtn, FlingBtn, FlyBtn,
         UnanchorBtn, BringPartBtn, AntiLagBtn, RecBtn, TeleBtn, SpectatorBtn,
-        AnimasiBtn, AvatarBtn, FishBtn, ClickTPBtn, FreeCamBtn, EmoteBtn
+        AnimasiBtn, AvatarBtn, FishBtn, ClickTPBtn, FreeCamBtn
     }
     local list = {}
     for _,b in ipairs(btns) do
