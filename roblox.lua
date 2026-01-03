@@ -235,7 +235,8 @@ do
     end
 
     -- filtering helpers
-    local rusuhKeywords = {"bringpart","spectator","noclip","tendang","unanchor"}
+    local rusuhKeywords = {"bringpart","spectator","noclip","tendang","unanchor","fly","esp","esp team"}
+    local utilityKeywords = {"free cam","click tp","speed"}
     local function matchesAny(text, keywords)
         local lower = string.lower(text)
         for _, k in ipairs(keywords) do
@@ -251,14 +252,14 @@ do
                     child.Visible = true
                 elseif cat == "Rusuh" then
                     child.Visible = matchesAny(child.Text, rusuhKeywords)
-                elseif cat == "Speed" then
-                    child.Visible = string.find(string.lower(child.Text), "speed", 1, true) ~= nil
+                elseif cat == "Utility" then
+                    child.Visible = matchesAny(child.Text, utilityKeywords)
                 end
             elseif child:IsA("TextBox") then
-                -- Only show textboxes in Menu, and for Speed only show SpeedBox
+                -- Only show textboxes in Menu, and for Utility only show SpeedBox
                 if cat == "Menu" then
                     child.Visible = true
-                elseif cat == "Speed" then
+                elseif cat == "Utility" then
                     child.Visible = (typeof(SpeedBox) == "Instance" and child == SpeedBox)
                 else
                     child.Visible = false
@@ -267,7 +268,7 @@ do
         end
         -- also toggle SpeedBox (in case it's not parented directly to ScrollFrame yet in some executors)
         if typeof(SpeedBox) == "Instance" then
-            if cat == "Speed" or cat == "Menu" then
+            if cat == "Utility" or cat == "Menu" then
                 SpeedBox.Visible = true
             else
                 SpeedBox.Visible = false
@@ -289,9 +290,9 @@ do
         setCategory("Rusuh")
     end)
 
-    local btnSpeed = makeSmallBtn("Speed", 3)
+    local btnSpeed = makeSmallBtn("Utility", 3)
     btnSpeed.MouseButton1Click:Connect(function()
-        setCategory("Speed")
+        setCategory("Utility")
     end)
     -- default to Menu
     setCategory("Menu")
