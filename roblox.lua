@@ -259,9 +259,10 @@ do
                     child.Visible = matchesAny(child.Text, utilityKeywords)
                 end
             elseif child:IsA("TextBox") then
-                -- Hide all textboxes in Menu and Rusuh; in Utility show only the three paired boxes
+                -- Hide all textboxes in Menu dan Rusuh; Utility: tampilkan tiga textbox pasangan
                 if cat == "Utility" then
-                    child.Visible = (child.Name == "TPBox" or child.Name == "FCBox" or child.Name == "SpeedBox")
+                    local isSpeed = (child.Name == "SpeedBox") or (string.lower(tostring(child.PlaceholderText)) == "speed")
+                    child.Visible = (child.Name == "TPBox" or child.Name == "FCBox" or isSpeed)
                 else
                     child.Visible = false
                 end
