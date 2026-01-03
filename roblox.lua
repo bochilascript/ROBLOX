@@ -151,23 +151,6 @@ SpeedBox.FocusLost:Connect(function()
     end
 end)
 
--- -- Emote (AssetId) button - opens the Emote UI script
--- local EmoteBtn = createButton("", "Emote (AssetId)")
--- EmoteBtn.LayoutOrder = 3
--- EmoteBtn.MouseButton1Click:Connect(function()
---     local src
---     if typeof(readfile) == "function" then
---         local ok, data = pcall(function() return readfile("emote.lua") end)
---         if ok and type(data) == "string" and #data > 0 then src = data end
---     end
---     if src then
---         local f, err = loadstring(src)
---         if f then f() else warn("Loadstring error (emote.lua): "..tostring(err)) end
---     else
---         warn("emote.lua tidak ditemukan di storage executor. Upload dulu atau minta saya hubungkan ke URL.")
---     end
--- end)
-
 ProfilePicture.Image = "rbxasset://textures/ui/avatar_placeholder.png"
 
 task.spawn(loadThumbnailWithFallbacks)
@@ -918,6 +901,32 @@ ESPTeamBtn.MouseButton1Click:Connect(function()
         ESPenabled = false
         ESPTeamMode = false
         stopESP()
+    end
+end)
+
+-- Emote (AssetId) button - opens the Emote UI script (Menu)
+local EmoteBtn = createButton("", "Emote (AssetId)")
+EmoteBtn.LayoutOrder = 3
+EmoteBtn.MouseButton1Click:Connect(function()
+    local src
+    -- Prefer remote latest version
+    local ok1, data1 = pcall(function()
+        return game:HttpGet("https://raw.githubusercontent.com/bochilascript/ROBLOX/refs/heads/main/emote.lua?v=" .. tostring(tick()))
+    end)
+    if ok1 and type(data1) == "string" and #data1 > 0 then
+        src = data1
+    else
+        -- fallback to local file if available
+        if typeof(readfile) == "function" then
+            local ok2, data2 = pcall(function() return readfile("emote.lua") end)
+            if ok2 and type(data2) == "string" and #data2 > 0 then src = data2 end
+        end
+    end
+    if src then
+        local f, err = loadstring(src)
+        if f then f() else warn("Loadstring error (emote.lua): "..tostring(err)) end
+    else
+        warn("Gagal memuat emote.lua dari URL maupun lokal.")
     end
 end)
 
