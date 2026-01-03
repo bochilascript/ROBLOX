@@ -2243,13 +2243,14 @@ FishBtn.LayoutOrder = 18
 ClickTPBtn.LayoutOrder = 19
 FreeCamBtn.LayoutOrder = 21
 TPBox.LayoutOrder = 20
+EmoteBtn.LayoutOrder = 21
 
 -- A->Z sort all action buttons and place input boxes under their buttons
 do
     local btns = {
         AirwalkBtn, ESPBtn, ESPTeamBtn, LampBtn, JumpBtn, SpeedBtn, NoclipBtn, FlingBtn, FlyBtn,
         UnanchorBtn, BringPartBtn, AntiLagBtn, RecBtn, TeleBtn, SpectatorBtn,
-        AnimasiBtn, AvatarBtn, FishBtn, ClickTPBtn, FreeCamBtn
+        AnimasiBtn, AvatarBtn, FishBtn, ClickTPBtn, FreeCamBtn, EmoteBtn
     }
     local list = {}
     for _,b in ipairs(btns) do
