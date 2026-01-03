@@ -1303,6 +1303,27 @@ local function setFreecam(state)
         -- match admin2 mapping
         freecamYaw, freecamPitch = ry, rx
         setButtonActive(FreeCamBtn, true)
+        -- connect RMB handlers to control mouse locking precisely
+        if rmbConnBegin then rmbConnBegin:Disconnect() rmbConnBegin = nil end
+        if rmbConnEnd then rmbConnEnd:Disconnect() rmbConnEnd = nil end
+        rmbConnBegin = UserInputService.InputBegan:Connect(function(input, gpe)
+            if gpe then return end
+            if input.UserInputType == Enum.UserInputType.MouseButton2 and freecamOn then
+                rmbDown = true
+                if prevMouseBehavior == nil then
+                    prevMouseBehavior = UserInputService.MouseBehavior
+                end
+                UserInputService.MouseBehavior = Enum.MouseBehavior.LockCurrentPosition
+            end
+        end)
+        rmbConnEnd = UserInputService.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton2 then
+                rmbDown = false
+                -- restore previous mouse behavior (or Default) when RMB is released
+                UserInputService.MouseBehavior = prevMouseBehavior or Enum.MouseBehavior.Default
+                prevMouseBehavior = nil
+            end
+        end)
         task.spawn(function()
             while freecamOn do
                 if not UserInputService:GetFocusedTextBox() then
@@ -1315,25 +1336,17 @@ local function setFreecam(state)
                     if UserInputService:IsKeyDown(Enum.KeyCode.E) then delta -= Vector3.new(0,1,0) end
                     freecamPos = freecamPos + (delta * freecamSpeed)
 
-                    if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+                    if rmbDown then
                         local md = UserInputService:GetMouseDelta()
-                        UserInputService.MouseBehavior = Enum.MouseBehavior.LockCurrentPosition
                         freecamYaw = freecamYaw - (md.X/300)
                         freecamPitch = math.clamp(freecamPitch - (md.Y/300), -math.rad(89), math.rad(89))
-                    else
-                        UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-                    end
-                end
-                -- Extra safety: if RMB not held, ensure mouse is not locked even when a TextBox is focused
-                if not UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-                    if UserInputService.MouseBehavior ~= Enum.MouseBehavior.Default then
-                        UserInputService.MouseBehavior = Enum.MouseBehavior.Default
                     end
                 end
                 cam.CFrame = CFrame.new(freecamPos) * CFrame.fromOrientation(freecamPitch, freecamYaw, 0)
                 RunService.RenderStepped:Wait()
             end
             cam.CameraType = Enum.CameraType.Custom
+            -- restore mouse behavior on exit
             UserInputService.MouseBehavior = Enum.MouseBehavior.Default
             if hrp then hrp.Anchored = false end
         end)
@@ -1342,6 +1355,11 @@ local function setFreecam(state)
         UserInputService.MouseBehavior = Enum.MouseBehavior.Default
         if hrp then hrp.Anchored = false end
         setButtonActive(FreeCamBtn, false)
+        -- clean up RMB handlers
+        if rmbConnBegin then rmbConnBegin:Disconnect() rmbConnBegin = nil end
+        if rmbConnEnd then rmbConnEnd:Disconnect() rmbConnEnd = nil end
+        rmbDown = false
+        prevMouseBehavior = nil
     end
 end
 
