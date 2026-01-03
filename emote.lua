@@ -1,5 +1,3 @@
--- Emote Bypass (AssetId)
--- UI mini: textbox AssetId + Play/Stop; hijau theme
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -76,10 +74,48 @@ contentHolder.Size = UDim2.new(1, 0, 1, -34)
 contentHolder.Position = UDim2.new(0, 0, 0, 34)
 contentHolder.Parent = frame
 
+-- status label (shows rig type / errors)
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1, -20, 0, 18)
+statusLabel.Position = UDim2.new(0, 10, 0, 6)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.TextSize = 12
+statusLabel.TextColor3 = Color3.fromRGB(180, 220, 200)
+statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+statusLabel.Text = ""
+statusLabel.Parent = contentHolder
+
+-- rig detection + status & Play availability
+local function updateRigStatus()
+    local char = player.Character or player.CharacterAdded:Wait()
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local rig = hum and hum.RigType or Enum.HumanoidRigType.R6
+    if rig == Enum.HumanoidRigType.R6 then
+        statusLabel.Text = "Rig: R6 (tidak didukung)"
+        btnPlay.Active = false
+        btnPlay.AutoButtonColor = false
+        btnPlay.BackgroundColor3 = Color3.fromRGB(60,60,60)
+        btnPlay.TextTransparency = 0.4
+    else
+        statusLabel.Text = "Rig: R15 (siap)"
+        btnPlay.Active = true
+        btnPlay.AutoButtonColor = true
+        btnPlay.BackgroundColor3 = Color3.fromRGB(0,120,90)
+        btnPlay.TextTransparency = 0
+    end
+end
+
+task.defer(updateRigStatus)
+player.CharacterAdded:Connect(function()
+    task.wait(0.2)
+    updateRigStatus()
+end)
+
 local input = Instance.new("TextBox")
 input.Name = "AssetBox"
 input.Size = UDim2.new(1, -20, 0, 32)
-input.Position = UDim2.new(0, 10, 0, 6)
+input.Position = UDim2.new(0, 10, 0, 24)
 input.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 input.BackgroundTransparency = 0.1
 input.PlaceholderText = "Enter Animation AssetId (e.g. 507776043)"
@@ -96,7 +132,7 @@ s1.Thickness = 1.5
 
 local btnPlay = Instance.new("TextButton")
 btnPlay.Size = UDim2.new(0.48, -10, 0, 32)
-btnPlay.Position = UDim2.new(0, 10, 0, 48)
+btnPlay.Position = UDim2.new(0, 10, 0, 66)
 btnPlay.BackgroundColor3 = Color3.fromRGB(0, 120, 90)
 btnPlay.Text = "Play"
 btnPlay.Font = Enum.Font.GothamBold
@@ -107,7 +143,7 @@ Instance.new("UICorner", btnPlay).CornerRadius = UDim.new(0,8)
 
 local btnStop = Instance.new("TextButton")
 btnStop.Size = UDim2.new(0.48, -10, 0, 32)
-btnStop.Position = UDim2.new(1, -10, 0, 48)
+btnStop.Position = UDim2.new(1, -10, 0, 66)
 btnStop.AnchorPoint = Vector2.new(1,0)
 btnStop.BackgroundColor3 = Color3.fromRGB(150, 60, 60)
 btnStop.Text = "Stop"
@@ -140,6 +176,12 @@ local function stopEmote()
         end)
         currentTrack = nil
     end
+    -- re-enable default Animate if it was disabled
+    local char = player.Character
+    if char then
+        local animate = char:FindFirstChild("Animate")
+        if animate then pcall(function() animate.Disabled = false end) end
+    end
 end
 
 btnPlay.MouseButton1Click:Connect(function()
@@ -154,6 +196,10 @@ btnPlay.MouseButton1Click:Connect(function()
     stopEmote()
     local hum, animator = getAnimator()
     if not hum or not animator then return end
+    if hum.RigType == Enum.HumanoidRigType.R6 then
+        statusLabel.Text = "Rig: R6 tidak didukung untuk emote"
+        return
+    end
 
     local anim = Instance.new("Animation")
     anim.AnimationId = "rbxassetid://" .. tostring(id)
@@ -170,7 +216,13 @@ btnPlay.MouseButton1Click:Connect(function()
         currentTrack = track
         track.Priority = Enum.AnimationPriority.Action4
         track.Looped = true
-        track:Play(0.1)
+        pcall(function()
+            track:Play(0.1, 1, 1)
+            track:AdjustSpeed(1)
+        end)
+        -- disable default Animate to prevent overriding our emote
+        local animate = hum.Parent:FindFirstChild("Animate")
+        if animate then pcall(function() animate.Disabled = true end) end
     else
         warn("[Emote] Gagal memuat anim: " .. tostring(id))
     end
@@ -204,7 +256,7 @@ local EmoteList = {
 
 local listLabel = Instance.new("TextLabel")
 listLabel.Size = UDim2.new(1, -20, 0, 22)
-listLabel.Position = UDim2.new(0, 10, 0, 88)
+listLabel.Position = UDim2.new(0, 10, 0, 106)
 listLabel.BackgroundTransparency = 1
 listLabel.Font = Enum.Font.GothamBold
 listLabel.TextSize = 13
@@ -215,7 +267,7 @@ listLabel.Parent = contentHolder
 
 local Scroll = Instance.new("ScrollingFrame")
 Scroll.Size = UDim2.new(1, -20, 1, -150)
-Scroll.Position = UDim2.new(0, 10, 0, 118)
+Scroll.Position = UDim2.new(0, 10, 0, 136)
 Scroll.BackgroundTransparency = 1
 Scroll.ScrollBarThickness = 6
 Scroll.ScrollBarImageColor3 = Color3.fromRGB(0, 220, 130)
@@ -272,4 +324,17 @@ uis.InputBegan:Connect(function(io, gpe)
     if io.KeyCode == Enum.KeyCode.RightShift then
         gui.Enabled = not gui.Enabled
     end
+end)
+
+-- Minimize & Close handlers
+local minimized = false
+btnMin.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    contentHolder.Visible = not minimized
+    local target = minimized and UDim2.new(0, 320, 0, 40) or UDim2.new(0, 320, 0, 360)
+    TweenService:Create(frame, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = target}):Play()
+end)
+
+btnClose.MouseButton1Click:Connect(function()
+    gui:Destroy()
 end)
