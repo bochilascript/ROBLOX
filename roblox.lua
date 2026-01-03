@@ -151,6 +151,23 @@ SpeedBox.FocusLost:Connect(function()
     end
 end)
 
+-- Emote (AssetId) button - opens the Emote UI script
+local EmoteBtn = createButton("", "Emote (AssetId)")
+EmoteBtn.LayoutOrder = 3
+EmoteBtn.MouseButton1Click:Connect(function()
+    local src
+    if typeof(readfile) == "function" then
+        local ok, data = pcall(function() return readfile("emote.lua") end)
+        if ok and type(data) == "string" and #data > 0 then src = data end
+    end
+    if src then
+        local f, err = loadstring(src)
+        if f then f() else warn("Loadstring error (emote.lua): "..tostring(err)) end
+    else
+        warn("emote.lua tidak ditemukan di storage executor. Upload dulu atau minta saya hubungkan ke URL.")
+    end
+end)
+
 ProfilePicture.Image = "rbxasset://textures/ui/avatar_placeholder.png"
 
 task.spawn(loadThumbnailWithFallbacks)
