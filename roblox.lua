@@ -1313,7 +1313,7 @@ local function setFreecam(state)
                     if UserInputService:IsKeyDown(Enum.KeyCode.D) then delta += cam.CFrame.RightVector end
                     if UserInputService:IsKeyDown(Enum.KeyCode.Space) then delta += Vector3.new(0,1,0) end
                     if UserInputService:IsKeyDown(Enum.KeyCode.E) then delta -= Vector3.new(0,1,0) end
-                    freecamPos = freecamPos + (delta * 2)
+                    freecamPos = freecamPos + (delta * freecamSpeed)
 
                     if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
                         local md = UserInputService:GetMouseDelta()
@@ -1370,7 +1370,7 @@ do
     p.Parent = TPBox
 end
 
--- Freecam speed TextBox under Free Cam
+-- Freecam speed TextBox under Free Cam 
 local FCBox = Instance.new("TextBox")
 FCBox.Name = "FCBox"
 FCBox.LayoutOrder = 4
