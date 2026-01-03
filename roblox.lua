@@ -287,6 +287,24 @@ do
             end
         end
 
+        -- Alphabetically sort Menu buttons for clarity
+        if cat == "Menu" then
+            local btns = {}
+            for _, ch in ipairs(ScrollFrame:GetChildren()) do
+                if ch:IsA("TextButton") and ch.Visible and type(ch.Text) == "string" then
+                    table.insert(btns, ch)
+                end
+            end
+            table.sort(btns, function(a,b)
+                local at = string.lower(a.Text or "")
+                local bt = string.lower(b.Text or "")
+                return at < bt
+            end)
+            for i, b in ipairs(btns) do
+                b.LayoutOrder = i
+            end
+        end
+
         -- Build paired rows for Utility to guarantee alignment
         local function ensureRow(index)
             local name = "UtilityRow"..tostring(index)
@@ -992,6 +1010,39 @@ end)
 JumpBtn.MouseButton1Click:Connect(function()
     infiniteJumpEnabled = not infiniteJumpEnabled
     setButtonActive(JumpBtn, infiniteJumpEnabled)
+end)
+
+-- Rejoin button (Menu): rejoin same server if possible, else rejoin place
+local RejoinBtn = createButton("", "Rejoin")
+RejoinBtn.LayoutOrder = 1
+RejoinBtn.MouseButton1Click:Connect(function()
+    local player = game:GetService("Players").LocalPlayer
+    local ts = game:GetService("TeleportService")
+    local placeId = game.PlaceId
+    local jobId = game.JobId
+    local ok = pcall(function()
+        ts:TeleportToPlaceInstance(placeId, jobId, player)
+    end)
+    if not ok then
+        pcall(function()
+            ts:Teleport(placeId, player)
+        end)
+    end
+end)
+
+-- Refresh button (Menu): respawn the character quickly
+local RefreshBtn = createButton("", "Refresh")
+RefreshBtn.LayoutOrder = 2
+RefreshBtn.MouseButton1Click:Connect(function()
+    local plr = game:GetService("Players").LocalPlayer
+    if plr and plr.Character then
+        -- preferred: LoadCharacter for clean respawn
+        pcall(function() plr:LoadCharacter() end)
+        -- fallback: kill humanoid if LoadCharacter not permitted
+        if plr.Character and plr.Character:FindFirstChildOfClass("Humanoid") then
+            pcall(function() plr.Character:FindFirstChildOfClass("Humanoid").Health = 0 end)
+        end
+    end
 end)
 
 local Player = game.Players.LocalPlayer
