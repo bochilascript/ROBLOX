@@ -235,7 +235,7 @@ do
     end
 
     -- filtering helpers
-    local rusuhKeywords = {"bringpart","spectator","noclip"}
+    local rusuhKeywords = {"bringpart","spectator","noclip","tendang","unanchor"}
     local function matchesAny(text, keywords)
         local lower = string.lower(text)
         for _, k in ipairs(keywords) do
@@ -254,13 +254,20 @@ do
                 elseif cat == "Speed" then
                     child.Visible = string.find(string.lower(child.Text), "speed", 1, true) ~= nil
                 end
+            elseif child:IsA("TextBox") then
+                -- Only show textboxes in Menu, and for Speed only show SpeedBox
+                if cat == "Menu" then
+                    child.Visible = true
+                elseif cat == "Speed" then
+                    child.Visible = (typeof(SpeedBox) == "Instance" and child == SpeedBox)
+                else
+                    child.Visible = false
+                end
             end
         end
-        -- also toggle SpeedBox
+        -- also toggle SpeedBox (in case it's not parented directly to ScrollFrame yet in some executors)
         if typeof(SpeedBox) == "Instance" then
-            if cat == "Speed" then
-                SpeedBox.Visible = true
-            elseif cat == "Menu" then
+            if cat == "Speed" or cat == "Menu" then
                 SpeedBox.Visible = true
             else
                 SpeedBox.Visible = false
