@@ -1814,7 +1814,7 @@ end)
 
 AnimasiBtn.MouseButton1Click:Connect(function()
     local success, response = pcall(function()
-        return game:HttpGet("https://pastebin.com/raw/Z0ADVYFS")
+        return game:HttpGet("https://raw.githubusercontent.com/bochilascript/ROBLOX/refs/heads/main/animasi.lua")
     end)
     if success and response then
         local func, err = loadstring(response)
