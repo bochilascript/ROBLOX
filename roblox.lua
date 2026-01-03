@@ -15,8 +15,8 @@ LightingContainer.BackgroundTransparency = 1
 LightingContainer.Parent = ScreenGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 500, 0, 280)
-MainFrame.Position = UDim2.new(0.5, -250, 0.5, -140)
+MainFrame.Size = UDim2.new(0, 560, 0, 320)
+MainFrame.Position = UDim2.new(0.5, -280, 0.5, -160)
 MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 30)
 MainFrame.BackgroundTransparency = 0.1
 MainFrame.Active = true
@@ -51,7 +51,7 @@ Container.BackgroundTransparency = 1
 Container.Parent = MainFrame
 
 local ProfileFrame = Instance.new("Frame")
-ProfileFrame.Size = UDim2.new(0, 150, 1, -2)
+ProfileFrame.Size = UDim2.new(0, 170, 1, -2)
 ProfileFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 ProfileFrame.BackgroundTransparency = 0
 ProfileFrame.Parent = Container
@@ -155,7 +155,7 @@ task.delay(3, loadThumbnailWithFallbacks)
 
 local Divider = Instance.new("Frame")
 Divider.Size = UDim2.new(0, 2, 1, 0)
-Divider.Position = UDim2.new(0, 150, 0, 0)
+Divider.Position = UDim2.new(0, 170, 0, 0)
 Divider.BackgroundColor3 = Color3.fromRGB(0, 220, 130)
 Divider.BackgroundTransparency = 0
 Divider.BorderSizePixel = 0
@@ -166,8 +166,8 @@ dividerCorner.CornerRadius = UDim.new(1, 0)
 dividerCorner.Parent = Divider
 
 local ButtonsFrame = Instance.new("Frame")
-ButtonsFrame.Size = UDim2.new(1, -160, 1, 0)
-ButtonsFrame.Position = UDim2.new(0, 160, 0, 10)
+ButtonsFrame.Size = UDim2.new(1, -180, 1, 0)
+ButtonsFrame.Position = UDim2.new(0, 180, 0, 10)
 ButtonsFrame.BackgroundTransparency = 1
 ButtonsFrame.ClipsDescendants = true
 ButtonsFrame.Parent = Container
@@ -181,6 +181,73 @@ ScrollFrame.ScrollBarImageTransparency = 0.5
 ScrollFrame.ScrollingDirection = Enum.ScrollingDirection.Y
 ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 ScrollFrame.Parent = ButtonsFrame
+
+-- Left quick panel under profile picture
+do
+    local QuickPanel = Instance.new("Frame")
+    QuickPanel.Name = "QuickPanel"
+    QuickPanel.Size = UDim2.new(1, -10, 0, 110)
+    QuickPanel.Position = UDim2.new(0, 5, 1, -120)
+    QuickPanel.BackgroundTransparency = 1
+    QuickPanel.Parent = ProfileContent
+
+    local function makeSmallBtn(text, order)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1, 0, 0, 28)
+        btn.Position = UDim2.new(0, 0, 0, (order-1)*34)
+        btn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        btn.BackgroundTransparency = 0.1
+        btn.Text = text
+        btn.TextSize = 13
+        btn.Font = Enum.Font.GothamBold
+        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        btn.Parent = QuickPanel
+
+        local c = Instance.new("UICorner")
+        c.CornerRadius = UDim.new(0, 8)
+        c.Parent = btn
+
+        local s = Instance.new("UIStroke")
+        s.Color = Color3.fromRGB(0, 130, 80)
+        s.Thickness = 1.5
+        s.Parent = btn
+
+        btn.MouseEnter:Connect(function()
+            TweenService:Create(s, TweenInfo.new(0.15), {Color = Color3.fromRGB(0, 200, 120)}):Play()
+        end)
+        btn.MouseLeave:Connect(function()
+            TweenService:Create(s, TweenInfo.new(0.15), {Color = Color3.fromRGB(0, 130, 80)}):Play()
+        end)
+        return btn
+    end
+
+    local function scrollToLabel(labelText)
+        if not ScrollFrame or not ScrollFrame:FindFirstChildOfClass("UIGridLayout") then return end
+        for _, child in ipairs(ScrollFrame:GetChildren()) do
+            if child:IsA("TextButton") and string.find(string.lower(child.Text), string.lower(labelText), 1, true) then
+                task.wait() -- ensure AbsolutePosition is ready
+                local targetY = child.AbsolutePosition.Y - ScrollFrame.AbsolutePosition.Y + ScrollFrame.CanvasPosition.Y - 10
+                ScrollFrame.CanvasPosition = Vector2.new(0, math.max(targetY, 0))
+                break
+            end
+        end
+    end
+
+    local btnMenu = makeSmallBtn("Menu", 1)
+    btnMenu.MouseButton1Click:Connect(function()
+        ScrollFrame.CanvasPosition = Vector2.new(0, 0)
+    end)
+
+    local btnRusuh = makeSmallBtn("Rusuh", 2)
+    btnRusuh.MouseButton1Click:Connect(function()
+        scrollToLabel("Tendang")
+    end)
+
+    local btnSpeed = makeSmallBtn("Speed", 3)
+    btnSpeed.MouseButton1Click:Connect(function()
+        scrollToLabel("Speed")
+    end)
+end
 
 local ButtonGrid = Instance.new("UIGridLayout")
 ButtonGrid.CellSize = UDim2.new(0, 150, 0, 35)
