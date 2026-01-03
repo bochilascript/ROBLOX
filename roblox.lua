@@ -185,6 +185,25 @@ ScrollFrame.ScrollingDirection = Enum.ScrollingDirection.Y
 ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 ScrollFrame.Parent = ButtonsFrame
 
+-- Dedicated Utility container (2 columns) to keep pairs aligned
+local UtilityFrame = Instance.new("Frame")
+UtilityFrame.Name = "UtilityFrame"
+UtilityFrame.Size = UDim2.new(1, 0, 1, 0)
+UtilityFrame.Visible = false
+UtilityFrame.BackgroundTransparency = 1
+UtilityFrame.Parent = ButtonsFrame
+
+local UtilityGrid = Instance.new("UIGridLayout")
+UtilityGrid.CellSize = UDim2.new(0, 150, 0, 35)
+UtilityGrid.CellPadding = UDim2.new(0, 8, 0, 8)
+UtilityGrid.FillDirection = Enum.FillDirection.Horizontal
+UtilityGrid.FillDirectionMaxCells = 2
+UtilityGrid.SortOrder = Enum.SortOrder.LayoutOrder
+UtilityGrid.StartCorner = Enum.StartCorner.TopLeft
+UtilityGrid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+UtilityGrid.VerticalAlignment = Enum.VerticalAlignment.Top
+UtilityGrid.Parent = UtilityFrame
+
 -- Left quick panel under profile picture
 do
     local QuickPanel = Instance.new("Frame")
@@ -256,13 +275,12 @@ do
                 elseif cat == "Rusuh" then
                     child.Visible = matchesAny(child.Text, rusuhKeywords)
                 elseif cat == "Utility" then
-                    child.Visible = matchesAny(child.Text, utilityKeywords)
+                    child.Visible = false
                 end
             elseif child:IsA("TextBox") then
                 -- Hide all textboxes in Menu dan Rusuh; Utility: tampilkan tiga textbox pasangan
                 if cat == "Utility" then
-                    local isSpeed = (child.Name == "SpeedBox") or (string.lower(tostring(child.PlaceholderText)) == "speed")
-                    child.Visible = (child.Name == "TPBox" or child.Name == "FCBox" or isSpeed)
+                    child.Visible = false
                 else
                     child.Visible = false
                 end
@@ -291,6 +309,9 @@ do
         end
 
         if cat == "Utility" then
+            -- Show UtilityFrame and hide ScrollFrame
+            ScrollFrame.Visible = false
+            UtilityFrame.Visible = true
             local function findBtn(txt)
                 local needle = string.lower(txt)
                 for _, ch in ipairs(ScrollFrame:GetChildren()) do
@@ -300,47 +321,45 @@ do
                 end
                 return nil
             end
-            local clickBtn = findBtn("Click TP")
-            local tpBox   = ScrollFrame:FindFirstChild("TPBox")
-            local freeBtn = findBtn("Free Cam")
-            local fcBox   = ScrollFrame:FindFirstChild("FCBox")
-            local spdBtn  = findBtn("Speed")
-            local spdBox  = ScrollFrame:FindFirstChild("SpeedBox")
+            -- Prefer finding by Name to be robust
+            local clickBtn = UtilityFrame:FindFirstChild("ClickTPBtn") or ScrollFrame:FindFirstChild("ClickTPBtn") or findBtn("Click TP")
+            local tpBox    = UtilityFrame:FindFirstChild("TPBox")     or ScrollFrame:FindFirstChild("TPBox")
+            local freeBtn  = UtilityFrame:FindFirstChild("FreeCamBtn") or ScrollFrame:FindFirstChild("FreeCamBtn") or findBtn("Free Cam")
+            local fcBox    = UtilityFrame:FindFirstChild("FCBox")      or ScrollFrame:FindFirstChild("FCBox")
+            local spdBtn   = UtilityFrame:FindFirstChild("SpeedBtn")   or ScrollFrame:FindFirstChild("SpeedBtn") or findBtn("Speed")
+            local spdBox   = UtilityFrame:FindFirstChild("SpeedBox")   or ScrollFrame:FindFirstChild("SpeedBox")
             if not spdBox then
                 for _, ch in ipairs(ScrollFrame:GetChildren()) do
                     if ch:IsA("TextBox") and string.lower(tostring(ch.PlaceholderText)) == "speed" then spdBox = ch break end
                 end
             end
 
-            local row1, row2, row3 = ensureRow(1), ensureRow(2), ensureRow(3)
-            row1.Visible, row2.Visible, row3.Visible = true, true, true
-            row1.LayoutOrder, row2.LayoutOrder, row3.LayoutOrder = 1, 2, 3
-
-            local function move(child, parent)
-                if child then child.Parent = parent child.Visible = true end
+            local function moveToUtil(child, order)
+                if child then child.Parent = UtilityFrame child.Visible = true child.LayoutOrder = order end
             end
-            -- pairings
-            move(clickBtn, row1); move(tpBox, row1)
-            move(freeBtn, row2);  move(fcBox, row2)
-            move(spdBtn, row3);   move(spdBox, row3)
-
-            -- hide all other direct children except the rows
-            for _, ch in ipairs(ScrollFrame:GetChildren()) do
-                if ch ~= row1 and ch ~= row2 and ch ~= row3 then
-                    if ch:IsA("Frame") and string.sub(ch.Name,1,10) == "UtilityRow" then
-                        -- keep visible
-                    else
-                        ch.Visible = false
-                    end
-                end
-            end
+            moveToUtil(clickBtn, 1); moveToUtil(tpBox, 2)
+            moveToUtil(freeBtn, 3);  moveToUtil(fcBox, 4)
+            moveToUtil(spdBtn, 5);   moveToUtil(spdBox, 6)
         else
-            -- hide rows when leaving Utility
-            for _, ch in ipairs(ScrollFrame:GetChildren()) do
-                if ch:IsA("Frame") and string.sub(ch.Name,1,10) == "UtilityRow" then
-                    ch.Visible = false
+            -- Leaving Utility: move items back to ScrollFrame and hide UtilityFrame
+            if UtilityFrame.Visible then
+                local function restore(nameOrBtn)
+                    local inst
+                    if type(nameOrBtn) == "string" then
+                        inst = UtilityFrame:FindFirstChild(nameOrBtn)
+                    else
+                        inst = nameOrBtn
+                    end
+                    if inst then inst.Parent = ScrollFrame inst.Visible = false end
+                end
+                restore("TPBox"); restore("FCBox"); restore("SpeedBox")
+                -- buttons may not have unique names; find by text
+                for _, ch in ipairs(UtilityFrame:GetChildren()) do
+                    if ch:IsA("TextButton") then ch.Parent = ScrollFrame ch.Visible = false end
                 end
             end
+            UtilityFrame.Visible = false
+            ScrollFrame.Visible = true
         end
         -- enforce Utility ordering so each button is beside its textbox
         if cat == "Utility" then
