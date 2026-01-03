@@ -27,7 +27,7 @@ mainCorner.Parent = MainFrame
 
 -- BORDER BIRU HANYA DI MENU UTAMA
 local mainBorder = Instance.new("UIStroke")
-mainBorder.Color = Color3.fromRGB(0, 150, 255)
+mainBorder.Color = Color3.fromRGB(0, 220, 130)
 mainBorder.Thickness = 3
 mainBorder.Parent = MainFrame
 
@@ -35,8 +35,8 @@ mainBorder.Parent = MainFrame
 local uiGradient = Instance.new("UIGradient")
 uiGradient.Color = ColorSequence.new{
     ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)),
-    ColorSequenceKeypoint.new(0.3, Color3.fromRGB(0, 40, 80)),
-    ColorSequenceKeypoint.new(0.7, Color3.fromRGB(0, 80, 160)),
+    ColorSequenceKeypoint.new(0.3, Color3.fromRGB(0, 40, 30)),
+    ColorSequenceKeypoint.new(0.7, Color3.fromRGB(0, 100, 70)),
     ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 0))
 }
 uiGradient.Rotation = 45
@@ -49,7 +49,7 @@ shadow.Size = UDim2.new(1, 20, 1, 20)
 shadow.Position = UDim2.new(0, -10, 0, -10)
 shadow.BackgroundTransparency = 1
 shadow.Image = "rbxassetid://1316045217"
-shadow.ImageColor3 = Color3.fromRGB(0, 50, 100)
+shadow.ImageColor3 = Color3.fromRGB(0, 120, 80)
 shadow.ImageTransparency = 0.7
 shadow.ScaleType = Enum.ScaleType.Slice
 shadow.SliceCenter = Rect.new(10, 10, 118, 118)
@@ -70,9 +70,9 @@ navCorner.Parent = Navbar
 -- Navbar Gradient biru terang
 local navGradient = Instance.new("UIGradient")
 navGradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 120, 240)),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 80, 180)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 40, 100))
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 200, 120)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 130, 80)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 60, 40))
 }
 navGradient.Rotation = 90
 navGradient.Parent = Navbar
@@ -82,7 +82,7 @@ local TitleLabel = Instance.new("TextLabel")
 TitleLabel.Size = UDim2.new(1, -60, 1, 0)
 TitleLabel.Position = UDim2.new(0, 15, 0, 0)
 TitleLabel.BackgroundTransparency = 1
-TitleLabel.Text = "MANN ANIMASI"
+TitleLabel.Text = "JSY ANIMASI"
 TitleLabel.Font = Enum.Font.GothamBlack
 TitleLabel.TextSize = 16
 TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -93,7 +93,7 @@ TitleLabel.Parent = Navbar
 local MinimizeBtn = Instance.new("TextButton")
 MinimizeBtn.Size = UDim2.new(0, 30, 0, 30)
 MinimizeBtn.Position = UDim2.new(0.95, -65, 0.5, -15)
-MinimizeBtn.BackgroundColor3 = Color3.fromRGB(0, 140, 255)
+MinimizeBtn.BackgroundColor3 = Color3.fromRGB(0, 130, 80)
 MinimizeBtn.Text = "-"
 MinimizeBtn.Font = Enum.Font.GothamBold
 MinimizeBtn.TextSize = 18
@@ -108,7 +108,7 @@ minimizeCorner.Parent = MinimizeBtn
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 30, 0, 30)
 CloseBtn.Position = UDim2.new(0.95, -30, 0.5, -15)
-CloseBtn.BackgroundColor3 = Color3.fromRGB(0, 140, 255)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
 CloseBtn.Text = "X"
 CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.TextSize = 14
@@ -125,7 +125,7 @@ ScrollFrame.Size = UDim2.new(1, -10, 1, -70)
 ScrollFrame.Position = UDim2.new(0, 5, 0, 60)
 ScrollFrame.BackgroundTransparency = 1
 ScrollFrame.ScrollBarThickness = 6
-ScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 140, 255)
+ScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 220, 130)
 ScrollFrame.ScrollingDirection = Enum.ScrollingDirection.Y
 ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 ScrollFrame.Parent = MainFrame
@@ -157,7 +157,7 @@ miniCorner.CornerRadius = UDim.new(0, 12) -- Sudut membulat
 miniCorner.Parent = MiniFrame
 
 local miniStroke = Instance.new("UIStroke")
-miniStroke.Color = Color3.fromRGB(0, 191, 255) -- Biru
+miniStroke.Color = Color3.fromRGB(0, 220, 130) -- Biru
 miniStroke.Thickness = 1.5
 miniStroke.Parent = MiniFrame
 
@@ -623,7 +623,7 @@ local function resetButtonToNormal(buttonContainer)
         end
         
         TweenService:Create(button, TweenInfo.new(0.3), {
-            BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+            BackgroundColor3 = Color3.fromRGB(0, 100, 80)
         }):Play()
         
         TweenService:Create(button, TweenInfo.new(0.3), {
@@ -669,6 +669,7 @@ local function createAnimationButton(animationName, animationData)
     button.Size = UDim2.new(1, 0, 1, 0)
     button.Position = UDim2.new(0, 0, 0, 0)
     button.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+    button.BackgroundColor3 = Color3.fromRGB(0, 100, 80)
     button.Text = animationName
     button.TextColor3 = Color3.fromRGB(255, 255, 255)
     button.TextSize = 12
@@ -683,10 +684,10 @@ local function createAnimationButton(animationName, animationData)
     -- GRADIENT untuk tombol
     local buttonGradient = Instance.new("UIGradient")
     buttonGradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 80, 180)),
-        ColorSequenceKeypoint.new(0.3, Color3.fromRGB(0, 140, 255)),
-        ColorSequenceKeypoint.new(0.7, Color3.fromRGB(0, 140, 255)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 80, 180))
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 100, 80)),
+        ColorSequenceKeypoint.new(0.3, Color3.fromRGB(0, 160, 120)),
+        ColorSequenceKeypoint.new(0.7, Color3.fromRGB(0, 160, 120)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 100, 80))
     })
     buttonGradient.Rotation = 90
     buttonGradient.Parent = button
@@ -698,7 +699,7 @@ local function createAnimationButton(animationName, animationData)
     buttonShadow.Position = UDim2.new(0, -4, 0, -4)
     buttonShadow.BackgroundTransparency = 1
     buttonShadow.Image = "rbxassetid://1316045217"
-    buttonShadow.ImageColor3 = Color3.fromRGB(0, 90, 180)
+    buttonShadow.ImageColor3 = Color3.fromRGB(0, 150, 100)
     buttonShadow.ImageTransparency = 0.7
     buttonShadow.ScaleType = Enum.ScaleType.Slice
     buttonShadow.SliceCenter = Rect.new(10, 10, 118, 118)
@@ -709,7 +710,7 @@ local function createAnimationButton(animationName, animationData)
     button.MouseEnter:Connect(function()
         if activeButton ~= buttonContainer then
             TweenService:Create(button, TweenInfo.new(0.2), {
-                BackgroundColor3 = Color3.fromRGB(0, 120, 240)
+                BackgroundColor3 = Color3.fromRGB(0, 130, 100)
             }):Play()
             TweenService:Create(buttonGradient, TweenInfo.new(0.2), {
                 Rotation = 45
@@ -720,7 +721,7 @@ local function createAnimationButton(animationName, animationData)
     button.MouseLeave:Connect(function()
         if activeButton ~= buttonContainer then
             TweenService:Create(button, TweenInfo.new(0.2), {
-                BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+                BackgroundColor3 = Color3.fromRGB(0, 100, 80)
             }):Play()
             TweenService:Create(buttonGradient, TweenInfo.new(0.2), {
                 Rotation = 90
@@ -756,7 +757,7 @@ local function createAnimationButton(animationName, animationData)
                 buttonGradient.Enabled = false
                 
                 TweenService:Create(button, TweenInfo.new(0.3), {
-                    BackgroundColor3 = Color3.fromRGB(0, 180, 255)
+                    BackgroundColor3 = Color3.fromRGB(0, 200, 120)
                 }):Play()
                 
                 TweenService:Create(button, TweenInfo.new(0.3), {
