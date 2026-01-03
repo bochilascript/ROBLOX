@@ -1274,9 +1274,6 @@ local freecamOn = false
 local freecamYaw, freecamPitch = 0, 0
 local freecamPos
 local freecamSpeed = 2
-local prevMouseBehavior -- remembers previous mouse behavior while RMB rotating
-local rmbDown = false
-local rmbConnBegin, rmbConnEnd, mouseMoveConn
 
 -- access Roblox PlayerModule controls for clean movement disable/enable
 local controls
@@ -1296,87 +1293,61 @@ local function setFreecam(state)
     local char = player.Character or player.CharacterAdded:Wait()
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if freecamOn then
-        if hrp then hrp.Anchored = true end
+        -- Do NOT anchor HRP; anchoring stops vehicles. Leave character physics intact.
         cam.CameraType = Enum.CameraType.Scriptable
         freecamPos = cam.CFrame.Position
         local rx, ry = cam.CFrame:ToOrientation()
-        -- match admin2 mapping
-        freecamYaw, freecamPitch = ry, rx
+        freecamPitch, freecamYaw = rx, ry
         setButtonActive(FreeCamBtn, true)
-        -- connect RMB handlers to control mouse locking precisely
-        if rmbConnBegin then rmbConnBegin:Disconnect() rmbConnBegin = nil end
-        if rmbConnEnd then rmbConnEnd:Disconnect() rmbConnEnd = nil end
-        rmbConnBegin = UserInputService.InputBegan:Connect(function(input, gpe)
-            if gpe then return end
-            if input.UserInputType == Enum.UserInputType.MouseButton2 and freecamOn then
-                rmbDown = true
-                if prevMouseBehavior == nil then
-                    prevMouseBehavior = UserInputService.MouseBehavior
-                end
-                UserInputService.MouseBehavior = Enum.MouseBehavior.LockCurrentPosition
-            end
-        end)
-        rmbConnEnd = UserInputService.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton2 then
-                rmbDown = false
-                -- restore previous mouse behavior (or Default) when RMB is released
-                UserInputService.MouseBehavior = prevMouseBehavior or Enum.MouseBehavior.Default
-                prevMouseBehavior = nil
-            end
-        end)
         task.spawn(function()
             while freecamOn do
                 if not UserInputService:GetFocusedTextBox() then
                     local delta = Vector3.new()
-                    if UserInputService:IsKeyDown(Enum.KeyCode.W) then delta += cam.CFrame.LookVector end
-                    if UserInputService:IsKeyDown(Enum.KeyCode.S) then delta -= cam.CFrame.LookVector end
-                    if UserInputService:IsKeyDown(Enum.KeyCode.A) then delta -= cam.CFrame.RightVector end
-                    if UserInputService:IsKeyDown(Enum.KeyCode.D) then delta += cam.CFrame.RightVector end
+                    local hum = (game:GetService("Players").LocalPlayer.Character and game:GetService("Players").LocalPlayer.Character:FindFirstChildOfClass("Humanoid"))
+                    local seated = (hum and hum.Sit) or false
+                    -- disable character controls when freecam and not seated, enable when seated
+                    if controls then
+                        if seated then controls:Enable() else controls:Disable() end
+                    end
+                    local shiftHeld = UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) or UserInputService:IsKeyDown(Enum.KeyCode.RightShift)
+                    -- Normal: WASD moves camera. Seated: WASD is passed to vehicle; hold Shift+WASD to move camera.
+                    local allowCamWASD = (not seated) or (seated and shiftHeld)
+                    if allowCamWASD then
+                        if UserInputService:IsKeyDown(Enum.KeyCode.W) then delta += cam.CFrame.LookVector end
+                        if UserInputService:IsKeyDown(Enum.KeyCode.S) then delta -= cam.CFrame.LookVector end
+                        if UserInputService:IsKeyDown(Enum.KeyCode.A) then delta -= cam.CFrame.RightVector end
+                        if UserInputService:IsKeyDown(Enum.KeyCode.D) then delta += cam.CFrame.RightVector end
+                    end
                     if UserInputService:IsKeyDown(Enum.KeyCode.Space) then delta += Vector3.new(0,1,0) end
                     if UserInputService:IsKeyDown(Enum.KeyCode.E) then delta -= Vector3.new(0,1,0) end
-                    freecamPos = freecamPos + (delta * freecamSpeed)
-
-                    if rmbDown then
+                    freecamPos += delta * freecamSpeed
+                    -- Rotate with RMB; when seated, briefly lock cursor to capture delta reliably
+                    local rmb = UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
+                    if rmb then
+                        if seated then UserInputService.MouseBehavior = Enum.MouseBehavior.LockCurrentPosition end
                         local md = UserInputService:GetMouseDelta()
                         freecamYaw = freecamYaw - (md.X/300)
                         freecamPitch = math.clamp(freecamPitch - (md.Y/300), -math.rad(89), math.rad(89))
+                    else
+                        if seated then UserInputService.MouseBehavior = Enum.MouseBehavior.Default end
                     end
                 end
                 cam.CFrame = CFrame.new(freecamPos) * CFrame.fromOrientation(freecamPitch, freecamYaw, 0)
                 RunService.RenderStepped:Wait()
             end
-            cam.CameraType = Enum.CameraType.Custom
-            -- restore mouse behavior on exit
-            UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-            if hrp then hrp.Anchored = false end
         end)
     else
-        cam.CameraType = Enum.CameraType.Custom
+        -- Restore default camera; character stays unanchored the whole time
+        workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
         UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-        if hrp then hrp.Anchored = false end
         setButtonActive(FreeCamBtn, false)
-        -- clean up RMB handlers
-        if rmbConnBegin then rmbConnBegin:Disconnect() rmbConnBegin = nil end
-        if rmbConnEnd then rmbConnEnd:Disconnect() rmbConnEnd = nil end
-        rmbDown = false
-        prevMouseBehavior = nil
+        if controls then controls:Enable() end
     end
 end
 
 FreeCamBtn.MouseButton1Click:Connect(function()
     setFreecam(not freecamOn)
 end)
-
--- Safety watchdog: ensure mouse isn't left locked when freecam is OFF
-do
-    local UIS = game:GetService("UserInputService")
-    local RS = game:GetService("RunService")
-    RS.RenderStepped:Connect(function()
-        if not freecamOn and UIS.MouseBehavior ~= Enum.MouseBehavior.Default then
-            UIS.MouseBehavior = Enum.MouseBehavior.Default
-        end
-    end)
-end
 
 -- Teleport-by-name UI (like admin2): a TextBox under Click TP
 local TPBox = Instance.new("TextBox")
@@ -1405,7 +1376,7 @@ do
     p.Parent = TPBox
 end
 
--- Freecam speed TextBox under Free Cam 
+-- Freecam speed TextBox under Free Cam
 local FCBox = Instance.new("TextBox")
 FCBox.Name = "FCBox"
 FCBox.LayoutOrder = 4
