@@ -1276,7 +1276,7 @@ local freecamPos
 local freecamSpeed = 2
 local prevMouseBehavior -- remembers previous mouse behavior while RMB rotating
 local rmbDown = false
-local rmbConnBegin, rmbConnEnd
+local rmbConnBegin, rmbConnEnd, mouseMoveConn
 
 -- access Roblox PlayerModule controls for clean movement disable/enable
 local controls
@@ -1321,6 +1321,20 @@ local function setFreecam(state)
                 end
             end)
         end
+        -- mouse movement delta fallback (some games zero out GetMouseDelta)
+        if not mouseMoveConn then
+            mouseMoveConn = UserInputService.InputChanged:Connect(function(input)
+                if rmbDown and input.UserInputType == Enum.UserInputType.MouseMovement then
+                    -- when locked, use input.Delta to update
+                    local dx, dy = input.Delta.X, input.Delta.Y
+                    if dx ~= 0 or dy ~= 0 then
+                        freecamYaw = freecamYaw - (dx/300)
+                        freecamPitch = math.clamp(freecamPitch - (dy/300), -math.rad(89), math.rad(89))
+                    end
+                end
+            end)
+        end
+
         task.spawn(function()
             while freecamOn do
                 if not UserInputService:GetFocusedTextBox() then
@@ -1348,11 +1362,16 @@ local function setFreecam(state)
                     if rmb then
                         if not prevMouseBehavior then
                             prevMouseBehavior = UserInputService.MouseBehavior
+                        end
+                        -- enforce lock center every frame while RMB is held (some games reset it)
+                        if UserInputService.MouseBehavior ~= Enum.MouseBehavior.LockCenter then
                             UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
                         end
                         local md = UserInputService:GetMouseDelta()
-                        freecamYaw = freecamYaw - (md.X/300)
-                        freecamPitch = math.clamp(freecamPitch - (md.Y/300), -math.rad(89), math.rad(89))
+                        if md.X ~= 0 or md.Y ~= 0 then
+                            freecamYaw = freecamYaw - (md.X/300)
+                            freecamPitch = math.clamp(freecamPitch - (md.Y/300), -math.rad(89), math.rad(89))
+                        end
                     else
                         if prevMouseBehavior then
                             UserInputService.MouseBehavior = prevMouseBehavior
@@ -1372,6 +1391,7 @@ local function setFreecam(state)
         rmbDown = false
         if rmbConnBegin then rmbConnBegin:Disconnect() rmbConnBegin = nil end
         if rmbConnEnd then rmbConnEnd:Disconnect() rmbConnEnd = nil end
+        if mouseMoveConn then mouseMoveConn:Disconnect() mouseMoveConn = nil end
         setButtonActive(FreeCamBtn, false)
         if controls then controls:Enable() end
     end
