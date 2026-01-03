@@ -6,6 +6,12 @@ local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
+-- cleanup previous if exists
+do
+    local old = playerGui:FindFirstChild("EmoteBypass")
+    if old then pcall(function() old:Destroy() end) end
+end
+
 -- Gui
 local gui = Instance.new("ScreenGui")
 gui.Name = "EmoteBypass"
@@ -37,10 +43,43 @@ title.TextXAlignment = Enum.TextXAlignment.Left
 title.Text = "Bypass Emote (AssetId)"
 title.Parent = frame
 
+-- window controls
+local btnMin = Instance.new("TextButton")
+btnMin.Size = UDim2.new(0, 24, 0, 24)
+btnMin.Position = UDim2.new(1, -52, 0, 6)
+btnMin.BackgroundColor3 = Color3.fromRGB(0, 130, 80)
+btnMin.AutoButtonColor = true
+btnMin.Text = "-"
+btnMin.Font = Enum.Font.GothamBold
+btnMin.TextSize = 16
+btnMin.TextColor3 = Color3.fromRGB(255,255,255)
+btnMin.Parent = frame
+Instance.new("UICorner", btnMin).CornerRadius = UDim.new(0, 6)
+
+local btnClose = Instance.new("TextButton")
+btnClose.Size = UDim2.new(0, 24, 0, 24)
+btnClose.Position = UDim2.new(1, -24, 0, 6)
+btnClose.BackgroundColor3 = Color3.fromRGB(150, 60, 60)
+btnClose.AutoButtonColor = true
+btnClose.Text = "X"
+btnClose.Font = Enum.Font.GothamBold
+btnClose.TextSize = 14
+btnClose.TextColor3 = Color3.fromRGB(255,255,255)
+btnClose.Parent = frame
+Instance.new("UICorner", btnClose).CornerRadius = UDim.new(0, 6)
+
+-- content holder
+local contentHolder = Instance.new("Frame")
+contentHolder.Name = "Content"
+contentHolder.BackgroundTransparency = 1
+contentHolder.Size = UDim2.new(1, 0, 1, -34)
+contentHolder.Position = UDim2.new(0, 0, 0, 34)
+contentHolder.Parent = frame
+
 local input = Instance.new("TextBox")
 input.Name = "AssetBox"
 input.Size = UDim2.new(1, -20, 0, 32)
-input.Position = UDim2.new(0, 10, 0, 38)
+input.Position = UDim2.new(0, 10, 0, 6)
 input.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 input.BackgroundTransparency = 0.1
 input.PlaceholderText = "Enter Animation AssetId (e.g. 507776043)"
@@ -49,7 +88,7 @@ input.TextSize = 14
 input.Font = Enum.Font.GothamMedium
 input.TextColor3 = Color3.fromRGB(255,255,255)
 input.ClearTextOnFocus = false
-input.Parent = frame
+input.Parent = contentHolder
 Instance.new("UICorner", input).CornerRadius = UDim.new(0,8)
 local s1 = Instance.new("UIStroke", input)
 s1.Color = Color3.fromRGB(0,130,80)
@@ -57,25 +96,25 @@ s1.Thickness = 1.5
 
 local btnPlay = Instance.new("TextButton")
 btnPlay.Size = UDim2.new(0.48, -10, 0, 32)
-btnPlay.Position = UDim2.new(0, 10, 0, 80)
+btnPlay.Position = UDim2.new(0, 10, 0, 48)
 btnPlay.BackgroundColor3 = Color3.fromRGB(0, 120, 90)
 btnPlay.Text = "Play"
 btnPlay.Font = Enum.Font.GothamBold
 btnPlay.TextSize = 14
 btnPlay.TextColor3 = Color3.fromRGB(255,255,255)
-btnPlay.Parent = frame
+btnPlay.Parent = contentHolder
 Instance.new("UICorner", btnPlay).CornerRadius = UDim.new(0,8)
 
 local btnStop = Instance.new("TextButton")
 btnStop.Size = UDim2.new(0.48, -10, 0, 32)
-btnStop.Position = UDim2.new(1, -10, 0, 80)
+btnStop.Position = UDim2.new(1, -10, 0, 48)
 btnStop.AnchorPoint = Vector2.new(1,0)
 btnStop.BackgroundColor3 = Color3.fromRGB(150, 60, 60)
 btnStop.Text = "Stop"
 btnStop.Font = Enum.Font.GothamBold
 btnStop.TextSize = 14
 btnStop.TextColor3 = Color3.fromRGB(255,255,255)
-btnStop.Parent = frame
+btnStop.Parent = contentHolder
 Instance.new("UICorner", btnStop).CornerRadius = UDim.new(0,8)
 
 -- Logic
@@ -165,23 +204,23 @@ local EmoteList = {
 
 local listLabel = Instance.new("TextLabel")
 listLabel.Size = UDim2.new(1, -20, 0, 22)
-listLabel.Position = UDim2.new(0, 10, 0, 120)
+listLabel.Position = UDim2.new(0, 10, 0, 88)
 listLabel.BackgroundTransparency = 1
 listLabel.Font = Enum.Font.GothamBold
 listLabel.TextSize = 13
 listLabel.TextColor3 = Color3.fromRGB(255,255,255)
 listLabel.TextXAlignment = Enum.TextXAlignment.Left
 listLabel.Text = "Pilih Emote:"
-listLabel.Parent = frame
+listLabel.Parent = contentHolder
 
 local Scroll = Instance.new("ScrollingFrame")
 Scroll.Size = UDim2.new(1, -20, 1, -150)
-Scroll.Position = UDim2.new(0, 10, 0, 150)
+Scroll.Position = UDim2.new(0, 10, 0, 118)
 Scroll.BackgroundTransparency = 1
 Scroll.ScrollBarThickness = 6
 Scroll.ScrollBarImageColor3 = Color3.fromRGB(0, 220, 130)
 Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-Scroll.Parent = frame
+Scroll.Parent = contentHolder
 
 local layout = Instance.new("UIListLayout")
 layout.Padding = UDim.new(0, 8)
