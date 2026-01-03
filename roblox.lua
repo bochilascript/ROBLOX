@@ -1274,6 +1274,7 @@ local freecamOn = false
 local freecamYaw, freecamPitch = 0, 0
 local freecamPos
 local freecamSpeed = 2
+local prevMouseBehavior -- remembers previous mouse behavior while RMB rotating
 
 -- access Roblox PlayerModule controls for clean movement disable/enable
 local controls
@@ -1321,15 +1322,21 @@ local function setFreecam(state)
                     if UserInputService:IsKeyDown(Enum.KeyCode.Space) then delta += Vector3.new(0,1,0) end
                     if UserInputService:IsKeyDown(Enum.KeyCode.E) then delta -= Vector3.new(0,1,0) end
                     freecamPos += delta * freecamSpeed
-                    -- Rotate with RMB; when seated, briefly lock cursor to capture delta reliably
+                    -- Rotate with RMB: lock cursor while held for consistent delta, restore on release
                     local rmb = UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
                     if rmb then
-                        if seated then UserInputService.MouseBehavior = Enum.MouseBehavior.LockCurrentPosition end
+                        if not prevMouseBehavior then
+                            prevMouseBehavior = UserInputService.MouseBehavior
+                            UserInputService.MouseBehavior = Enum.MouseBehavior.LockCurrentPosition
+                        end
                         local md = UserInputService:GetMouseDelta()
                         freecamYaw = freecamYaw - (md.X/300)
                         freecamPitch = math.clamp(freecamPitch - (md.Y/300), -math.rad(89), math.rad(89))
                     else
-                        if seated then UserInputService.MouseBehavior = Enum.MouseBehavior.Default end
+                        if prevMouseBehavior then
+                            UserInputService.MouseBehavior = prevMouseBehavior
+                            prevMouseBehavior = nil
+                        end
                     end
                 end
                 cam.CFrame = CFrame.new(freecamPos) * CFrame.fromOrientation(freecamPitch, freecamYaw, 0)
@@ -1340,6 +1347,7 @@ local function setFreecam(state)
         -- Restore default camera; character stays unanchored the whole time
         workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
         UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+        prevMouseBehavior = nil
         setButtonActive(FreeCamBtn, false)
         if controls then controls:Enable() end
     end
