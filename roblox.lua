@@ -68,7 +68,8 @@ ProfileContent.Parent = ProfileFrame
 
 local ProfilePicture = Instance.new("ImageLabel")
 ProfilePicture.Size = UDim2.new(0, 80, 0, 80)
-ProfilePicture.Position = UDim2.new(0.5, -40, 0.5, -40)
+-- move a bit upward so it doesn't overlap the quick menu
+ProfilePicture.Position = UDim2.new(0.5, -40, 0, 12)
 ProfilePicture.BackgroundColor3 = Color3.fromRGB(0, 50, 150)
 ProfilePicture.BorderSizePixel = 0
 ProfilePicture.Parent = ProfileContent
@@ -186,8 +187,8 @@ ScrollFrame.Parent = ButtonsFrame
 do
     local QuickPanel = Instance.new("Frame")
     QuickPanel.Name = "QuickPanel"
-    QuickPanel.Size = UDim2.new(1, -10, 0, 110)
-    QuickPanel.Position = UDim2.new(0, 5, 1, -120)
+    QuickPanel.Size = UDim2.new(1, -10, 0, 120)
+    QuickPanel.Position = UDim2.new(0, 5, 0, 110)
     QuickPanel.BackgroundTransparency = 1
     QuickPanel.Parent = ProfileContent
 
@@ -233,20 +234,60 @@ do
         end
     end
 
+    -- filtering helpers
+    local rusuhKeywords = {"bringpart","spectator","noclip"}
+    local function matchesAny(text, keywords)
+        local lower = string.lower(text)
+        for _, k in ipairs(keywords) do
+            if string.find(lower, k, 1, true) then return true end
+        end
+        return false
+    end
+
+    local function setCategory(cat)
+        for _, child in ipairs(ScrollFrame:GetChildren()) do
+            if child:IsA("TextButton") then
+                if cat == "Menu" then
+                    child.Visible = true
+                elseif cat == "Rusuh" then
+                    child.Visible = matchesAny(child.Text, rusuhKeywords)
+                elseif cat == "Speed" then
+                    child.Visible = string.find(string.lower(child.Text), "speed", 1, true) ~= nil
+                end
+            end
+        end
+        -- also toggle SpeedBox
+        if typeof(SpeedBox) == "Instance" then
+            if cat == "Speed" then
+                SpeedBox.Visible = true
+            elseif cat == "Menu" then
+                SpeedBox.Visible = true
+            else
+                SpeedBox.Visible = false
+            end
+        end
+        -- ensure layout recalculates
+        task.defer(function()
+            ScrollFrame.CanvasPosition = Vector2.new(0, 0)
+        end)
+    end
+
     local btnMenu = makeSmallBtn("Menu", 1)
     btnMenu.MouseButton1Click:Connect(function()
-        ScrollFrame.CanvasPosition = Vector2.new(0, 0)
+        setCategory("Menu")
     end)
 
     local btnRusuh = makeSmallBtn("Rusuh", 2)
     btnRusuh.MouseButton1Click:Connect(function()
-        scrollToLabel("Tendang")
+        setCategory("Rusuh")
     end)
 
     local btnSpeed = makeSmallBtn("Speed", 3)
     btnSpeed.MouseButton1Click:Connect(function()
-        scrollToLabel("Speed")
+        setCategory("Speed")
     end)
+    -- default to Menu
+    setCategory("Menu")
 end
 
 local ButtonGrid = Instance.new("UIGridLayout")
