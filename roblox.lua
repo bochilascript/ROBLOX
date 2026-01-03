@@ -268,12 +268,90 @@ do
                 end
             end
         end
+
+        -- Build paired rows for Utility to guarantee alignment
+        local function ensureRow(index)
+            local name = "UtilityRow"..tostring(index)
+            local row = ScrollFrame:FindFirstChild(name)
+            if not row then
+                row = Instance.new("Frame")
+                row.Name = name
+                row.Size = UDim2.new(1, -8, 0, 35)
+                row.BackgroundTransparency = 1
+                row.Parent = ScrollFrame
+                local grid = Instance.new("UIGridLayout")
+                grid.CellSize = UDim2.new(0.5, -6, 1, 0)
+                grid.CellPadding = UDim2.new(0, 8, 0, 0)
+                grid.FillDirection = Enum.FillDirection.Horizontal
+                grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+                grid.SortOrder = Enum.SortOrder.LayoutOrder
+                grid.Parent = row
+            end
+            return row
+        end
+
+        if cat == "Utility" then
+            local function findBtn(txt)
+                local needle = string.lower(txt)
+                for _, ch in ipairs(ScrollFrame:GetChildren()) do
+                    if ch:IsA("TextButton") and ch.Text and string.find(string.lower(ch.Text), needle, 1, true) then
+                        return ch
+                    end
+                end
+                return nil
+            end
+            local clickBtn = findBtn("Click TP")
+            local tpBox   = ScrollFrame:FindFirstChild("TPBox")
+            local freeBtn = findBtn("Free Cam")
+            local fcBox   = ScrollFrame:FindFirstChild("FCBox")
+            local spdBtn  = findBtn("Speed")
+            local spdBox  = ScrollFrame:FindFirstChild("SpeedBox")
+            if not spdBox then
+                for _, ch in ipairs(ScrollFrame:GetChildren()) do
+                    if ch:IsA("TextBox") and string.lower(tostring(ch.PlaceholderText)) == "speed" then spdBox = ch break end
+                end
+            end
+
+            local row1, row2, row3 = ensureRow(1), ensureRow(2), ensureRow(3)
+            row1.Visible, row2.Visible, row3.Visible = true, true, true
+            row1.LayoutOrder, row2.LayoutOrder, row3.LayoutOrder = 1, 2, 3
+
+            local function move(child, parent)
+                if child then child.Parent = parent child.Visible = true end
+            end
+            -- pairings
+            move(clickBtn, row1); move(tpBox, row1)
+            move(freeBtn, row2);  move(fcBox, row2)
+            move(spdBtn, row3);   move(spdBox, row3)
+
+            -- hide all other direct children except the rows
+            for _, ch in ipairs(ScrollFrame:GetChildren()) do
+                if ch ~= row1 and ch ~= row2 and ch ~= row3 then
+                    if ch:IsA("Frame") and string.sub(ch.Name,1,10) == "UtilityRow" then
+                        -- keep visible
+                    else
+                        ch.Visible = false
+                    end
+                end
+            end
+        else
+            -- hide rows when leaving Utility
+            for _, ch in ipairs(ScrollFrame:GetChildren()) do
+                if ch:IsA("Frame") and string.sub(ch.Name,1,10) == "UtilityRow" then
+                    ch.Visible = false
+                end
+            end
+        end
         -- enforce Utility ordering so each button is beside its textbox
         if cat == "Utility" then
             local function findButtonByText(txt)
+                local needle = string.lower(txt)
                 for _, ch in ipairs(ScrollFrame:GetChildren()) do
-                    if ch:IsA("TextButton") and ch.Text and string.lower(ch.Text) == string.lower(txt) then
-                        return ch
+                    if ch:IsA("TextButton") and ch.Text then
+                        local hay = string.lower(ch.Text)
+                        if string.find(hay, needle, 1, true) then
+                            return ch
+                        end
                     end
                 end
                 return nil
