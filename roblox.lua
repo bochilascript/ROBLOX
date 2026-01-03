@@ -292,12 +292,18 @@ do
                 end
             end
             local ordered = {clickBtn, tpBox, freeBtn, fcBox, spdBtn, spdBox}
+            local keep = {}
             local order = 1
             for _, inst in ipairs(ordered) do
-                if inst and inst.Visible then
+                if inst then
+                    inst.Visible = true
                     inst.LayoutOrder = order
+                    keep[inst] = true
                     order = order + 1
                 end
+            end
+            for _, ch in ipairs(ScrollFrame:GetChildren()) do
+                if not keep[ch] then ch.Visible = false end
             end
         end
         -- also toggle SpeedBox (in case it's not parented directly to ScrollFrame yet in some executors)
