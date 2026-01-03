@@ -108,6 +108,8 @@ end
 
 -- Speed input box to set desired walk speed
 local SpeedBox = Instance.new("TextBox")
+SpeedBox.Name = "SpeedBox"
+SpeedBox.LayoutOrder = 6
 SpeedBox.Size = UDim2.new(0, 150, 0, 35)
 SpeedBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 SpeedBox.BackgroundTransparency = 0.1
@@ -236,7 +238,7 @@ do
 
     -- filtering helpers
     local rusuhKeywords = {"bringpart","spectator","noclip","tendang","unanchor","fly","esp","esp team"}
-    local utilityKeywords = {"free cam","click tp","speed"}
+    local utilityKeywords = {"free cam","freecam","click tp","clicktp","speed"}
     local function matchesAny(text, keywords)
         local lower = string.lower(text)
         for _, k in ipairs(keywords) do
@@ -249,18 +251,17 @@ do
         for _, child in ipairs(ScrollFrame:GetChildren()) do
             if child:IsA("TextButton") then
                 if cat == "Menu" then
-                    child.Visible = true
+                    -- show only items that are NOT in Rusuh or Utility
+                    child.Visible = (not matchesAny(child.Text, rusuhKeywords)) and (not matchesAny(child.Text, utilityKeywords))
                 elseif cat == "Rusuh" then
                     child.Visible = matchesAny(child.Text, rusuhKeywords)
                 elseif cat == "Utility" then
                     child.Visible = matchesAny(child.Text, utilityKeywords)
                 end
             elseif child:IsA("TextBox") then
-                -- Only show textboxes in Menu, and for Utility only show SpeedBox
-                if cat == "Menu" then
-                    child.Visible = true
-                elseif cat == "Utility" then
-                    child.Visible = (typeof(SpeedBox) == "Instance" and child == SpeedBox)
+                -- Hide all textboxes in Menu and Rusuh; in Utility show only the three paired boxes
+                if cat == "Utility" then
+                    child.Visible = (child.Name == "TPBox" or child.Name == "FCBox" or child.Name == "SpeedBox")
                 else
                     child.Visible = false
                 end
@@ -268,11 +269,7 @@ do
         end
         -- also toggle SpeedBox (in case it's not parented directly to ScrollFrame yet in some executors)
         if typeof(SpeedBox) == "Instance" then
-            if cat == "Utility" or cat == "Menu" then
-                SpeedBox.Visible = true
-            else
-                SpeedBox.Visible = false
-            end
+            SpeedBox.Visible = (cat == "Utility")
         end
         -- ensure layout recalculates
         task.defer(function()
@@ -863,6 +860,8 @@ end)
 
 local Player = game.Players.LocalPlayer
 local SpeedBtn = createButton("", "Speed")
+SpeedBtn.Name = "SpeedBtn"
+SpeedBtn.LayoutOrder = 5
 local desiredSpeed = 50
 
 -- Inline Speed control textbox placed directly under Speed button
@@ -1060,7 +1059,11 @@ end)
 
 -- Click TP and Free Cam integrations
 local ClickTPBtn = createButton("", "Click TP")
+ClickTPBtn.Name = "ClickTPBtn"
+ClickTPBtn.LayoutOrder = 1
 local FreeCamBtn = createButton("", "Free Cam")
+FreeCamBtn.Name = "FreeCamBtn"
+FreeCamBtn.LayoutOrder = 3
 
 local clickTpOn = false
 local freecamOn = false
@@ -1123,6 +1126,8 @@ end)
 
 -- Teleport-by-name UI (like admin2): a TextBox under Click TP
 local TPBox = Instance.new("TextBox")
+TPBox.Name = "TPBox"
+TPBox.LayoutOrder = 2
 TPBox.Size = UDim2.new(0, 150, 0, 35)
 TPBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 TPBox.BackgroundTransparency = 0.1
@@ -1148,6 +1153,8 @@ end
 
 -- Freecam speed TextBox under Free Cam
 local FCBox = Instance.new("TextBox")
+FCBox.Name = "FCBox"
+FCBox.LayoutOrder = 4
 FCBox.Size = UDim2.new(0, 150, 0, 35)
 FCBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 FCBox.BackgroundTransparency = 0.1
