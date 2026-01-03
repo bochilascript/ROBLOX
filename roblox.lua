@@ -1343,6 +1343,17 @@ FreeCamBtn.MouseButton1Click:Connect(function()
     setFreecam(not freecamOn)
 end)
 
+-- Safety watchdog: ensure mouse isn't left locked when freecam is OFF
+do
+    local UIS = game:GetService("UserInputService")
+    local RS = game:GetService("RunService")
+    RS.RenderStepped:Connect(function()
+        if not freecamOn and UIS.MouseBehavior ~= Enum.MouseBehavior.Default then
+            UIS.MouseBehavior = Enum.MouseBehavior.Default
+        end
+    end)
+end
+
 -- Teleport-by-name UI (like admin2): a TextBox under Click TP
 local TPBox = Instance.new("TextBox")
 TPBox.Name = "TPBox"
