@@ -1275,6 +1275,13 @@ local freecamYaw, freecamPitch = 0, 0
 local freecamPos
 local freecamSpeed = 2
 
+-- access Roblox PlayerModule controls for clean movement disable/enable
+local controls
+pcall(function()
+    local pm = require(game:GetService("Players").LocalPlayer:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule"))
+    controls = pm:GetControls()
+end)
+
 ClickTPBtn.MouseButton1Click:Connect(function()
     clickTpOn = not clickTpOn
     setButtonActive(ClickTPBtn, clickTpOn)
@@ -1296,7 +1303,12 @@ local function setFreecam(state)
             while freecamOn do
                 if not UserInputService:GetFocusedTextBox() then
                     local delta = Vector3.new()
-                    local seated = (character and character:FindFirstChildOfClass("Humanoid") and character:FindFirstChildOfClass("Humanoid").Sit) or false
+                    local hum = (game:GetService("Players").LocalPlayer.Character and game:GetService("Players").LocalPlayer.Character:FindFirstChildOfClass("Humanoid"))
+                    local seated = (hum and hum.Sit) or false
+                    -- disable character controls when freecam and not seated, enable when seated
+                    if controls then
+                        if seated then controls:Enable() else controls:Disable() end
+                    end
                     local shiftHeld = UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) or UserInputService:IsKeyDown(Enum.KeyCode.RightShift)
                     -- Normal: WASD moves camera. Seated: WASD is passed to vehicle; hold Shift+WASD to move camera.
                     local allowCamWASD = (not seated) or (seated and shiftHeld)
@@ -1309,11 +1321,15 @@ local function setFreecam(state)
                     if UserInputService:IsKeyDown(Enum.KeyCode.Space) then delta += Vector3.new(0,1,0) end
                     if UserInputService:IsKeyDown(Enum.KeyCode.E) then delta -= Vector3.new(0,1,0) end
                     freecamPos += delta * freecamSpeed
-                    -- Rotate with RMB without locking cursor to avoid steering conflicts
-                    if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+                    -- Rotate with RMB; when seated, briefly lock cursor to capture delta reliably
+                    local rmb = UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
+                    if rmb then
+                        if seated then UserInputService.MouseBehavior = Enum.MouseBehavior.LockCurrentPosition end
                         local md = UserInputService:GetMouseDelta()
                         freecamYaw = freecamYaw - (md.X/300)
                         freecamPitch = math.clamp(freecamPitch - (md.Y/300), -math.rad(89), math.rad(89))
+                    else
+                        if seated then UserInputService.MouseBehavior = Enum.MouseBehavior.Default end
                     end
                 end
                 cam.CFrame = CFrame.new(freecamPos) * CFrame.fromOrientation(freecamPitch, freecamYaw, 0)
@@ -1325,6 +1341,7 @@ local function setFreecam(state)
         workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
         UserInputService.MouseBehavior = Enum.MouseBehavior.Default
         setButtonActive(FreeCamBtn, false)
+        if controls then controls:Enable() end
     end
 end
 
