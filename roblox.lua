@@ -2106,7 +2106,8 @@ local TeleBtn = createButton("", "Teleport")
 local AnimasiBtn = createButton("", "Animasi")
 local AvatarBtn = createButton("", "Avatar")
 local FishBtn = createButton("", "Fish it")
-local EmoteBtn = createBtn("", "Emote")
+local EmoteBtn = createButton("", "Emote")
+EmoteBtn.Name = "EmoteBtn"
 
 EmoteBtn.MouseButton1Click:Connect(function()
     local success, response = pcall(function()
