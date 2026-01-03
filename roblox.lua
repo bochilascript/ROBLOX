@@ -1034,14 +1034,29 @@ end)
 local RefreshBtn = createButton("", "Refresh")
 RefreshBtn.LayoutOrder = 2
 RefreshBtn.MouseButton1Click:Connect(function()
-    local plr = game:GetService("Players").LocalPlayer
-    if plr and plr.Character then
-        -- preferred: LoadCharacter for clean respawn
-        pcall(function() plr:LoadCharacter() end)
-        -- fallback: kill humanoid if LoadCharacter not permitted
-        if plr.Character and plr.Character:FindFirstChildOfClass("Humanoid") then
-            pcall(function() plr.Character:FindFirstChildOfClass("Humanoid").Health = 0 end)
-        end
+    local Players = game:GetService("Players")
+    local plr = Players.LocalPlayer
+    if not plr then return end
+
+    local char = plr.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local savedCFrame = hrp and hrp.CFrame
+    local savedVel = hrp and hrp.AssemblyLinearVelocity
+
+    -- clean respawn
+    pcall(function() plr:LoadCharacter() end)
+
+    -- wait for new character then restore position
+    local newChar = plr.Character or plr.CharacterAdded:Wait()
+    local newHRP = newChar:WaitForChild("HumanoidRootPart", 5)
+    if newHRP and savedCFrame then
+        -- small delay to let Roblox finish placing the character
+        task.delay(0.2, function()
+            pcall(function()
+                newHRP.CFrame = savedCFrame
+                if savedVel then newHRP.AssemblyLinearVelocity = savedVel end
+            end)
+        end)
     end
 end)
 
