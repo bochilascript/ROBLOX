@@ -156,15 +156,24 @@ local EmoteBtn = createButton("", "Emote (AssetId)")
 EmoteBtn.LayoutOrder = 3
 EmoteBtn.MouseButton1Click:Connect(function()
     local src
-    if typeof(readfile) == "function" then
-        local ok, data = pcall(function() return readfile("emote.lua") end)
-        if ok and type(data) == "string" and #data > 0 then src = data end
+    -- prefer remote URL so selalu terbaru
+    local ok1, data1 = pcall(function()
+        return game:HttpGet("https://raw.githubusercontent.com/bochilascript/ROBLOX/refs/heads/main/emote.lua")
+    end)
+    if ok1 and type(data1) == "string" and #data1 > 0 then
+        src = data1
+    else
+        -- fallback ke local readfile bila ada
+        if typeof(readfile) == "function" then
+            local ok2, data2 = pcall(function() return readfile("emote.lua") end)
+            if ok2 and type(data2) == "string" and #data2 > 0 then src = data2 end
+        end
     end
     if src then
         local f, err = loadstring(src)
         if f then f() else warn("Loadstring error (emote.lua): "..tostring(err)) end
     else
-        warn("emote.lua tidak ditemukan di storage executor. Upload dulu atau minta saya hubungkan ke URL.")
+        warn("Gagal memuat emote.lua dari URL maupun lokal.")
     end
 end)
 
