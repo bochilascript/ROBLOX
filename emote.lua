@@ -153,6 +153,47 @@ btnStop.TextColor3 = Color3.fromRGB(255,255,255)
 btnStop.Parent = contentHolder
 Instance.new("UICorner", btnStop).CornerRadius = UDim.new(0,8)
 
+-- Toggles: Blend (smooth with default anims) and Loop
+local blendOn = true
+local loopOn = true
+
+local btnBlend = Instance.new("TextButton")
+btnBlend.Size = UDim2.new(0.48, -10, 0, 24)
+btnBlend.Position = UDim2.new(0, 10, 0, 100)
+btnBlend.BackgroundColor3 = Color3.fromRGB(0, 80, 60)
+btnBlend.Font = Enum.Font.GothamBold
+btnBlend.TextSize = 12
+btnBlend.TextColor3 = Color3.fromRGB(255,255,255)
+btnBlend.Parent = contentHolder
+Instance.new("UICorner", btnBlend).CornerRadius = UDim.new(0,6)
+
+local btnLoop = Instance.new("TextButton")
+btnLoop.Size = UDim2.new(0.48, -10, 0, 24)
+btnLoop.Position = UDim2.new(1, -10, 0, 100)
+btnLoop.AnchorPoint = Vector2.new(1,0)
+btnLoop.BackgroundColor3 = Color3.fromRGB(0, 80, 60)
+btnLoop.Font = Enum.Font.GothamBold
+btnLoop.TextSize = 12
+btnLoop.TextColor3 = Color3.fromRGB(255,255,255)
+btnLoop.Parent = contentHolder
+Instance.new("UICorner", btnLoop).CornerRadius = UDim.new(0,6)
+
+local function refreshToggleTexts()
+    btnBlend.Text = blendOn and "Blend: ON" or "Blend: OFF"
+    btnLoop.Text = loopOn and "Loop: ON" or "Loop: OFF"
+end
+refreshToggleTexts()
+
+btnBlend.MouseButton1Click:Connect(function()
+    blendOn = not blendOn
+    refreshToggleTexts()
+end)
+
+btnLoop.MouseButton1Click:Connect(function()
+    loopOn = not loopOn
+    refreshToggleTexts()
+end)
+
 -- Logic
 local currentTrack: AnimationTrack? = nil
 
@@ -184,15 +225,7 @@ local function stopEmote()
     end
 end
 
-btnPlay.MouseButton1Click:Connect(function()
-    local id = tonumber(input.Text)
-    if not id then
-        -- try to parse if user pasted full rbxasset url/id
-        local numeric = string.match(input.Text or "", "(%d+)")
-        id = tonumber(numeric)
-    end
-    if not id then return end
-
+local function playEmoteById(id)
     stopEmote()
     local hum, animator = getAnimator()
     if not hum or not animator then return end
@@ -214,18 +247,34 @@ btnPlay.MouseButton1Click:Connect(function()
     end
     if ok and track then
         currentTrack = track
-        track.Priority = Enum.AnimationPriority.Action4
-        track.Looped = true
+        track.Priority = blendOn and Enum.AnimationPriority.Movement or Enum.AnimationPriority.Action4
+        track.Looped = loopOn
         pcall(function()
-            track:Play(0.1, 1, 1)
-            track:AdjustSpeed(1)
+            local fade = 0.25
+            track:Play(fade, 1, 1)
+            if track.AdjustSpeed then track:AdjustSpeed(1) end
+            if track.AdjustWeight then
+                local weight = blendOn and 0.6 or 1
+                track:AdjustWeight(weight, fade)
+            end
         end)
-        -- disable default Animate to prevent overriding our emote
-        local animate = hum.Parent:FindFirstChild("Animate")
-        if animate then pcall(function() animate.Disabled = true end) end
+        statusLabel.Text = "Rig: R15 (emote aktif)"
     else
-        warn("[Emote] Gagal memuat anim: " .. tostring(id))
+        local msg = "[Emote] Gagal memuat anim: " .. tostring(id)
+        statusLabel.Text = msg
+        warn(msg)
     end
+end
+
+btnPlay.MouseButton1Click:Connect(function()
+    local id = tonumber(input.Text)
+    if not id then
+        -- try to parse if user pasted full rbxasset url/id
+        local numeric = string.match(input.Text or "", "(%d+)")
+        id = tonumber(numeric)
+    end
+    if not id then return end
+    playEmoteById(id)
 end)
 
 btnStop.MouseButton1Click:Connect(stopEmote)
@@ -308,8 +357,7 @@ local function createItem(name, id)
         setActive(btn, true)
         -- put id to textbox and play
         input.Text = tostring(id)
-        btnPlay:Activate()
-        btnPlay.MouseButton1Click:Fire()
+        playEmoteById(id)
     end)
 end
 
