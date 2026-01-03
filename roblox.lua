@@ -108,7 +108,8 @@ end
 
 -- Speed input box to set desired walk speed
 local SpeedBox = Instance.new("TextBox")
-SpeedBox.Name = "SpeedBox"
+-- deprecated: keep hidden; Utility uses the paired SpeedBox near the Speed button
+SpeedBox.Name = "SpeedBoxOLD"
 SpeedBox.LayoutOrder = 6
 SpeedBox.Size = UDim2.new(0, 150, 0, 35)
 SpeedBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
@@ -248,30 +249,64 @@ do
     end
 
     local function setCategory(cat)
-        for _, child in ipairs(ScrollFrame:GetChildren()) do
-            if child:IsA("TextButton") then
-                if cat == "Menu" then
-                    -- show only items that are NOT in Rusuh or Utility
-                    child.Visible = (not matchesAny(child.Text, rusuhKeywords)) and (not matchesAny(child.Text, utilityKeywords))
-                elseif cat == "Rusuh" then
-                    child.Visible = matchesAny(child.Text, rusuhKeywords)
-                elseif cat == "Utility" then
-                    child.Visible = matchesAny(child.Text, utilityKeywords)
+        if cat == "Utility" then
+            -- explicit ordering for Utility items to avoid layout shuffle
+            local function findButtonByText(txt)
+                for _, ch in ipairs(ScrollFrame:GetChildren()) do
+                    if ch:IsA("TextButton") and ch.Text and string.lower(ch.Text) == string.lower(txt) then
+                        return ch
+                    end
                 end
-            elseif child:IsA("TextBox") then
-                -- Hide all textboxes in Menu dan Rusuh; Utility: tampilkan tiga textbox pasangan
-                if cat == "Utility" then
-                    local isSpeed = (child.Name == "SpeedBox") or (string.lower(tostring(child.PlaceholderText)) == "speed")
-                    child.Visible = (child.Name == "TPBox" or child.Name == "FCBox" or isSpeed)
-                else
+                return nil
+            end
+
+            local tpBtn   = findButtonByText("Click TP")
+            local tpBox   = ScrollFrame:FindFirstChild("TPBox")
+            local fcBtn   = findButtonByText("Free Cam")
+            local fcBox   = ScrollFrame:FindFirstChild("FCBox")
+            local spdBtn  = findButtonByText("Speed")
+            local spdBox  = ScrollFrame:FindFirstChild("SpeedBox")
+            if not spdBox then
+                -- fallback: locate any textbox with placeholder 'Speed'
+                for _, ch in ipairs(ScrollFrame:GetChildren()) do
+                    if ch:IsA("TextBox") and string.lower(tostring(ch.PlaceholderText)) == "speed" then
+                        spdBox = ch
+                        break
+                    end
+                end
+            end
+
+            local ordered = {tpBtn, tpBox, fcBtn, fcBox, spdBtn, spdBox}
+            local order = 1
+            for _, inst in ipairs(ordered) do
+                if inst then
+                    inst.Visible = true
+                    inst.LayoutOrder = order
+                    order = order + 1
+                end
+            end
+            -- hide everything else
+            for _, child in ipairs(ScrollFrame:GetChildren()) do
+                local keep = false
+                for _, inst in ipairs(ordered) do if child == inst then keep = true break end end
+                if not keep then child.Visible = false end
+            end
+
+        else
+            for _, child in ipairs(ScrollFrame:GetChildren()) do
+                if child:IsA("TextButton") then
+                    if cat == "Menu" then
+                        child.Visible = (not matchesAny(child.Text, rusuhKeywords)) and (not matchesAny(child.Text, utilityKeywords))
+                    elseif cat == "Rusuh" then
+                        child.Visible = matchesAny(child.Text, rusuhKeywords)
+                    end
+                elseif child:IsA("TextBox") then
                     child.Visible = false
                 end
             end
         end
-        -- also toggle SpeedBox (in case it's not parented directly to ScrollFrame yet in some executors)
-        if typeof(SpeedBox) == "Instance" then
-            SpeedBox.Visible = (cat == "Utility")
-        end
+        -- hide deprecated SpeedBox instance if present
+        if typeof(SpeedBox) == "Instance" then SpeedBox.Visible = false end
         -- ensure layout recalculates
         task.defer(function()
             ScrollFrame.CanvasPosition = Vector2.new(0, 0)
