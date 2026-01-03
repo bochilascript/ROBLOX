@@ -1324,6 +1324,12 @@ local function setFreecam(state)
                         UserInputService.MouseBehavior = Enum.MouseBehavior.Default
                     end
                 end
+                -- Extra safety: if RMB not held, ensure mouse is not locked even when a TextBox is focused
+                if not UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+                    if UserInputService.MouseBehavior ~= Enum.MouseBehavior.Default then
+                        UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+                    end
+                end
                 cam.CFrame = CFrame.new(freecamPos) * CFrame.fromOrientation(freecamPitch, freecamYaw, 0)
                 RunService.RenderStepped:Wait()
             end
