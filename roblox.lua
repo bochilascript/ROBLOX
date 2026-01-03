@@ -868,6 +868,8 @@ local desiredSpeed = 50
 -- Inline Speed control textbox placed directly under Speed button
 do
     local SpeedBox2 = Instance.new("TextBox")
+    SpeedBox2.Name = "SpeedBox"
+    SpeedBox2.LayoutOrder = 6
     SpeedBox2.Size = UDim2.new(0, 150, 0, 35)
     SpeedBox2.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     SpeedBox2.BackgroundTransparency = 0.1
