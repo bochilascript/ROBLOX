@@ -81,9 +81,16 @@ Instance.new("UICorner", btnStop).CornerRadius = UDim.new(0,8)
 -- Logic
 local currentTrack: AnimationTrack? = nil
 
-local function getHumanoid()
+local function getAnimator()
     local char = player.Character or player.CharacterAdded:Wait()
-    return char:FindFirstChildOfClass("Humanoid")
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then return nil, nil end
+    local animator = hum:FindFirstChildOfClass("Animator")
+    if not animator then
+        animator = Instance.new("Animator")
+        animator.Parent = hum
+    end
+    return hum, animator
 end
 
 local function stopEmote()
@@ -106,23 +113,46 @@ btnPlay.MouseButton1Click:Connect(function()
     if not id then return end
 
     stopEmote()
-    local hum = getHumanoid()
-    if not hum then return end
+    local hum, animator = getAnimator()
+    if not hum or not animator then return end
 
     local anim = Instance.new("Animation")
     anim.AnimationId = "rbxassetid://" .. tostring(id)
     local ok, track = pcall(function()
-        return hum:LoadAnimation(anim)
+        return animator:LoadAnimation(anim)
     end)
+    if not ok or not track then
+        -- fallback for older rigs/executors
+        ok, track = pcall(function()
+            return hum:LoadAnimation(anim)
+        end)
+    end
     if ok and track then
         currentTrack = track
-        track.Priority = Enum.AnimationPriority.Action
+        track.Priority = Enum.AnimationPriority.Action4
         track.Looped = true
         track:Play(0.1)
+    else
+        warn("[Emote] Gagal memuat anim: " .. tostring(id))
     end
 end)
 
 btnStop.MouseButton1Click:Connect(stopEmote)
+
+-- auto-stop when character respawns or dies
+player.CharacterAdded:Connect(function()
+    stopEmote()
+end)
+
+do
+    local char = player.Character or player.CharacterAdded:Wait()
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum.Died:Connect(function()
+            stopEmote()
+        end)
+    end
+end
 
 -- Emote list (scrollable) similar to AnimationData
 local EmoteList = {
