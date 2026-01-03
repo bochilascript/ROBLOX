@@ -268,6 +268,38 @@ do
                 end
             end
         end
+        -- enforce Utility ordering so each button is beside its textbox
+        if cat == "Utility" then
+            local function findButtonByText(txt)
+                for _, ch in ipairs(ScrollFrame:GetChildren()) do
+                    if ch:IsA("TextButton") and ch.Text and string.lower(ch.Text) == string.lower(txt) then
+                        return ch
+                    end
+                end
+                return nil
+            end
+            local clickBtn = findButtonByText("Click TP")
+            local tpBox   = ScrollFrame:FindFirstChild("TPBox")
+            local freeBtn = findButtonByText("Free Cam")
+            local fcBox   = ScrollFrame:FindFirstChild("FCBox")
+            local spdBtn  = findButtonByText("Speed")
+            local spdBox  = ScrollFrame:FindFirstChild("SpeedBox")
+            if not spdBox then
+                for _, ch in ipairs(ScrollFrame:GetChildren()) do
+                    if ch:IsA("TextBox") and string.lower(tostring(ch.PlaceholderText)) == "speed" then
+                        spdBox = ch; break
+                    end
+                end
+            end
+            local ordered = {clickBtn, tpBox, freeBtn, fcBox, spdBtn, spdBox}
+            local order = 1
+            for _, inst in ipairs(ordered) do
+                if inst and inst.Visible then
+                    inst.LayoutOrder = order
+                    order = order + 1
+                end
+            end
+        end
         -- also toggle SpeedBox (in case it's not parented directly to ScrollFrame yet in some executors)
         if typeof(SpeedBox) == "Instance" then
             SpeedBox.Visible = (cat == "Utility")
