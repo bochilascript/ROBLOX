@@ -904,32 +904,6 @@ ESPTeamBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Emote (AssetId) button - opens the Emote UI script (Menu)
-local EmoteBtn = createButton("", "Emote (AssetId)")
-EmoteBtn.LayoutOrder = 3
-EmoteBtn.MouseButton1Click:Connect(function()
-    local src
-    -- Prefer remote latest version
-    local ok1, data1 = pcall(function()
-        return game:HttpGet("https://raw.githubusercontent.com/bochilascript/ROBLOX/refs/heads/main/emote.lua?v=" .. tostring(tick()))
-    end)
-    if ok1 and type(data1) == "string" and #data1 > 0 then
-        src = data1
-    else
-        -- fallback to local file if available
-        if typeof(readfile) == "function" then
-            local ok2, data2 = pcall(function() return readfile("emote.lua") end)
-            if ok2 and type(data2) == "string" and #data2 > 0 then src = data2 end
-        end
-    end
-    if src then
-        local f, err = loadstring(src)
-        if f then f() else warn("Loadstring error (emote.lua): "..tostring(err)) end
-    else
-        warn("Gagal memuat emote.lua dari URL maupun lokal.")
-    end
-end)
-
 local Player = game.Players.LocalPlayer
 
 local LampBtn = createButton("", "Lampu")
@@ -2132,6 +2106,23 @@ local TeleBtn = createButton("", "Teleport")
 local AnimasiBtn = createButton("", "Animasi")
 local AvatarBtn = createButton("", "Avatar")
 local FishBtn = createButton("", "Fish it")
+local EmoteBtn = createBtn("", "Emote")
+
+EmoteBtn.MouseButton1Click:Connect(function()
+    local success, response = pcall(function()
+        return game:HttpGet("https://raw.githubusercontent.com/bochilascript/ROBLOX/refs/heads/main/emote.lua")
+    end)
+    if success and response then
+        local func, err = loadstring(response)
+        if func then 
+            func() 
+        else 
+            warn("Loadstring error: "..tostring(err)) 
+        end
+    else 
+        warn("HttpGet failed for Emote") 
+    end
+end)
 
 SpectatorBtn.MouseButton1Click:Connect(function()
     local success, response = pcall(function()
