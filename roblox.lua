@@ -89,6 +89,18 @@ local function loadThumbnailWithFallbacks()
     local success1, result1 = pcall(function()
         return game:GetService("Players"):GetUserThumbnailAsync(userId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
     end)
+
+-- If Utility is already open when these controls are created, move them into UtilityScroll immediately
+local function placeWaypointControlsIfUtilityOpen()
+    if UtilityFrame.Visible and (UtilityScroll or UtilityFrame) then
+        local utilContainer = UtilityScroll or UtilityFrame
+        local order = 7
+        for _, inst in ipairs({SetWPBtn, WPNameBox, GoWPBtn, GoWPBox, WaypointsBtn}) do
+            if inst then inst.Parent = utilContainer inst.Visible = true inst.LayoutOrder = order order = order + 1 end
+        end
+    end
+end
+placeWaypointControlsIfUtilityOpen()
     
     if success1 and result1 and result1 ~= "" then
         ProfilePicture.Image = result1
@@ -193,6 +205,18 @@ UtilityFrame.Visible = false
 UtilityFrame.BackgroundTransparency = 1
 UtilityFrame.Parent = ButtonsFrame
 
+-- Make Utility content scrollable
+local UtilityScroll = Instance.new("ScrollingFrame")
+UtilityScroll.Name = "UtilityScroll"
+UtilityScroll.Size = UDim2.new(1, 0, 1, 0)
+UtilityScroll.BackgroundTransparency = 1
+UtilityScroll.ScrollBarThickness = 6
+UtilityScroll.ScrollBarImageColor3 = Color3.fromRGB(0, 220, 130)
+UtilityScroll.ScrollBarImageTransparency = 0.5
+UtilityScroll.ScrollingDirection = Enum.ScrollingDirection.Y
+UtilityScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+UtilityScroll.Parent = UtilityFrame
+
 local UtilityGrid = Instance.new("UIGridLayout")
 UtilityGrid.CellSize = UDim2.new(0, 150, 0, 35)
 UtilityGrid.CellPadding = UDim2.new(0, 8, 0, 8)
@@ -202,7 +226,11 @@ UtilityGrid.SortOrder = Enum.SortOrder.LayoutOrder
 UtilityGrid.StartCorner = Enum.StartCorner.TopLeft
 UtilityGrid.HorizontalAlignment = Enum.HorizontalAlignment.Center
 UtilityGrid.VerticalAlignment = Enum.VerticalAlignment.Top
-UtilityGrid.Parent = UtilityFrame
+UtilityGrid.Parent = UtilityScroll
+
+UtilityGrid:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    UtilityScroll.CanvasSize = UDim2.new(0, 0, 0, UtilityGrid.AbsoluteContentSize.Y + 10)
+end)
 
 -- Left quick panel under profile picture
 do
@@ -340,17 +368,18 @@ do
                 return nil
             end
             -- Prefer finding by Name to be robust
-            local clickBtn = UtilityFrame:FindFirstChild("ClickTPBtn") or ScrollFrame:FindFirstChild("ClickTPBtn") or findBtn("Click TP")
-            local tpBox    = UtilityFrame:FindFirstChild("TPBox")     or ScrollFrame:FindFirstChild("TPBox")
-            local freeBtn  = UtilityFrame:FindFirstChild("FreeCamBtn") or ScrollFrame:FindFirstChild("FreeCamBtn") or findBtn("Free Cam")
-            local fcBox    = UtilityFrame:FindFirstChild("FCBox")      or ScrollFrame:FindFirstChild("FCBox")
-            local spdBtn   = UtilityFrame:FindFirstChild("SpeedBtn")   or ScrollFrame:FindFirstChild("SpeedBtn") or findBtn("Speed")
-            local spdBox   = UtilityFrame:FindFirstChild("SpeedBox")   or ScrollFrame:FindFirstChild("SpeedBox")
-            local setWPBtn = UtilityFrame:FindFirstChild("SetWPBtn")   or ScrollFrame:FindFirstChild("SetWPBtn") or findBtn("Set Waypoint")
-            local wpName   = UtilityFrame:FindFirstChild("WPNameBox")  or ScrollFrame:FindFirstChild("WPNameBox")
-            local goWPBtn  = UtilityFrame:FindFirstChild("GoWPBtn")    or ScrollFrame:FindFirstChild("Go Waypoint")
-            local goWPBox  = UtilityFrame:FindFirstChild("GoWPBox")    or ScrollFrame:FindFirstChild("GoWPBox")
-            local wpListBtn= UtilityFrame:FindFirstChild("WaypointsBtn")or ScrollFrame:FindFirstChild("WaypointsBtn") or findBtn("Waypoints")
+            local utilContainer = UtilityScroll or UtilityFrame
+            local clickBtn = utilContainer:FindFirstChild("ClickTPBtn") or ScrollFrame:FindFirstChild("ClickTPBtn") or findBtn("Click TP")
+            local tpBox    = utilContainer:FindFirstChild("TPBox")     or ScrollFrame:FindFirstChild("TPBox")
+            local freeBtn  = utilContainer:FindFirstChild("FreeCamBtn") or ScrollFrame:FindFirstChild("FreeCamBtn") or findBtn("Free Cam")
+            local fcBox    = utilContainer:FindFirstChild("FCBox")      or ScrollFrame:FindFirstChild("FCBox")
+            local spdBtn   = utilContainer:FindFirstChild("SpeedBtn")   or ScrollFrame:FindFirstChild("SpeedBtn") or findBtn("Speed")
+            local spdBox   = utilContainer:FindFirstChild("SpeedBox")   or ScrollFrame:FindFirstChild("SpeedBox")
+            local setWPBtn = utilContainer:FindFirstChild("SetWPBtn")   or ScrollFrame:FindFirstChild("SetWPBtn") or findBtn("Set Waypoint")
+            local wpName   = utilContainer:FindFirstChild("WPNameBox")  or ScrollFrame:FindFirstChild("WPNameBox")
+            local goWPBtn  = utilContainer:FindFirstChild("GoWPBtn")    or ScrollFrame:FindFirstChild("Go Waypoint")
+            local goWPBox  = utilContainer:FindFirstChild("GoWPBox")    or ScrollFrame:FindFirstChild("GoWPBox")
+            local wpListBtn= utilContainer:FindFirstChild("WaypointsBtn")or ScrollFrame:FindFirstChild("WaypointsBtn") or findBtn("Waypoints")
             if not spdBox then
                 for _, ch in ipairs(ScrollFrame:GetChildren()) do
                     if ch:IsA("TextBox") and string.lower(tostring(ch.PlaceholderText)) == "speed" then spdBox = ch break end
@@ -358,7 +387,7 @@ do
             end
 
             local function moveToUtil(child, order)
-                if child then child.Parent = UtilityFrame child.Visible = true child.LayoutOrder = order end
+                if child then child.Parent = utilContainer child.Visible = true child.LayoutOrder = order end
             end
             moveToUtil(clickBtn, 1);  moveToUtil(tpBox, 2)
             moveToUtil(freeBtn, 3);   moveToUtil(fcBox, 4)
@@ -369,10 +398,11 @@ do
         else
             -- Leaving Utility: move items back to ScrollFrame and hide UtilityFrame
             if UtilityFrame.Visible then
+                local utilContainer = UtilityScroll or UtilityFrame
                 local function restore(nameOrBtn)
                     local inst
                     if type(nameOrBtn) == "string" then
-                        inst = UtilityFrame:FindFirstChild(nameOrBtn)
+                        inst = utilContainer:FindFirstChild(nameOrBtn)
                     else
                         inst = nameOrBtn
                     end
@@ -380,7 +410,7 @@ do
                 end
                 restore("TPBox"); restore("FCBox"); restore("SpeedBox"); restore("WPNameBox"); restore("GoWPBox")
                 -- buttons may not have unique names; find by text
-                for _, ch in ipairs(UtilityFrame:GetChildren()) do
+                for _, ch in ipairs(utilContainer:GetChildren()) do
                     if ch:IsA("TextButton") then ch.Parent = ScrollFrame ch.Visible = false end
                 end
             end
