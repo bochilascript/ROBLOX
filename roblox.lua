@@ -376,6 +376,38 @@ do
             moveToUtil(clickBtn, 1); moveToUtil(tpBox, 2)
             moveToUtil(freeBtn, 3);  moveToUtil(fcBox, 4)
             moveToUtil(spdBtn, 5);   moveToUtil(spdBox, 6)
+            -- juga pindahkan tombol waypoint tetap (urut A->Z)
+            local fixed = {}
+
+            -- ambil dari ScrollFrame
+            for _, ch in ipairs(ScrollFrame:GetChildren()) do
+                if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
+                    table.insert(fixed, ch)
+                end
+            end
+
+            -- ambil dari UtilityScroll (kalau sudah pernah dipindah sebelumnya)
+            for _, ch in ipairs(UtilityScroll:GetChildren()) do
+                if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
+                    table.insert(fixed, ch)
+                end
+            end
+
+            -- urutkan A->Z (case-insensitive)
+            table.sort(fixed, function(a, b)
+                local at = tostring(a.Text or ""):lower()
+                local bt = tostring(b.Text or ""):lower()
+                return at < bt
+            end)
+
+            -- tempatkan berurutan setelah Speed/SpeedBox
+            local nextOrder = 7
+            for _, ch in ipairs(fixed) do
+                ch.Parent = UtilityScroll
+                ch.Visible = true
+                ch.LayoutOrder = nextOrder
+                nextOrder = nextOrder + 1
+            end
             -- also move fixed waypoint buttons if present
             local nextOrder = 7
             for _, ch in ipairs(ScrollFrame:GetChildren()) do
