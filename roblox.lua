@@ -257,7 +257,7 @@ do
 
     -- filtering helpers
     local rusuhKeywords = {"bringpart","spectator","noclip","tendang","unanchor","fly","esp","esp team"}
-    local utilityKeywords = {"free cam","freecam","click tp","clicktp","speed"}
+    local utilityKeywords = {"free cam","freecam","click tp","clicktp","speed","waypoint","set waypoint","go waypoint","wp"}
     local function matchesAny(text, keywords)
         local lower = string.lower(text)
         for _, k in ipairs(keywords) do
@@ -346,6 +346,11 @@ do
             local fcBox    = UtilityFrame:FindFirstChild("FCBox")      or ScrollFrame:FindFirstChild("FCBox")
             local spdBtn   = UtilityFrame:FindFirstChild("SpeedBtn")   or ScrollFrame:FindFirstChild("SpeedBtn") or findBtn("Speed")
             local spdBox   = UtilityFrame:FindFirstChild("SpeedBox")   or ScrollFrame:FindFirstChild("SpeedBox")
+            local setWPBtn = UtilityFrame:FindFirstChild("SetWPBtn")   or ScrollFrame:FindFirstChild("SetWPBtn") or findBtn("Set Waypoint")
+            local wpName   = UtilityFrame:FindFirstChild("WPNameBox")  or ScrollFrame:FindFirstChild("WPNameBox")
+            local goWPBtn  = UtilityFrame:FindFirstChild("GoWPBtn")    or ScrollFrame:FindFirstChild("Go Waypoint")
+            local goWPBox  = UtilityFrame:FindFirstChild("GoWPBox")    or ScrollFrame:FindFirstChild("GoWPBox")
+            local wpListBtn= UtilityFrame:FindFirstChild("WaypointsBtn")or ScrollFrame:FindFirstChild("WaypointsBtn") or findBtn("Waypoints")
             if not spdBox then
                 for _, ch in ipairs(ScrollFrame:GetChildren()) do
                     if ch:IsA("TextBox") and string.lower(tostring(ch.PlaceholderText)) == "speed" then spdBox = ch break end
@@ -355,9 +360,12 @@ do
             local function moveToUtil(child, order)
                 if child then child.Parent = UtilityFrame child.Visible = true child.LayoutOrder = order end
             end
-            moveToUtil(clickBtn, 1); moveToUtil(tpBox, 2)
-            moveToUtil(freeBtn, 3);  moveToUtil(fcBox, 4)
-            moveToUtil(spdBtn, 5);   moveToUtil(spdBox, 6)
+            moveToUtil(clickBtn, 1);  moveToUtil(tpBox, 2)
+            moveToUtil(freeBtn, 3);   moveToUtil(fcBox, 4)
+            moveToUtil(spdBtn, 5);    moveToUtil(spdBox, 6)
+            moveToUtil(setWPBtn, 7);  moveToUtil(wpName, 8)
+            moveToUtil(goWPBtn, 9);   moveToUtil(goWPBox, 10)
+            moveToUtil(wpListBtn, 11)
         else
             -- Leaving Utility: move items back to ScrollFrame and hide UtilityFrame
             if UtilityFrame.Visible then
@@ -370,7 +378,7 @@ do
                     end
                     if inst then inst.Parent = ScrollFrame inst.Visible = false end
                 end
-                restore("TPBox"); restore("FCBox"); restore("SpeedBox")
+                restore("TPBox"); restore("FCBox"); restore("SpeedBox"); restore("WPNameBox"); restore("GoWPBox")
                 -- buttons may not have unique names; find by text
                 for _, ch in ipairs(UtilityFrame:GetChildren()) do
                     if ch:IsA("TextButton") then ch.Parent = ScrollFrame ch.Visible = false end
@@ -399,6 +407,11 @@ do
             local fcBox   = ScrollFrame:FindFirstChild("FCBox")
             local spdBtn  = findButtonByText("Speed")
             local spdBox  = ScrollFrame:FindFirstChild("SpeedBox")
+            local setWPBtn = findButtonByText("Set Waypoint")
+            local wpName   = ScrollFrame:FindFirstChild("WPNameBox")
+            local goWPBtn  = findButtonByText("Go Waypoint")
+            local goWPBox  = ScrollFrame:FindFirstChild("GoWPBox")
+            local wpListBtn= findButtonByText("Waypoints")
             if not spdBox then
                 for _, ch in ipairs(ScrollFrame:GetChildren()) do
                     if ch:IsA("TextBox") and string.lower(tostring(ch.PlaceholderText)) == "speed" then
@@ -406,7 +419,7 @@ do
                     end
                 end
             end
-            local ordered = {clickBtn, tpBox, freeBtn, fcBox, spdBtn, spdBox}
+            local ordered = {clickBtn, tpBox, freeBtn, fcBox, spdBtn, spdBox, setWPBtn, wpName, goWPBtn, goWPBox, wpListBtn}
             local keep = {}
             local order = 1
             for _, inst in ipairs(ordered) do
@@ -1391,6 +1404,140 @@ FCBox.FocusLost:Connect(function()
     end
 end)
 
+-- Waypoints utilities (setwp / gotowp / list)
+local HttpService = game:GetService("HttpService")
+local StarterGui = game:GetService("StarterGui")
+local FileSupport = (typeof(isfile)=="function" and typeof(writefile)=="function" and typeof(readfile)=="function")
+local Waypoints = {}
+
+local function getWPPath()
+    local pid = tostring(game.PlaceId or "0")
+    return "CH_Waypoints_WP_"..pid..".json"
+end
+
+local function notify(title, text)
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {Title = title, Text = text, Duration = 4})
+    end)
+end
+
+local function loadWaypoints()
+    if not FileSupport then return end
+    local path = getWPPath()
+    if isfile(path) then
+        local ok, data = pcall(function()
+            return HttpService:JSONDecode(readfile(path))
+        end)
+        if ok and type(data)=="table" then
+            Waypoints = data
+        end
+    end
+end
+
+local function saveWaypoints()
+    if not FileSupport then return end
+    local path = getWPPath()
+    local ok, encoded = pcall(function()
+        return HttpService:JSONEncode(Waypoints)
+    end)
+    if ok then pcall(writefile, path, encoded) end
+end
+
+loadWaypoints()
+
+local SetWPBtn = createButton("", "Set Waypoint")
+SetWPBtn.Name = "SetWPBtn"
+local WPNameBox = Instance.new("TextBox")
+WPNameBox.Name = "WPNameBox"
+WPNameBox.Size = UDim2.new(0, 150, 0, 35)
+WPNameBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+WPNameBox.BackgroundTransparency = 0.1
+WPNameBox.Text = ""
+WPNameBox.PlaceholderText = "Waypoint name"
+WPNameBox.TextSize = 15
+WPNameBox.Font = Enum.Font.GothamBold
+WPNameBox.TextColor3 = Color3.fromRGB(255,255,255)
+WPNameBox.ClearTextOnFocus = false
+WPNameBox.Parent = ScrollFrame
+do
+    local c = Instance.new("UICorner") c.CornerRadius = UDim.new(0,8) c.Parent = WPNameBox
+    local s = Instance.new("UIStroke") s.Color = Color3.fromRGB(0,130,80) s.Thickness = 1.5 s.Parent = WPNameBox
+    local p = Instance.new("UIPadding") p.PaddingLeft = UDim.new(0,12) p.Parent = WPNameBox
+end
+
+local GoWPBtn = createButton("", "Go Waypoint")
+GoWPBtn.Name = "GoWPBtn"
+local GoWPBox = Instance.new("TextBox")
+GoWPBox.Name = "GoWPBox"
+GoWPBox.Size = UDim2.new(0, 150, 0, 35)
+GoWPBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+GoWPBox.BackgroundTransparency = 0.1
+GoWPBox.Text = ""
+GoWPBox.PlaceholderText = "Waypoint name"
+GoWPBox.TextSize = 15
+GoWPBox.Font = Enum.Font.GothamBold
+GoWPBox.TextColor3 = Color3.fromRGB(255,255,255)
+GoWPBox.ClearTextOnFocus = false
+GoWPBox.Parent = ScrollFrame
+do
+    local c = Instance.new("UICorner") c.CornerRadius = UDim.new(0,8) c.Parent = GoWPBox
+    local s = Instance.new("UIStroke") s.Color = Color3.fromRGB(0,130,80) s.Thickness = 1.5 s.Parent = GoWPBox
+    local p = Instance.new("UIPadding") p.PaddingLeft = UDim.new(0,12) p.Parent = GoWPBox
+end
+
+local WaypointsBtn = createButton("", "Waypoints")
+WaypointsBtn.Name = "WaypointsBtn"
+
+SetWPBtn.MouseButton1Click:Connect(function()
+    local name = (WPNameBox.Text or ""):gsub("^%s+", ""):gsub("%s+$", "")
+    if name == "" then
+        notify("Waypoints", "Isi nama terlebih dahulu")
+        setButtonActive(SetWPBtn, true); task.delay(0.2, function() setButtonActive(SetWPBtn, false) end)
+        return
+    end
+    local lplr = game:GetService("Players").LocalPlayer
+    local char = lplr.Character or lplr.CharacterAdded:Wait()
+    local cf
+    if char and char.PrimaryPart then
+        cf = char.PrimaryPart.CFrame
+    else
+        cf = workspace.CurrentCamera.CFrame
+    end
+    Waypoints[name] = { Components = { cf:GetComponents() } }
+    saveWaypoints()
+    notify("Waypoints", ("Saved '%s'"):format(name))
+    setButtonActive(SetWPBtn, true); task.delay(0.15, function() setButtonActive(SetWPBtn, false) end)
+end)
+
+GoWPBtn.MouseButton1Click:Connect(function()
+    local name = (GoWPBox.Text or ""):gsub("^%s+", ""):gsub("%s+$", "")
+    local entry = Waypoints[name]
+    if not entry or type(entry.Components) ~= "table" then
+        notify("Waypoints", ("Tidak ada '%s'"):format(name ~= "" and name or "(kosong)"))
+        setButtonActive(GoWPBtn, true); task.delay(0.2, function() setButtonActive(GoWPBtn, false) end)
+        return
+    end
+    local ok, cf = pcall(function() return CFrame.new(unpack(entry.Components)) end)
+    if not ok or typeof(cf) ~= "CFrame" then
+        notify("Waypoints", ("Waypoint '%s' rusak"):format(name))
+        return
+    end
+    local lplr = game:GetService("Players").LocalPlayer
+    local char = lplr.Character or lplr.CharacterAdded:Wait()
+    if char then
+        char:PivotTo(cf)
+        notify("Waypoints", ("Teleport ke '%s'"):format(name))
+    end
+end)
+
+WaypointsBtn.MouseButton1Click:Connect(function()
+    local names = {}
+    for k,_ in pairs(Waypoints) do table.insert(names, tostring(k)) end
+    table.sort(names)
+    local text = (#names>0) and table.concat(names, ", ") or "(kosong)"
+    notify("Waypoints", text)
+end)
+
 local function findPlayerByQuery(q)
     if not q or q == "" then return nil end
     q = q:gsub("^@", "")
@@ -1415,9 +1562,10 @@ end
 ClickTPBtn.MouseButton1Click:Connect(function()
     local query = TPBox.Text
     local target = findPlayerByQuery(query)
-    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and player.Character and player.Character.PrimaryPart then
+    local lplr = game:GetService("Players").LocalPlayer
+    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and lplr.Character and lplr.Character.PrimaryPart then
         local targetPos = target.Character.HumanoidRootPart.Position + Vector3.new(0, 3, 0)
-        player.Character:SetPrimaryPartCFrame(CFrame.new(targetPos))
+        lplr.Character:SetPrimaryPartCFrame(CFrame.new(targetPos))
     else
         -- keep button visual feedback
         setButtonActive(ClickTPBtn, true)
@@ -2232,7 +2380,8 @@ do
     local btns = {
         AirwalkBtn, ESPBtn, ESPTeamBtn, LampBtn, JumpBtn, SpeedBtn, NoclipBtn, FlingBtn, FlyBtn,
         UnanchorBtn, BringPartBtn, AntiLagBtn, RecBtn, TeleBtn, SpectatorBtn,
-        AnimasiBtn, AvatarBtn, FishBtn, ClickTPBtn, FreeCamBtn
+        AnimasiBtn, AvatarBtn, FishBtn, ClickTPBtn, FreeCamBtn,
+        SetWPBtn, GoWPBtn, WaypointsBtn
     }
     local list = {}
     for _,b in ipairs(btns) do
@@ -2259,6 +2408,14 @@ do
         end
         if btn == FreeCamBtn and FCBox then
             FCBox.LayoutOrder = order
+            order = order + 1
+        end
+        if btn == SetWPBtn and WPNameBox then
+            WPNameBox.LayoutOrder = order
+            order = order + 1
+        end
+        if btn == GoWPBtn and GoWPBox then
+            GoWPBox.LayoutOrder = order
             order = order + 1
         end
     end
