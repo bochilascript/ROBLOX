@@ -151,6 +151,46 @@ SpeedBox.FocusLost:Connect(function()
     end
 end)
 
+-- Fixed Waypoints (from JSON) -> buttons under Utility after Speed
+do
+    local FixedWPs = {
+        HARTA       = {Components={-3602.19677734375,-277.58441162109377,-1587.53759765625,0.999807596206665,0.0001278429408557713,0.01961546018719673,-0.000008475522918161005,0.9999814629554749,-0.006085243541747332,-0.01961587555706501,0.006083906162530184,0.9997890591621399}},
+        LUARKUIL    = {Components={1479.4808349609376,9.090734481811524,-343.2374267578125,-0.897347092628479,-0.00088000443065539,-0.4413246214389801,0.0000018022124095296022,0.9999979734420776,-0.0019976538605988027,0.44132551550865176,-0.0017933814087882639,-0.897345244884491}},
+        PATUNG      = {Components={-3736.75341796875,-133.80055236816407,-1015.416259765625,-0.9695653915405273,-0.0017945958534255624,-0.244826078414917,-0.000010721681064751465,0.999973475933075,-0.007287415210157633,0.24483263492584229,-0.007062999531626701,-0.9695396423339844}},
+        UNDERGROUND = {Components={2133.65087890625,-89.73197937011719,-694.9803466796875,0.9973929524421692,-0.00033288178383372724,-0.07216134667396546,-8.688780326338019e-7,0.9999892711639404,-0.004624960478395224,0.07216212153434754,0.0046129655092954639,0.9973822236061096}},
+        DALAMKUIL   = {Components={1471.4512939453126,-20.628217697143556,-614.5638427734375,-0.17553499341011048,-0.002957490272819996,0.9844687581062317,-0.000005203882210480515,0.9999954700469971,0.0030032077338546516,-0.9844731688499451,0.0005220481543801725,-0.1755342036485672}},
+        ESO         = {Components={3211.76708984375,-1301.3892822265626,1411.2330322265626,0.41895541548728945,-0.0020274349953979255,-0.9080045819282532,0.0000018786241753332434,0.9999974966049194,-0.0022319701965898277,0.9080068469047546,0.0009333821362815797,0.41895437240600588}},
+        RUIN        = {Components={6100.0380859375,-584.4552612304688,4667.64892578125,-0.04940324276685715,0.006274937652051449,0.9987591505050659,-0.000006197193670232082,0.9999802708625794,-0.006282915826886892,-0.9987788796424866,-0.00031658177613280714,-0.049402229487895969}},
+        TROPICAL    = {Components={-2049.992431640625,7.765800476074219,3659.89111328125,-0.7001360654830933,-0.0021480624563992025,0.7140061855316162,-0.000005275551757222274,0.9999954700469971,0.003003281308338046,-0.7140094637870789,0.002098941011354327,-0.7001329064369202}},
+        CRATER      = {Components={1077.8387451171876,5.977067470550537,5119.4794921875,0.4851735830307007,-4.953440679855703e-8,0.8744178414344788,-5.273897940583083e-8,1,8.591083400233401e-8,-0.8744178414344788,-8.77975736557346e-8,0.4851735830307007}},
+        KOHANA      = {Components={-602.82275390625,17.505319595336915,652.0319213867188,0.9999975562095642,0.0000015247237570292783,0.0021858136169612409,-0.000005804166448797332,0.9999980926513672,0.00196487782523036,-0.002185806632041931,-0.001964885974302888,0.9999956488609314}},
+        CORAL       = {Components={-2746.401611328125,5.49059534072876,2182.592529296875,0.6984241008758545,-0.0031200835946947338,0.7156773805618286,-0.000013386315913521685,0.9999904632568359,0.0043726721778512,-0.7156841158866882,-0.003063580021262169,0.6984174251556397}},
+        VOLCANO     = {Components={-590.98974609375,48.35332107543945,200.23117065429688,0.9494487643241882,-0.00018591935804579407,-0.3139219880104065,6.513984089906444e-7,0.9999998211860657,-0.0005903131095692515,0.31392204761505129,0.00056027143727988,0.9494486451148987}},
+    }
+
+    local function makeWPBtn(name, comps)
+        local btn = createButton("", name)
+        btn:SetAttribute("IsFixedWP", true)
+        btn.Visible = false
+        btn.Parent = ScrollFrame
+        btn.MouseButton1Click:Connect(function()
+            local ok, cf = pcall(function() return CFrame.new(unpack(comps)) end)
+            if ok and typeof(cf)=="CFrame" then
+                local lplr = game:GetService("Players").LocalPlayer
+                local char = lplr.Character or lplr.CharacterAdded:Wait()
+                if char then char:PivotTo(cf) end
+            end
+        end)
+        return btn
+    end
+
+    for name, data in pairs(FixedWPs) do
+        if type(data)=="table" and type(data.Components)=="table" then
+            makeWPBtn(name, data.Components)
+        end
+    end
+end
+
 ProfilePicture.Image = "rbxasset://textures/ui/avatar_placeholder.png"
 
 task.spawn(loadThumbnailWithFallbacks)
@@ -358,6 +398,14 @@ do
             moveToUtil(clickBtn, 1); moveToUtil(tpBox, 2)
             moveToUtil(freeBtn, 3);  moveToUtil(fcBox, 4)
             moveToUtil(spdBtn, 5);   moveToUtil(spdBox, 6)
+            -- also move fixed waypoint buttons if present
+            local nextOrder = 7
+            for _, ch in ipairs(ScrollFrame:GetChildren()) do
+                if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
+                    moveToUtil(ch, nextOrder)
+                    nextOrder += 1
+                end
+            end
         else
             -- Leaving Utility: move items back to ScrollFrame and hide UtilityFrame
             if UtilityFrame.Visible then
@@ -371,6 +419,13 @@ do
                     if inst then inst.Parent = ScrollFrame inst.Visible = false end
                 end
                 restore("TPBox"); restore("FCBox"); restore("SpeedBox")
+                -- restore fixed waypoint buttons
+                for _, ch in ipairs(UtilityFrame:GetChildren()) do
+                    if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
+                        ch.Parent = ScrollFrame
+                        ch.Visible = false
+                    end
+                end
                 -- buttons may not have unique names; find by text
                 for _, ch in ipairs(UtilityFrame:GetChildren()) do
                     if ch:IsA("TextButton") then ch.Parent = ScrollFrame ch.Visible = false end
