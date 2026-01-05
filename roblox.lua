@@ -630,7 +630,7 @@ do
         return game:HttpGet(url)
     end)
     if ok and data and type(writefile) == "function" then
-        local fileName = ("mini_logo_%d.png"):format(os.time())
+        local fileName = "mini_logo.png"
         pcall(function() writefile(fileName, data) end)
         local getasset = (typeof(getcustomasset) == "function" and getcustomasset)
             or (typeof(getsynasset) == "function" and getsynasset)
