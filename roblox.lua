@@ -408,14 +408,14 @@ do
                 ch.LayoutOrder = nextOrder
                 nextOrder = nextOrder + 1
             end
-            -- also move fixed waypoint buttons if present
-            local nextOrder = 7
-            for _, ch in ipairs(ScrollFrame:GetChildren()) do
-                if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
-                    moveToUtil(ch, nextOrder)
-                    nextOrder += 1
-                end
-            end
+            -- -- also move fixed waypoint buttons if present
+            -- local nextOrder = 7
+            -- for _, ch in ipairs(ScrollFrame:GetChildren()) do
+            --     if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
+            --         moveToUtil(ch, nextOrder)
+            --         nextOrder += 1
+            --     end
+            -- end
         else
             -- Leaving Utility: move items back to ScrollFrame and hide UtilityFrame
             if UtilityFrame.Visible then
@@ -607,7 +607,7 @@ MiniFrame.Size = UDim2.new(0, 40, 0, 40)
 MiniFrame.Position = UDim2.new(1, -70, 0, 10)
 MiniFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 30)
 MiniFrame.BackgroundTransparency = 0.1
-MiniFrame.Image = "https://files.catbox.moe/en0mwr.png"
+MiniFrame.Image = "https://files.catbox.moe/jqehi8.jpg"
 MiniFrame.ScaleType = Enum.ScaleType.Fit
 MiniFrame.Visible = false
 MiniFrame.Active = true
@@ -625,12 +625,12 @@ miniStroke.Parent = MiniFrame
 
 -- Try to load MiniFrame image from external URL via executor APIs (if available)
 do
-    local url = "https://files.catbox.moe/en0mwr.png"
+    local url = "https://files.catbox.moe/jqehi8.jpg"
     local ok, data = pcall(function()
         return game:HttpGet(url)
     end)
     if ok and data and type(writefile) == "function" then
-        local fileName = "mini_logo.png"
+        local fileName = ("mini_logo_%d.png"):format(os.time())
         pcall(function() writefile(fileName, data) end)
         local getasset = (typeof(getcustomasset) == "function" and getcustomasset)
             or (typeof(getsynasset) == "function" and getsynasset)
