@@ -690,6 +690,23 @@ end)
 
 local buttonStates = {}
 
+-- Sanitize script remote yang kadang mengandung komentar // atau /* */ yang tidak valid di Lua
+local function sanitizeLua(code)
+    if type(code) ~= "string" then return code end
+    -- hapus BOM jika ada
+    code = code:gsub("^\239\187\191", "")
+    -- hapus blok komentar /* ... */ (naif, tapi cukup untuk kebanyakan kasus satu blok)
+    code = code:gsub("/%*.-%*/", "")
+    -- hapus komentar baris //...
+    local out = {}
+    for line in code:gmatch("([^\n]*)\n?") do
+        if not line:match("^%s*//") then
+            table.insert(out, line)
+        end
+    end
+    return table.concat(out, "\n")
+end
+
 local function createButton(icon, text)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 150, 0, 35)
@@ -2198,11 +2215,13 @@ SpectatorBtn.MouseButton1Click:Connect(function()
         return game:HttpGet("https://pastebin.com/raw/rHy7Y8JG")
     end)
     if success and response then
-        local func, err = loadstring(response)
-        if func then 
-            func() 
-        else 
-            warn("Loadstring error: "..tostring(err)) 
+        response = sanitizeLua(response)
+        local loader = loadstring or load
+        if loader then
+            local func, err = loader(response)
+            if func then func() else warn("Load error: "..tostring(err)) end
+        else
+            warn("No loadstring available in this executor")
         end
     else 
         warn("HttpGet failed for Spectator") 
@@ -2214,11 +2233,13 @@ RecBtn.MouseButton1Click:Connect(function()
         return game:HttpGet("https://airdropwota.io/r1.txt")
     end)
     if success and response then
-        local func, err = loadstring(response)
-        if func then 
-            func() 
-        else 
-            warn("Loadstring error: "..tostring(err)) 
+        response = sanitizeLua(response)
+        local loader = loadstring or load
+        if loader then
+            local func, err = loader(response)
+            if func then func() else warn("Load error: "..tostring(err)) end
+        else
+            warn("No loadstring available in this executor")
         end
     else 
         warn("HttpGet failed for Rec") 
@@ -2230,11 +2251,13 @@ AnimasiBtn.MouseButton1Click:Connect(function()
         return game:HttpGet("https://raw.githubusercontent.com/bochilascript/ROBLOX/refs/heads/main/animasi.lua")
     end)
     if success and response then
-        local func, err = loadstring(response)
-        if func then 
-            func() 
-        else 
-            warn("Loadstring error: "..tostring(err)) 
+        response = sanitizeLua(response)
+        local loader = loadstring or load
+        if loader then
+            local func, err = loader(response)
+            if func then func() else warn("Load error: "..tostring(err)) end
+        else
+            warn("No loadstring available in this executor")
         end
     else 
         warn("HttpGet failed for Spectator") 
@@ -2246,11 +2269,13 @@ AvatarBtn.MouseButton1Click:Connect(function()
         return game:HttpGet("https://airdropwota.io/c2.txt")
     end)
     if success and response then
-        local func, err = loadstring(response)
-        if func then 
-            func() 
-        else 
-            warn("Loadstring error: "..tostring(err)) 
+        response = sanitizeLua(response)
+        local loader = loadstring or load
+        if loader then
+            local func, err = loader(response)
+            if func then func() else warn("Load error: "..tostring(err)) end
+        else
+            warn("No loadstring available in this executor")
         end
     else 
         warn("HttpGet failed for Spectator") 
@@ -2262,11 +2287,13 @@ TeleBtn.MouseButton1Click:Connect(function()
         return game:HttpGet("https://airdropwota.io/t4.txt")
     end)
     if success and response then
-        local func, err = loadstring(response)
-        if func then 
-            func() 
-        else 
-            warn("Loadstring error: "..tostring(err)) 
+        response = sanitizeLua(response)
+        local loader = loadstring or load
+        if loader then
+            local func, err = loader(response)
+            if func then func() else warn("Load error: "..tostring(err)) end
+        else
+            warn("No loadstring available in this executor")
         end
     else 
         warn("HttpGet failed for Spectator") 
@@ -2278,11 +2305,13 @@ FishBtn.MouseButton1Click:Connect(function()
         return game:HttpGet("https://airdropwota.io/m3.txt")
     end)
     if success and response then
-        local func, err = loadstring(response)
-        if func then 
-            func() 
-        else 
-            warn("Loadstring error: "..tostring(err)) 
+        response = sanitizeLua(response)
+        local loader = loadstring or load
+        if loader then
+            local func, err = loader(response)
+            if func then func() else warn("Load error: "..tostring(err)) end
+        else
+            warn("No loadstring available in this executor")
         end
     else 
         warn("HttpGet failed for Spectator") 
