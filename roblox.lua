@@ -1452,9 +1452,11 @@ FreeCamBtn.MouseButton1Click:Connect(function()
     setFreecam(not freecamOn)
 end)
 
+end
+
 -- Teleport-by-name UI (like admin2): a TextBox under Click TP
-if ENABLE_FREECAM_MOBILE then
-" end
+
+end
 
 -- Teleport-by-name UI (like admin2): a TextBox under Click TP
 local TPBox = Instance.new("TextBox")
