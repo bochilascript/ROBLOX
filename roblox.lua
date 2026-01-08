@@ -375,7 +375,7 @@ do
             end
             moveToUtil(clickBtn, 1); moveToUtil(tpBox, 2)
             moveToUtil(freeBtn, 3);  moveToUtil(fcBox, 4)
-            moveToUtil(spdBtn, 5);   moveToUtil(spdBox, 6)
+            moveToUtil(spdBtn, 5);   moveToUtil(spdBox, 6)`r`n            local mfb = UtilityScroll:FindFirstChild("MobileFreeCamBtn") or ScrollFrame:FindFirstChild("MobileFreeCamBtn")`r`n            moveToUtil(mfb, 7)
             -- juga pindahkan tombol waypoint tetap (urut A->Z)
             local fixed = {}
 
@@ -401,7 +401,7 @@ do
             end)
 
             -- tempatkan berurutan setelah Speed/SpeedBox
-            local nextOrder = 7
+            local nextOrder = 8
             for _, ch in ipairs(fixed) do
                 ch.Parent = UtilityScroll
                 ch.Visible = true
@@ -409,7 +409,7 @@ do
                 nextOrder = nextOrder + 1
             end
             -- -- also move fixed waypoint buttons if present
-            -- local nextOrder = 7
+            -- local nextOrder = 8
             -- for _, ch in ipairs(ScrollFrame:GetChildren()) do
             --     if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
             --         moveToUtil(ch, nextOrder)
@@ -1448,6 +1448,138 @@ FreeCamBtn.MouseButton1Click:Connect(function()
 end)
 
 -- Teleport-by-name UI (like admin2): a TextBox under Click TP
+local MobileFreeCamBtn = createButton("", "Mobile FreeCam")
+MobileFreeCamBtn.Name = "MobileFreeCamBtn"
+MobileFreeCamBtn.LayoutOrder = 4
+MobileFreeCamBtn.Visible = game:GetService("UserInputService").TouchEnabled
+
+local mfc_on = false
+local mfc_group
+local mfc_yaw, mfc_pitch = 0, 0
+local mfc_touching = {up=false,down=false,left=false,right=false}
+local mfc_dragging = false
+local mfc_lastPos = nil
+
+local function mfc_makeUI()
+    if mfc_group then return end
+    mfc_group = Instance.new("Frame")
+    mfc_group.Name = "MobileFCGroup"
+    mfc_group.BackgroundTransparency = 1
+    mfc_group.Size = UDim2.fromOffset(160, 120)
+    mfc_group.AnchorPoint = Vector2.new(0,1)
+    mfc_group.Position = UDim2.new(0, 16, 1, -96)
+    mfc_group.Visible = false
+    mfc_group.Parent = ScreenGui
+
+    local function mkBtn(txt, x, y)
+        local b = Instance.new("TextButton")
+        b.Size = UDim2.fromOffset(44, 44)
+        b.Position = UDim2.fromOffset(x, y)
+        b.BackgroundColor3 = Color3.fromRGB(30,30,30)
+        b.BackgroundTransparency = 0.2
+        b.Text = txt
+        b.TextSize = 18
+        b.Font = Enum.Font.GothamBold
+        b.TextColor3 = Color3.fromRGB(255,255,255)
+        b.Parent = mfc_group
+        local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0,8); c.Parent = b
+        return b
+    end
+
+    local upB    = mkBtn("", 58,  0)
+    local downB  = mkBtn("", 58,  76)
+    local leftB  = mkBtn("", 12,  38)
+    local rightB = mkBtn("", 104, 38)
+
+    local function bindHold(btn, key)
+        btn.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+                mfc_touching[key] = true
+                btn.BackgroundTransparency = 0
+            end
+        end)
+        btn.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+                mfc_touching[key] = false
+                btn.BackgroundTransparency = 0.2
+            end
+        end)
+    end
+    bindHold(upB, "up"); bindHold(downB, "down"); bindHold(leftB, "left"); bindHold(rightB, "right")
+
+    local lookZone = Instance.new("Frame")
+    lookZone.BackgroundTransparency = 1
+    lookZone.Size = UDim2.new(0.5, 0, 1, 0)
+    lookZone.Position = UDim2.new(0.5, 0, 0, 0)
+    lookZone.Parent = ScreenGui
+
+    lookZone.InputBegan:Connect(function(input)
+        if not mfc_on then return end
+        if input.UserInputType == Enum.UserInputType.Touch then
+            mfc_dragging = true
+            mfc_lastPos = input.Position
+        end
+    end)
+    lookZone.InputChanged:Connect(function(input)
+        if not mfc_on then return end
+        if input.UserInputType == Enum.UserInputType.Touch and mfc_dragging and mfc_lastPos then
+            local delta = input.Position - mfc_lastPos
+            mfc_lastPos = input.Position
+            local sens = 0.003
+            mfc_yaw = mfc_yaw - delta.X * sens
+            mfc_pitch = math.clamp(mfc_pitch - delta.Y * sens, -1.2, 1.2)
+        end
+    end)
+    lookZone.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            mfc_dragging = false
+            mfc_lastPos = nil
+        end
+    end)
+end
+
+local function mfc_enter()
+    if mfc_on or not game:GetService("UserInputService").TouchEnabled then return end
+    local cam = workspace.CurrentCamera
+    mfc_on = true
+    cam.CameraType = Enum.CameraType.Scriptable
+    local rx, ry = cam.CFrame:ToOrientation()
+    mfc_pitch, mfc_yaw = rx, ry
+    mfc_makeUI()
+    if mfc_group then mfc_group.Visible = true end
+end
+
+local function mfc_exit()
+    if not mfc_on then return end
+    mfc_on = false
+    workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+    if mfc_group then mfc_group.Visible = false end
+    mfc_touching.up, mfc_touching.down, mfc_touching.left, mfc_touching.right = false,false,false,false
+    mfc_dragging = false
+    mfc_lastPos = nil
+end
+
+MobileFreeCamBtn.MouseButton1Click:Connect(function()
+    if freecamOn then
+        setFreecam(false)
+    end
+    if mfc_on then mfc_exit() else mfc_enter() end
+    setButtonActive(MobileFreeCamBtn, mfc_on)
+end)
+
+RunService.RenderStepped:Connect(function(dt)
+    if not mfc_on then return end
+    local cam = workspace.CurrentCamera
+    local rot = CFrame.fromOrientation(mfc_pitch, mfc_yaw, 0)
+    local forward = (mfc_touching.up and 1 or 0) - (mfc_touching.down and 1 or 0)
+    local strafe  = (mfc_touching.right and 1 or 0) - (mfc_touching.left and 1 or 0)
+    local dir = (rot.LookVector * forward + rot.RightVector * strafe)
+    if dir.Magnitude > 1e-3 then dir = dir.Unit else dir = Vector3.zero end
+    cam.CFrame = CFrame.new(cam.CFrame.Position, cam.CFrame.Position + rot.LookVector)
+    cam.CFrame = cam.CFrame + dir * 24 * dt
+end)
+
+MobileFreeCamBtn.Visible = game:GetService("UserInputService").TouchEnabled
 local TPBox = Instance.new("TextBox")
 TPBox.Name = "TPBox"
 TPBox.LayoutOrder = 2
