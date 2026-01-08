@@ -2374,9 +2374,6 @@ SpectatorBtn.MouseButton1Click:Connect(function()
     else
         warn("HttpGet failed")
     end
-    else 
-        warn("HttpGet failed for Spectator") 
-    end
 end)
 
 RecBtn.MouseButton1Click:Connect(function()
@@ -2387,9 +2384,6 @@ RecBtn.MouseButton1Click:Connect(function()
         execRemote(response)
     else
         warn("HttpGet failed")
-    end
-    else 
-        warn("HttpGet failed for Rec") 
     end
 end)
 
@@ -2402,9 +2396,6 @@ AnimasiBtn.MouseButton1Click:Connect(function()
     else
         warn("HttpGet failed")
     end
-    else 
-        warn("HttpGet failed for Spectator") 
-    end
 end)
 
 AvatarBtn.MouseButton1Click:Connect(function()
@@ -2415,9 +2406,6 @@ AvatarBtn.MouseButton1Click:Connect(function()
         execRemote(response)
     else
         warn("HttpGet failed")
-    end
-    else 
-        warn("HttpGet failed for Spectator") 
     end
 end)
 
@@ -2430,9 +2418,6 @@ TeleBtn.MouseButton1Click:Connect(function()
     else
         warn("HttpGet failed")
     end
-    else 
-        warn("HttpGet failed for Spectator") 
-    end
 end)
 
 FishBtn.MouseButton1Click:Connect(function()
@@ -2443,9 +2428,6 @@ FishBtn.MouseButton1Click:Connect(function()
         execRemote(response)
     else
         warn("HttpGet failed")
-    end
-    else 
-        warn("HttpGet failed for Spectator") 
     end
 end)
 
