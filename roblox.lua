@@ -1394,123 +1394,6 @@ local freecamYaw, freecamPitch = 0, 0
 local freecamPos
 local freecamSpeed = 2
 
--- Kontrol Free Cam untuk Mobile (muncul hanya saat touch device)
-local UIS = game:GetService("UserInputService")
-local mobileUI
-local mForward, mBack, mLeft, mRight, mUp, mDown = false, false, false, false, false, false
-local touchLookActive = false
-local touchLookStart
-local touchLookDelta = Vector2.new()
-local pinchIds = {}
-local pinchStartDist, pinchFOVStart
-local freecamFOV = 70
-
-local function ensureMobileUI()
-    if mobileUI or not UIS.TouchEnabled then return end
-    mobileUI = Instance.new("Frame")
-    mobileUI.Name = "MobileFCControls"
-    mobileUI.Size = UDim2.new(1,0,1,0)
-    mobileUI.BackgroundTransparency = 1
-    mobileUI.Visible = false
-    mobileUI.Parent = ScreenGui
-
-    -- D-pad kiri bawah
-    local pad = Instance.new("Frame")
-    pad.Size = UDim2.new(0,160,0,160)
-    pad.Position = UDim2.new(0,20,1,-180)
-    pad.BackgroundTransparency = 1
-    pad.Parent = mobileUI
-
-    local function mkBtn(txt, x, y)
-        local b = Instance.new("TextButton")
-        b.Size = UDim2.new(0,48,0,48)
-        b.Position = UDim2.new(0,x,0,y)
-        b.BackgroundColor3 = Color3.fromRGB(0,0,0)
-        b.BackgroundTransparency = 0.35
-        b.Text = txt
-        b.TextSize = 18
-        b.Font = Enum.Font.GothamBold
-        b.TextColor3 = Color3.fromRGB(255,255,255)
-        b.Parent = pad
-        local c = Instance.new("UICorner") c.CornerRadius = UDim.new(0,8) c.Parent = b
-        return b
-    end
-
-    local upB    = mkBtn("?", 56,   0)
-    local downB  = mkBtn("?", 56, 112)
-    local leftB  = mkBtn("?", 8,   56)
-    local rightB = mkBtn("?", 104, 56)
-    local riseB  = mkBtn("+", 8,  112)
-    local fallB  = mkBtn("-", 104,112)
-
-    upB.MouseButton1Down:Connect(function() mForward = true end)
-    upB.MouseButton1Up:Connect(function() mForward = false end)
-    downB.MouseButton1Down:Connect(function() mBack = true end)
-    downB.MouseButton1Up:Connect(function() mBack = false end)
-    leftB.MouseButton1Down:Connect(function() mLeft = true end)
-    leftB.MouseButton1Up:Connect(function() mLeft = false end)
-    rightB.MouseButton1Down:Connect(function() mRight = true end)
-    rightB.MouseButton1Up:Connect(function() mRight = false end)
-    riseB.MouseButton1Down:Connect(function() mUp = true end)
-    riseB.MouseButton1Up:Connect(function() mUp = false end)
-    fallB.MouseButton1Down:Connect(function() mDown = true end)
-    fallB.MouseButton1Up:Connect(function() mDown = false end)
-
-    -- Area look/zoom di kanan
-    local look = Instance.new("Frame")
-    look.Size = UDim2.new(0.45,0,1,-60)
-    look.Position = UDim2.new(0.55,0,0,30)
-    look.BackgroundTransparency = 1
-    look.Parent = mobileUI
-
-    local function touches()
-        local t = {}
-        for _,v in pairs(pinchIds) do table.insert(t, v) end
-        return t
-    end
-
-    look.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
-            if not pinchIds[input.TouchId] then
-                if not touchLookActive then
-                    touchLookActive = true
-                    touchLookStart = input.Position
-                end
-            end
-            pinchIds[input.TouchId] = input
-            local t = touches()
-            if #t >= 2 then
-                pinchStartDist = (t[1].Position - t[2].Position).Magnitude
-                pinchFOVStart = freecamFOV
-            end
-        end
-    end)
-    look.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
-            pinchIds[input.TouchId] = input
-            local t = touches()
-            if pinchStartDist and #t >= 2 then
-                local dist = (t[1].Position - t[2].Position).Magnitude
-                local scale = (dist - pinchStartDist)/200
-                freecamFOV = math.clamp(pinchFOVStart - scale*30, 40, 90)
-            elseif touchLookActive and touchLookStart then
-                local d = input.Position - touchLookStart
-                touchLookDelta = Vector2.new(-d.X/300, -d.Y/300)
-                touchLookStart = input.Position
-            end
-        end
-    end)
-    look.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
-            pinchIds[input.TouchId] = nil
-            if next(pinchIds) == nil then
-                pinchStartDist = nil
-                touchLookActive = false
-            end
-        end
-    end)
-end
-
 ClickTPBtn.MouseButton1Click:Connect(function()
     clickTpOn = not clickTpOn
     setButtonActive(ClickTPBtn, clickTpOn)
@@ -1527,9 +1410,6 @@ local function setFreecam(state)
         freecamPos = cam.CFrame.Position
         local rx, ry = cam.CFrame:ToOrientation()
         freecamPitch, freecamYaw = rx, ry
-        freecamFOV = cam.FieldOfView
-        ensureMobileUI()
-        if mobileUI then mobileUI.Visible = UIS.TouchEnabled end
         setButtonActive(FreeCamBtn, true)
         task.spawn(function()
             while freecamOn do
@@ -1541,14 +1421,6 @@ local function setFreecam(state)
                     if UserInputService:IsKeyDown(Enum.KeyCode.D) then delta += cam.CFrame.RightVector end
                     if UserInputService:IsKeyDown(Enum.KeyCode.Space) then delta += Vector3.new(0,1,0) end
                     if UserInputService:IsKeyDown(Enum.KeyCode.E) then delta -= Vector3.new(0,1,0) end
-                    if UIS.TouchEnabled and mobileUI and mobileUI.Visible then
-                        if mForward then delta += cam.CFrame.LookVector end
-                        if mBack    then delta -= cam.CFrame.LookVector end
-                        if mLeft    then delta -= cam.CFrame.RightVector end
-                        if mRight   then delta += cam.CFrame.RightVector end
-                        if mUp      then delta += Vector3.new(0,1,0) end
-                        if mDown    then delta -= Vector3.new(0,1,0) end
-                    end
                     freecamPos += delta * freecamSpeed
                     if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
                         local md = UserInputService:GetMouseDelta()
@@ -1559,14 +1431,7 @@ local function setFreecam(state)
                         UserInputService.MouseBehavior = Enum.MouseBehavior.Default
                     end
                 end
-                -- mobile look + FOV
-                if UIS.TouchEnabled and (touchLookDelta.X ~= 0 or touchLookDelta.Y ~= 0) then
-                    freecamYaw = freecamYaw + touchLookDelta.X
-                    freecamPitch = math.clamp(freecamPitch + touchLookDelta.Y, -math.rad(89), math.rad(89))
-                    touchLookDelta = Vector2.new()
-                end
                 cam.CFrame = CFrame.new(freecamPos) * CFrame.fromOrientation(freecamPitch, freecamYaw, 0)
-                cam.FieldOfView = freecamFOV
                 RunService.RenderStepped:Wait()
             end
         end)
