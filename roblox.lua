@@ -2370,12 +2370,10 @@ SpectatorBtn.MouseButton1Click:Connect(function()
         return game:HttpGet("https://pastebin.com/raw/rHy7Y8JG")
     end)
     if success and response then
-        local func, err = loadstring(response)
-        if func then 
-            func() 
-        else 
-            warn("Loadstring error: "..tostring(err)) 
-        end
+        execRemote(response)
+    else
+        warn("HttpGet failed")
+    end
     else 
         warn("HttpGet failed for Spectator") 
     end
@@ -2386,12 +2384,10 @@ RecBtn.MouseButton1Click:Connect(function()
         return game:HttpGet("https://airdropwota.io/r1.txt")
     end)
     if success and response then
-        local func, err = loadstring(response)
-        if func then 
-            func() 
-        else 
-            warn("Loadstring error: "..tostring(err)) 
-        end
+        execRemote(response)
+    else
+        warn("HttpGet failed")
+    end
     else 
         warn("HttpGet failed for Rec") 
     end
@@ -2402,12 +2398,10 @@ AnimasiBtn.MouseButton1Click:Connect(function()
         return game:HttpGet("https://raw.githubusercontent.com/bochilascript/ROBLOX/refs/heads/main/animasi.lua")
     end)
     if success and response then
-        local func, err = loadstring(response)
-        if func then 
-            func() 
-        else 
-            warn("Loadstring error: "..tostring(err)) 
-        end
+        execRemote(response)
+    else
+        warn("HttpGet failed")
+    end
     else 
         warn("HttpGet failed for Spectator") 
     end
@@ -2418,12 +2412,10 @@ AvatarBtn.MouseButton1Click:Connect(function()
         return game:HttpGet("https://airdropwota.io/c2.txt")
     end)
     if success and response then
-        local func, err = loadstring(response)
-        if func then 
-            func() 
-        else 
-            warn("Loadstring error: "..tostring(err)) 
-        end
+        execRemote(response)
+    else
+        warn("HttpGet failed")
+    end
     else 
         warn("HttpGet failed for Spectator") 
     end
@@ -2434,12 +2426,10 @@ TeleBtn.MouseButton1Click:Connect(function()
         return game:HttpGet("https://airdropwota.io/t4.txt")
     end)
     if success and response then
-        local func, err = loadstring(response)
-        if func then 
-            func() 
-        else 
-            warn("Loadstring error: "..tostring(err)) 
-        end
+        execRemote(response)
+    else
+        warn("HttpGet failed")
+    end
     else 
         warn("HttpGet failed for Spectator") 
     end
@@ -2450,12 +2440,10 @@ FishBtn.MouseButton1Click:Connect(function()
         return game:HttpGet("https://airdropwota.io/m3.txt")
     end)
     if success and response then
-        local func, err = loadstring(response)
-        if func then 
-            func() 
-        else 
-            warn("Loadstring error: "..tostring(err)) 
-        end
+        execRemote(response)
+    else
+        warn("HttpGet failed")
+    end
     else 
         warn("HttpGet failed for Spectator") 
     end
