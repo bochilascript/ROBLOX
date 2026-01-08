@@ -376,8 +376,6 @@ do
             moveToUtil(clickBtn, 1); moveToUtil(tpBox, 2)
             moveToUtil(freeBtn, 3);  moveToUtil(fcBox, 4)
             moveToUtil(spdBtn, 5);   moveToUtil(spdBox, 6)
-            local mfb = UtilityScroll:FindFirstChild("MobileFreeCamBtn") or ScrollFrame:FindFirstChild("MobileFreeCamBtn")
-            moveToUtil(mfb, 7)
             -- juga pindahkan tombol waypoint tetap (urut A->Z)
             local fixed = {}
 
@@ -403,7 +401,7 @@ do
             end)
 
             -- tempatkan berurutan setelah Speed/SpeedBox
-            local nextOrder = 8
+            local nextOrder = 7
             for _, ch in ipairs(fixed) do
                 ch.Parent = UtilityScroll
                 ch.Visible = true
@@ -411,7 +409,7 @@ do
                 nextOrder = nextOrder + 1
             end
             -- -- also move fixed waypoint buttons if present
-            -- local nextOrder = 8
+            -- local nextOrder = 7
             -- for _, ch in ipairs(ScrollFrame:GetChildren()) do
             --     if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
             --         moveToUtil(ch, nextOrder)
@@ -1382,9 +1380,7 @@ FlingBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-
 -- Click TP and Free Cam integrations
-if ENABLE_FREECAM_PC then
 local ClickTPBtn = createButton("", "Click TP")
 ClickTPBtn.Name = "ClickTPBtn"
 ClickTPBtn.LayoutOrder = 1
@@ -1397,7 +1393,6 @@ local freecamOn = false
 local freecamYaw, freecamPitch = 0, 0
 local freecamPos
 local freecamSpeed = 2
-
 
 ClickTPBtn.MouseButton1Click:Connect(function()
     clickTpOn = not clickTpOn
@@ -1451,12 +1446,6 @@ end
 FreeCamBtn.MouseButton1Click:Connect(function()
     setFreecam(not freecamOn)
 end)
-
-end
-
--- Teleport-by-name UI (like admin2): a TextBox under Click TP
-
-end
 
 -- Teleport-by-name UI (like admin2): a TextBox under Click TP
 local TPBox = Instance.new("TextBox")
