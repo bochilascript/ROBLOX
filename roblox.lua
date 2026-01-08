@@ -1380,7 +1380,9 @@ FlingBtn.MouseButton1Click:Connect(function()
     end
 end)
 
+
 -- Click TP and Free Cam integrations
+if ENABLE_FREECAM_PC then
 local ClickTPBtn = createButton("", "Click TP")
 ClickTPBtn.Name = "ClickTPBtn"
 ClickTPBtn.LayoutOrder = 1
@@ -1393,6 +1395,7 @@ local freecamOn = false
 local freecamYaw, freecamPitch = 0, 0
 local freecamPos
 local freecamSpeed = 2
+
 
 ClickTPBtn.MouseButton1Click:Connect(function()
     clickTpOn = not clickTpOn
@@ -1448,11 +1451,10 @@ FreeCamBtn.MouseButton1Click:Connect(function()
 end)
 
 -- Teleport-by-name UI (like admin2): a TextBox under Click TP
-local MobileFreeCamBtn = createButton("", "Mobile FreeCam")
+if ENABLE_FREECAM_MOBILE then`r`nlocal MobileFreeCamBtn = createButton("", "Mobile FreeCam")
 MobileFreeCamBtn.Name = "MobileFreeCamBtn"
 MobileFreeCamBtn.LayoutOrder = 4
-MobileFreeCamBtn.Visible = game:GetService("UserInputService").TouchEnabled
-
+ param($m) $m.Value + "end`r`n" 
 local mfc_on = false
 local mfc_group
 local mfc_yaw, mfc_pitch = 0, 0
@@ -1579,8 +1581,7 @@ RunService.RenderStepped:Connect(function(dt)
     cam.CFrame = cam.CFrame + dir * 24 * dt
 end)
 
-MobileFreeCamBtn.Visible = game:GetService("UserInputService").TouchEnabled
-local TPBox = Instance.new("TextBox")
+ param($m) $m.Value + "end`r`n" end`r`n`r`n-- Teleport-by-name UI (like admin2): a TextBox under Click TP`r`nlocal TPBox = Instance.new("TextBox")
 TPBox.Name = "TPBox"
 TPBox.LayoutOrder = 2
 TPBox.Size = UDim2.new(0, 150, 0, 35)
