@@ -375,7 +375,8 @@ do
             end
             moveToUtil(clickBtn, 1); moveToUtil(tpBox, 2)
             moveToUtil(freeBtn, 3);  moveToUtil(fcBox, 4)
-            moveToUtil(spdBtn, 5);   moveToUtil(spdBox, 6)
+            moveToUtil(freeBtnMobile, 5)
+            moveToUtil(spdBtn, 6);   moveToUtil(spdBox, 7)
             -- juga pindahkan tombol waypoint tetap (urut A->Z)
             local fixed = {}
 
@@ -471,7 +472,7 @@ do
                     end
                 end
             end
-            local ordered = {clickBtn, tpBox, freeBtn, fcBox, spdBtn, spdBox}
+            local ordered = {clickBtn, tpBox, freeBtn, fcBox, freeBtnMobile, spdBtn, spdBox}
             local keep = {}
             local order = 1
             for _, inst in ipairs(ordered) do
@@ -1392,9 +1393,16 @@ local clickTpOn = false
 local freecamOn = false
 local freecamYaw, freecamPitch = 0, 0
 local freecamPos
-local freecamSpeed = 2
 
-ClickTPBtn.MouseButton1Click:Connect(function()
+-- Mobile Free Cam button
+local FreeCamMobileBtn = createButton("", "Free Cam (Mobile)")
+FreeCamMobileBtn.Name = "FreeCamMobileBtn"
+FreeCamMobileBtn.LayoutOrder = 5
+
+local freecamMobileOn = false
+local mobileMove = Vector2.new()
+local mobileUpDown = 0
+local mobileYaw, mobilePitch = 0, 0ClickTPBtn.MouseButton1Click:Connect(function()
     clickTpOn = not clickTpOn
     setButtonActive(ClickTPBtn, clickTpOn)
 end)
@@ -1510,7 +1518,137 @@ FCBox.FocusLost:Connect(function()
     end
 end)
 
-local function findPlayerByQuery(q)
+
+-- Mobile freecam overlay & logic
+local MobileLayer = Instance.new("Frame")
+MobileLayer.Name = "FreecamMobileLayer"
+MobileLayer.Size = UDim2.new(1,0,1,0)
+MobileLayer.BackgroundTransparency = 1
+MobileLayer.Visible = false
+MobileLayer.Parent = ScreenGui
+
+local MovePad = Instance.new("Frame")
+MovePad.Name = "MovePad"
+MovePad.AnchorPoint = Vector2.new(0,1)
+MovePad.Size = UDim2.new(0,140,0,140)
+MovePad.Position = UDim2.new(0,20,1,-20)
+MovePad.BackgroundColor3 = Color3.fromRGB(0,0,0)
+MovePad.BackgroundTransparency = 0.5
+MovePad.Visible = false
+MovePad.Parent = MobileLayer
+local mpCorner = Instance.new("UICorner"); mpCorner.CornerRadius = UDim.new(0,70); mpCorner.Parent = MovePad
+
+local LookPad = Instance.new("Frame")
+LookPad.Name = "LookPad"
+LookPad.AnchorPoint = Vector2.new(1,1)
+LookPad.Size = UDim2.new(0,140,0,140)
+LookPad.Position = UDim2.new(1,-20,1,-20)
+LookPad.BackgroundColor3 = Color3.fromRGB(0,0,0)
+LookPad.BackgroundTransparency = 0.5
+LookPad.Visible = false
+LookPad.Parent = MobileLayer
+local lpCorner = Instance.new("UICorner"); lpCorner.CornerRadius = UDim.new(0,70); lpCorner.Parent = LookPad
+
+local UpBtn = Instance.new("TextButton")
+UpBtn.Size = UDim2.new(0,60,0,30)
+UpBtn.Position = UDim2.new(0,20,1,-180)
+UpBtn.BackgroundColor3 = Color3.fromRGB(0,130,80)
+UpBtn.BackgroundTransparency = 0.1
+UpBtn.Text = "UP"
+UpBtn.Visible = false
+UpBtn.Parent = MobileLayer
+local upc = Instance.new("UICorner"); upc.CornerRadius = UDim.new(0,8); upc.Parent = UpBtn
+
+local DownBtn = Instance.new("TextButton")
+DownBtn.Size = UDim2.new(0,60,0,30)
+DownBtn.Position = UDim2.new(0,90,1,-180)
+DownBtn.BackgroundColor3 = Color3.fromRGB(0,130,80)
+DownBtn.BackgroundTransparency = 0.1
+DownBtn.Text = "DOWN"
+DownBtn.Visible = false
+DownBtn.Parent = MobileLayer
+local dnc = Instance.new("UICorner"); dnc.CornerRadius = UDim.new(0,8); dnc.Parent = DownBtn
+
+local function setFreecamMobile(state)
+    freecamMobileOn = state
+    local cam = workspace.CurrentCamera
+    local char = player.Character or player.CharacterAdded:Wait()
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if freecamMobileOn then
+        if hrp then hrp.Anchored = true end
+        cam.CameraType = Enum.CameraType.Scriptable
+        freecamPos = cam.CFrame.Position
+        local rx, ry = cam.CFrame:ToOrientation()
+        mobilePitch, mobileYaw = rx, ry
+        setButtonActive(FreeCamMobileBtn, true)
+        MobileLayer.Visible = true
+        MovePad.Visible = true
+        LookPad.Visible = true
+        UpBtn.Visible = true
+        DownBtn.Visible = true
+        mobileMove = Vector2.new(); mobileUpDown = 0
+        local moveTouch
+        MovePad.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Touch then moveTouch = input end
+        end)
+        MovePad.InputEnded:Connect(function(input)
+            if input == moveTouch then moveTouch = nil; mobileMove = Vector2.new() end
+        end)
+        MovePad.InputChanged:Connect(function(input)
+            if input == moveTouch then
+                local rel = input.Position - MovePad.AbsolutePosition
+                local c = Vector2.new(MovePad.AbsoluteSize.X/2, MovePad.AbsoluteSize.Y/2)
+                local v = (Vector2.new(rel.X, rel.Y) - c)/c.X
+                v = Vector2.new(math.clamp(v.X,-1,1), math.clamp(v.Y,-1,1))
+                mobileMove = Vector2.new(v.X, -v.Y)
+            end
+        end)
+        local lookTouch
+        LookPad.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Touch then lookTouch = input end
+        end)
+        LookPad.InputEnded:Connect(function(input)
+            if input == lookTouch then lookTouch = nil end
+        end)
+        LookPad.InputChanged:Connect(function(input)
+            if input == lookTouch then
+                local d = input.Delta
+                mobileYaw = mobileYaw - (d.X/300)
+                mobilePitch = math.clamp(mobilePitch - (d.Y/300), -math.rad(89), math.rad(89))
+            end
+        end)
+        local upHeld, downHeld = false, false
+        UpBtn.MouseButton1Down:Connect(function() upHeld = true; mobileUpDown = 1 end)
+        UpBtn.MouseButton1Up:Connect(function() upHeld = false; mobileUpDown = downHeld and -1 or 0 end)
+        DownBtn.MouseButton1Down:Connect(function() downHeld = true; mobileUpDown = -1 end)
+        DownBtn.MouseButton1Up:Connect(function() downHeld = false; mobileUpDown = upHeld and 1 or 0 end)
+        task.spawn(function()
+            while freecamMobileOn do
+                local camCF = CFrame.fromOrientation(mobilePitch, mobileYaw, 0)
+                local f = camCF.LookVector
+                local r = camCF.RightVector
+                local delta = (f * mobileMove.Y) + (r * mobileMove.X) + Vector3.new(0, mobileUpDown, 0)
+                freecamPos += delta * freecamSpeed
+                cam.CFrame = CFrame.new(freecamPos) * camCF
+                RunService.RenderStepped:Wait()
+            end
+        end)
+    else
+        if hrp then hrp.Anchored = false end
+        workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+        setButtonActive(FreeCamMobileBtn, false)
+        MobileLayer.Visible = false
+        MovePad.Visible = false
+        LookPad.Visible = false
+        UpBtn.Visible = false
+        DownBtn.Visible = false
+        mobileMove = Vector2.new(); mobileUpDown = 0
+    end
+end
+
+FreeCamMobileBtn.MouseButton1Click:Connect(function()
+    setFreecamMobile(not freecamMobileOn)
+end)local function findPlayerByQuery(q)
     if not q or q == "" then return nil end
     q = q:gsub("^@", "")
     local lower = string.lower(q)
@@ -2351,7 +2489,7 @@ do
     local btns = {
         AirwalkBtn, ESPBtn, ESPTeamBtn, LampBtn, JumpBtn, SpeedBtn, NoclipBtn, FlingBtn, FlyBtn,
         UnanchorBtn, BringPartBtn, AntiLagBtn, RecBtn, TeleBtn, SpectatorBtn,
-        AnimasiBtn, AvatarBtn, FishBtn, ClickTPBtn, FreeCamBtn
+        AnimasiBtn, AvatarBtn, FishBtn, ClickTPBtn, FreeCamBtn, FreeCamMobileBtn
     }
     local list = {}
     for _,b in ipairs(btns) do
