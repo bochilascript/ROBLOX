@@ -646,6 +646,7 @@ end
 -- Fixed Waypoints (from JSON) -> buttons under Utility after Speed
 do
     local FixedWPs = {
+        CHRISTMAS   = (Components={534.119873046875,-579.2041625976563,8918.4091796875,0.32171565294265749,-0.003724336624145508,-0.9468290209770203,-0.0007200861582532525,0.9999909996986389,-0.004178106784820557,0.9468360543251038,0.0020259693264961244,0.32171007990837099}),
         HARTA       = {Components={-3602.19677734375,-277.58441162109377,-1587.53759765625,0.999807596206665,0.0001278429408557713,0.01961546018719673,-0.000008475522918161005,0.9999814629554749,-0.006085243541747332,-0.01961587555706501,0.006083906162530184,0.9997890591621399}},
         LUARKUIL    = {Components={1479.4808349609376,9.090734481811524,-343.2374267578125,-0.897347092628479,-0.00088000443065539,-0.4413246214389801,0.0000018022124095296022,0.9999979734420776,-0.0019976538605988027,0.44132551550865176,-0.0017933814087882639,-0.897345244884491}},
         PATUNG      = {Components={-3736.75341796875,-133.80055236816407,-1015.416259765625,-0.9695653915405273,-0.0017945958534255624,-0.244826078414917,-0.000010721681064751465,0.999973475933075,-0.007287415210157633,0.24483263492584229,-0.007062999531626701,-0.9695396423339844}},
@@ -1508,6 +1509,152 @@ FCBox.FocusLost:Connect(function()
         FCBox.Text = tostring(freecamSpeed)
     end
 end)
+
+-- Mobile freecam UI + touch controls (shares state with PC freecam)
+local MobileFCContainer = Instance.new("Frame")
+MobileFCContainer.Name = "MobileFreecamUI"
+MobileFCContainer.BackgroundTransparency = 1
+MobileFCContainer.Size = UDim2.new(1,0,1,0)
+MobileFCContainer.Visible = false
+MobileFCContainer.Parent = ScreenGui
+
+local function makeMobileBtn(name, text, anchor, pos, parent)
+    local btn = Instance.new("TextButton")
+    btn.Name = name
+    btn.Text = text
+    btn.AutoButtonColor = true
+    btn.Font = Enum.Font.GothamBold
+    btn.TextScaled = true
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    btn.BackgroundTransparency = 0.2
+    btn.Size = UDim2.fromOffset(72,72)
+    btn.AnchorPoint = anchor
+    btn.Position = pos
+    btn.Parent = parent
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = btn
+    return btn
+end
+
+local toggleFCBtn = makeMobileBtn("ToggleFreecam", "FreeCam", Vector2.new(1,0), UDim2.new(1, -12, 0, 12), MobileFCContainer)
+toggleFCBtn.Size = UDim2.fromOffset(96,40)
+
+local pad, size = 10, 44
+local arrowGroup = Instance.new("Frame")
+arrowGroup.Name = "ArrowGroup"
+arrowGroup.BackgroundTransparency = 1
+arrowGroup.Size = UDim2.fromScale(0,0)
+arrowGroup.AnchorPoint = Vector2.new(0,1)
+arrowGroup.Position = UDim2.new(0, pad, 1, -(pad + 80))
+arrowGroup.Visible = false
+arrowGroup.Parent = MobileFCContainer
+
+local leftBtn  = makeMobileBtn("Left",  "◀", Vector2.new(0,1), UDim2.fromOffset(0, -size), arrowGroup)
+local downBtn  = makeMobileBtn("Down",  "▼", Vector2.new(0,1), UDim2.fromOffset(size + 6, -size), arrowGroup)
+local upBtn    = makeMobileBtn("Up",    "▲", Vector2.new(0,1), UDim2.fromOffset(size + 6, -size*2 - 6), arrowGroup)
+local rightBtn = makeMobileBtn("Right", "▶", Vector2.new(0,1), UDim2.fromOffset(size*2 + 12, -size), arrowGroup)
+rightBtn.Size = UDim2.fromOffset(size, size)
+leftBtn.Size  = UDim2.fromOffset(size, size)
+upBtn.Size    = UDim2.fromOffset(size, size)
+downBtn.Size  = UDim2.fromOffset(size, size)
+
+local function setPressedMobile(btn, pressed)
+    TweenService:Create(btn, TweenInfo.new(0.08), {BackgroundTransparency = pressed and 0 or 0.2}):Play()
+end
+
+local touchHold = {up=false,down=false,left=false,right=false}
+local function bindHold(btn, key)
+    btn.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            touchHold[key] = true
+            setPressedMobile(btn, true)
+        end
+    end)
+    btn.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            touchHold[key] = false
+            setPressedMobile(btn, false)
+        end
+    end)
+end
+bindHold(upBtn, "up"); bindHold(downBtn, "down"); bindHold(leftBtn, "left"); bindHold(rightBtn, "right")
+
+toggleFCBtn.MouseButton1Click:Connect(function()
+    setFreecam(not freecamOn)
+    toggleFCBtn.Text = freecamOn and "Exit Cam" or "FreeCam"
+    arrowGroup.Visible = freecamOn
+end)
+
+do
+    local Bus = game:GetService("ReplicatedStorage"):FindFirstChild("QuickMenuBus")
+    if Bus and Bus:IsA("BindableEvent") then
+        Bus.Event:Connect(function(signal)
+            if signal == "ToggleFreecam" then
+                setFreecam(not freecamOn)
+                toggleFCBtn.Text = freecamOn and "Exit Cam" or "FreeCam"
+                arrowGroup.Visible = freecamOn
+            end
+        end)
+    end
+end
+
+local lastScale = nil
+game:GetService("UserInputService").TouchPinch:Connect(function(_, scale)
+    if not freecamOn then return end
+    if lastScale then
+        local delta = scale - lastScale
+        local step = delta * 10
+        local cam = workspace.CurrentCamera
+        if freecamPos == nil then freecamPos = cam.CFrame.Position end
+        freecamPos = freecamPos + cam.CFrame.LookVector * step
+    end
+    lastScale = scale
+end)
+game:GetService("UserInputService").TouchEnded:Connect(function()
+    lastScale = nil
+end)
+
+local dragging, lastPos = false, nil
+game:GetService("UserInputService").InputBegan:Connect(function(input)
+    if not freecamOn then return end
+    if input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        lastPos = input.Position
+    end
+end)
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if not freecamOn then return end
+    if input.UserInputType == Enum.UserInputType.Touch and dragging and lastPos then
+        local delta = input.Position - lastPos
+        lastPos = input.Position
+        local sens = 0.003
+        freecamYaw = freecamYaw - delta.X * sens
+        freecamPitch = math.clamp(freecamPitch - delta.Y * sens, -math.rad(89), math.rad(89))
+    end
+end)
+game:GetService("UserInputService").InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+        lastPos = nil
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    if not freecamOn then return end
+    if not game:GetService("UserInputService").TouchEnabled then return end
+    local cam = workspace.CurrentCamera
+    if freecamPos == nil then freecamPos = cam.CFrame.Position end
+    local forward = (touchHold.up and 1 or 0) - (touchHold.down and 1 or 0)
+    local strafe  = (touchHold.right and 1 or 0) - (touchHold.left and 1 or 0)
+    local rot = CFrame.fromOrientation(freecamPitch, freecamYaw, 0)
+    local dir = (rot.LookVector * forward + rot.RightVector * strafe)
+    if dir.Magnitude > 1e-3 then dir = dir.Unit else dir = Vector3.zero end
+    freecamPos = freecamPos + dir * freecamSpeed
+end)
+
+MobileFCContainer.Visible = game:GetService("UserInputService").TouchEnabled or RunService:IsStudio()
 
 local function findPlayerByQuery(q)
     if not q or q == "" then return nil end
