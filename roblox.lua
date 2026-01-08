@@ -1486,10 +1486,10 @@ local function mfc_makeUI()
         return b
     end
 
-    local upB    = mkBtn("", 58,  0)
-    local downB  = mkBtn("", 58,  76)
-    local leftB  = mkBtn("", 12,  38)
-    local rightB = mkBtn("", 104, 38)
+    local upB    = mkBtn("U", 58,  0)
+    local downB  = mkBtn("U", 58,  76)
+    local leftB  = mkBtn("U", 12,  38)
+    local rightB = mkBtn("U", 104, 38)
 
     local function bindHold(btn, key)
         btn.InputBegan:Connect(function(input)
