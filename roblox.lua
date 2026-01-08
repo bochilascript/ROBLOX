@@ -1,9 +1,16 @@
 local Player = game.Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
 
-local ScreenGui = Instance.new("ScreenGui")
+-- Safe stub for missing loadstring (prevents nil call in remote scripts)
+local _Genv = (type(getgenv) == 'function' and getgenv()) or _G
+if type(_Genv) ~= 'table' then _Genv = _G or {} end
+if type(_Genv.loadstring) ~= 'function' then
+    _Genv.loadstring = function(code)
+        warn('loadstring not supported; returning no-op function')
+        return function() end
+    end
+endlocal ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = PlayerGui
 ScreenGui.Enabled = true
 ScreenGui.ResetOnSpawn = false
@@ -870,8 +877,16 @@ end)
 local ESPBtn = createButton("", "ESP")
 local ESPTeamBtn = createButton("", "ESP Team")
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local COREGUI = game:GetService("CoreGui")
+
+-- Safe stub for missing loadstring (prevents nil call in remote scripts)
+local _Genv = (type(getgenv) == 'function' and getgenv()) or _G
+if type(_Genv) ~= 'table' then _Genv = _G or {} end
+if type(_Genv.loadstring) ~= 'function' then
+    _Genv.loadstring = function(code)
+        warn('loadstring not supported; returning no-op function')
+        return function() end
+    end
+endlocal COREGUI = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
 local ESPenabled = false
@@ -1088,8 +1103,16 @@ Player.CharacterAdded:Connect(function(char)
 end)
 
 local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local player = Players.LocalPlayer
+
+-- Safe stub for missing loadstring (prevents nil call in remote scripts)
+local _Genv = (type(getgenv) == 'function' and getgenv()) or _G
+if type(_Genv) ~= 'table' then _Genv = _G or {} end
+if type(_Genv.loadstring) ~= 'function' then
+    _Genv.loadstring = function(code)
+        warn('loadstring not supported; returning no-op function')
+        return function() end
+    end
+endlocal player = Players.LocalPlayer
 
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
@@ -1684,8 +1707,16 @@ ClickTPBtn.MouseButton1Click:Connect(function()
 end)
 
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
+
+-- Safe stub for missing loadstring (prevents nil call in remote scripts)
+local _Genv = (type(getgenv) == 'function' and getgenv()) or _G
+if type(_Genv) ~= 'table' then _Genv = _G or {} end
+if type(_Genv.loadstring) ~= 'function' then
+    _Genv.loadstring = function(code)
+        warn('loadstring not supported; returning no-op function')
+        return function() end
+    end
+endlocal TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
@@ -1998,8 +2029,16 @@ end)
 local BringPartBtn = createButton("", "BringPart")
 
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
+
+-- Safe stub for missing loadstring (prevents nil call in remote scripts)
+local _Genv = (type(getgenv) == 'function' and getgenv()) or _G
+if type(_Genv) ~= 'table' then _Genv = _G or {} end
+if type(_Genv.loadstring) ~= 'function' then
+    _Genv.loadstring = function(code)
+        warn('loadstring not supported; returning no-op function')
+        return function() end
+    end
+endlocal Workspace = game:GetService("Workspace")
 
 local LocalPlayer = Players.LocalPlayer
 local character, humanoidRootPart, head
