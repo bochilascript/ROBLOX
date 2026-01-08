@@ -1402,7 +1402,8 @@ FreeCamMobileBtn.LayoutOrder = 5
 local freecamMobileOn = false
 local mobileMove = Vector2.new()
 local mobileUpDown = 0
-local mobileYaw, mobilePitch = 0, 0ClickTPBtn.MouseButton1Click:Connect(function()
+local mobileYaw, mobilePitch = 0, 0
+ClickTPBtn.MouseButton1Click:Connect(function()
     clickTpOn = not clickTpOn
     setButtonActive(ClickTPBtn, clickTpOn)
 end)
