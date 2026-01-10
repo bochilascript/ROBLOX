@@ -289,7 +289,9 @@ do
             if child:IsA("TextButton") then
                 if cat == "Menu" then
                     -- show only items that are NOT in Rusuh or Utility
-                    child.Visible = (not matchesAny(child.Text, rusuhKeywords)) and (not matchesAny(child.Text, utilityKeywords))
+                     child.Visible = (not matchesAny(child.Text, rusuhKeywords))
+                    and (not matchesAny(child.Text, utilityKeywords))
+                    and (child:GetAttribute("IsFixedWP") ~= true)
                 elseif cat == "Rusuh" then
                     child.Visible = matchesAny(child.Text, rusuhKeywords)
                 elseif cat == "Utility" then
@@ -381,36 +383,17 @@ end
             moveToUtil(freeBtn, 3);  moveToUtil(fcBox, 4)
             moveToUtil(spdBtn, 5);   moveToUtil(spdBox, 6)
             -- juga pindahkan tombol waypoint tetap (urut A->Z)
-            local fixed = {}
-
-            -- ambil dari ScrollFrame
-            for _, ch in ipairs(ScrollFrame:GetChildren()) do
-                if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
-                    table.insert(fixed, ch)
-                end
-            end
-
-            -- ambil dari UtilityScroll (kalau sudah pernah dipindah sebelumnya)
+            -- jangan tampilkan tombol waypoint tetap di Utility
             for _, ch in ipairs(UtilityScroll:GetChildren()) do
                 if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
-                    table.insert(fixed, ch)
+                    ch.Parent = ScrollFrame
+                    ch.Visible = false
                 end
             end
-
-            -- urutkan A->Z (case-insensitive)
-            table.sort(fixed, function(a, b)
-                local at = tostring(a.Text or ""):lower()
-                local bt = tostring(b.Text or ""):lower()
-                return at < bt
-            end)
-
-            -- tempatkan berurutan setelah Speed/SpeedBox
-            local nextOrder = 7
-            for _, ch in ipairs(fixed) do
-                ch.Parent = UtilityScroll
-                ch.Visible = true
-                ch.LayoutOrder = nextOrder
-                nextOrder = nextOrder + 1
+            for _, ch in ipairs(ScrollFrame:GetChildren()) do
+                if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
+                    ch.Visible = false
+                end
             end
             -- -- also move fixed waypoint buttons if present
             -- local nextOrder = 7
