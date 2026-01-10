@@ -294,10 +294,14 @@ do
                     child.Visible = matchesAny(child.Text, rusuhKeywords)
                 elseif cat == "Utility" then
                     child.Visible = false
-                end
+                elseif cat == "Mancing" then
+                    child.Visible = false
+end
             elseif child:IsA("TextBox") then
                 -- Hide all textboxes in Menu dan Rusuh; Utility: tampilkan tiga textbox pasangan
                 if cat == "Utility" then
+                    child.Visible = false
+                elseif cat == "Mancing" then
                     child.Visible = false
                 else
                     child.Visible = false
@@ -416,6 +420,50 @@ do
             --         nextOrder += 1
             --     end
             -- end
+            elseif cat == "Mancing" then
+            -- Tampilkan khusus tombol waypoint tetap (IsFixedWP) di UtilityScroll
+            ScrollFrame.Visible = false
+            UtilityFrame.Visible = true
+
+            -- Singkirkan item non-waypoint dari UtilityScroll
+            for _, ch in ipairs(UtilityScroll:GetChildren()) do
+                if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") ~= true then
+                    ch.Parent = ScrollFrame
+                    ch.Visible = false
+                elseif ch:IsA("TextBox") then
+                    ch.Parent = ScrollFrame
+                    ch.Visible = false
+                end
+            end
+
+            -- Kumpulkan tombol waypoint tetap dari kedua parent
+            local fixed = {}
+            for _, ch in ipairs(ScrollFrame:GetChildren()) do
+                if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
+                    table.insert(fixed, ch)
+                end
+            end
+            for _, ch in ipairs(UtilityScroll:GetChildren()) do
+                if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
+                    table.insert(fixed, ch)
+                end
+            end
+
+            -- Urutkan A->Z
+            table.sort(fixed, function(a, b)
+                local at = tostring(a.Text or ""):lower()
+                local bt = tostring(b.Text or ""):lower()
+                return at < bt
+            end)
+
+            -- Tempatkan berurutan dari atas
+            local order = 1
+            for _, ch in ipairs(fixed) do
+                ch.Parent = UtilityScroll
+                ch.Visible = true
+                ch.LayoutOrder = order
+                order = order + 1
+            end
         else
             -- Leaving Utility: move items back to ScrollFrame and hide UtilityFrame
             if UtilityFrame.Visible then
@@ -509,6 +557,10 @@ do
     local btnSpeed = makeSmallBtn("Utility", 3)
     btnSpeed.MouseButton1Click:Connect(function()
         setCategory("Utility")
+    end)
+    local btnMancing = makeSmallBtn("Mancing", 4)
+    btnMancing.MouseButton1Click:Connect(function()
+        setCategory("Mancing")
     end)
     -- default to Menu
     setCategory("Menu")
