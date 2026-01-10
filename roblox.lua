@@ -675,7 +675,7 @@ do
         btn.TextXAlignment = Enum.TextXAlignment.Left
         btn.AutoButtonColor = false
         btn:SetAttribute("IsFixedWP", true)
-        btn.Visible = false
+        btn.Visible = true
         btn.Parent = ScrollFrame
         local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0,8); c.Parent = btn
         local s = Instance.new("UIStroke"); s.Color = Color3.fromRGB(0,130,80); s.Thickness = 1.5; s.Parent = btn
