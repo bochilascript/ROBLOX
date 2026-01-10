@@ -531,7 +531,11 @@ end
                 end
             end
             for _, ch in ipairs(ScrollFrame:GetChildren()) do
-                if not keep[ch] then ch.Visible = false end
+                if not keep[ch] then
+                    if ch:IsA("TextButton") or ch:IsA("TextBox") or ch:IsA("Frame") or ch:IsA("ImageButton") or ch:IsA("ImageLabel") then
+                        ch.Visible = false
+                    end
+                end
             end
         end
         -- also toggle SpeedBox (in case it's not parented directly to ScrollFrame yet in some executors)
