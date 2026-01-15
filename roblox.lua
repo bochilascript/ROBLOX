@@ -2,12 +2,85 @@ local Player = game.Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = PlayerGui
-ScreenGui.Enabled = true
+ScreenGui.Enabled = false
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Name = "CHCheatGUI"
+
+-- FullBright state and helpers
+local fullBrightOn = false
+local originalLighting = nil
+local fullBrightConn = nil
+
+local function captureOriginal()
+    if originalLighting then return end
+    originalLighting = {
+        Brightness = Lighting.Brightness,
+        ClockTime = Lighting.ClockTime,
+        Ambient = Lighting.Ambient,
+        OutdoorAmbient = Lighting.OutdoorAmbient,
+        ColorShift_Top = Lighting.ColorShift_Top,
+        ColorShift_Bottom = Lighting.ColorShift_Bottom,
+        FogEnd = Lighting.FogEnd,
+        GlobalShadows = Lighting.GlobalShadows,
+        ExposureCompensation = Lighting.ExposureCompensation,
+    }
+end
+
+local function applyFullBright()
+    Lighting.Brightness = 2
+    Lighting.ClockTime = 14
+    Lighting.Ambient = Color3.new(1, 1, 1)
+    Lighting.OutdoorAmbient = Color3.new(1, 1, 1)
+    Lighting.ColorShift_Top = Color3.new(0, 0, 0)
+    Lighting.ColorShift_Bottom = Color3.new(0, 0, 0)
+    Lighting.FogEnd = 1e10
+    Lighting.GlobalShadows = false
+    Lighting.ExposureCompensation = 0.5
+end
+
+local function restoreLighting()
+    if not originalLighting then return end
+    Lighting.Brightness = originalLighting.Brightness
+    Lighting.ClockTime = originalLighting.ClockTime
+    Lighting.Ambient = originalLighting.Ambient
+    Lighting.OutdoorAmbient = originalLighting.OutdoorAmbient
+    Lighting.ColorShift_Top = originalLighting.ColorShift_Top
+    Lighting.ColorShift_Bottom = originalLighting.ColorShift_Bottom
+    Lighting.FogEnd = originalLighting.FogEnd
+    Lighting.GlobalShadows = originalLighting.GlobalShadows
+    Lighting.ExposureCompensation = originalLighting.ExposureCompensation
+end
+
+local function toggleFullBright()
+    if not fullBrightOn then
+        captureOriginal()
+        applyFullBright()
+        -- paksa tiap frame agar tidak ditimpa script game
+        fullBrightConn = RunService.RenderStepped:Connect(applyFullBright)
+        fullBrightOn = true
+    else
+        if fullBrightConn then
+            fullBrightConn:Disconnect()
+            fullBrightConn = nil
+        end
+        restoreLighting()
+        fullBrightOn = false
+    end
+end
+
+-- Toggle UI with semicolon key
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if UserInputService:GetFocusedTextBox() then return end
+    if input.KeyCode == Enum.KeyCode.Semicolon then
+        ScreenGui.Enabled = not ScreenGui.Enabled
+    end
+end)
 
 local LightingContainer = Instance.new("Frame")
 LightingContainer.Size = UDim2.new(1, 0, 1, 0)
@@ -1068,6 +1141,8 @@ ESPTeamBtn.MouseButton1Click:Connect(function()
     end
 end)
 
+
+
 local Player = game.Players.LocalPlayer
 
 local LampBtn = createButton("", "Lampu")
@@ -1129,6 +1204,15 @@ Player.CharacterAdded:Connect(function(char)
     else
         setButtonActive(LampBtn, false)
     end
+end)
+
+-- Fullbright button
+local FullBrightBtn = createButton("", "Fullbright")
+setButtonActive(FullBrightBtn, fullBrightOn)
+
+FullBrightBtn.MouseButton1Click:Connect(function()
+    toggleFullBright()
+    setButtonActive(FullBrightBtn, fullBrightOn)
 end)
 
 local UserInputService = game:GetService("UserInputService")
