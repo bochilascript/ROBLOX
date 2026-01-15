@@ -1,8 +1,8 @@
 local Player = game.Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+-- local RunService = game:GetService("RunService")
+-- local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
 
 local ScreenGui = Instance.new("ScreenGui")
