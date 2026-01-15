@@ -7,7 +7,7 @@ local Lighting = game:GetService("Lighting")
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = PlayerGui
-ScreenGui.Enabled = false
+ScreenGui.Enabled = true
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Name = "CHCheatGUI"
 
