@@ -2,6 +2,7 @@ local Player = game.Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = PlayerGui
@@ -23,6 +24,13 @@ MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
+-- Hotkey toggle (semicolon) untuk show/hide GUI
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.Semicolon then
+        ScreenGui.Enabled = not ScreenGui.Enabled
+    end
+end)
 
 local mainCorner = Instance.new("UICorner")
 mainCorner.CornerRadius = UDim.new(0, 12)
