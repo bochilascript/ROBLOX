@@ -2475,3 +2475,14 @@ do
         end
     end
 end
+-- Hotkey G toggle Fly on/off
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.G then
+        if flying then
+            disableFly()
+        else
+            enableFly()
+        end
+    end
+end)
