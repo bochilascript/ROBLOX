@@ -10,6 +10,7 @@ ScreenGui.Enabled = true
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Name = "CHCheatGUI"
 
+ScreenGui.IgnoreGuiInset = true
 local LightingContainer = Instance.new("Frame")
 LightingContainer.Size = UDim2.new(1, 0, 1, 0)
 LightingContainer.BackgroundTransparency = 1
@@ -670,6 +671,45 @@ miniStroke.Color = Color3.fromRGB(0, 220, 130)
 miniStroke.Thickness = 1.5
 miniStroke.Parent = MiniFrame
 
+
+-- External cursor overlay to help when zoom/locked cursor hides the pointer
+local ExternalCursor = Instance.new("Frame")
+ExternalCursor.Name = "ExternalCursor"
+ExternalCursor.Size = UDim2.fromOffset(18, 18)
+ExternalCursor.AnchorPoint = Vector2.new(0.5, 0.5)
+ExternalCursor.BackgroundTransparency = 1
+ExternalCursor.Visible = false
+ExternalCursor.ZIndex = 1000
+ExternalCursor.Parent = ScreenGui
+do
+    local dot = Instance.new("Frame")
+    dot.Size = UDim2.fromScale(1, 1)
+    dot.BackgroundTransparency = 1
+    dot.Parent = ExternalCursor
+    local stroke = Instance.new("UIStroke")
+    stroke.Thickness = 2
+    stroke.Color = Color3.fromRGB(255, 255, 255)
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    stroke.Parent = dot
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(1, 0)
+    corner.Parent = dot
+end
+
+local function updateExternalCursorVisibility()
+    ExternalCursor.Visible = (ScreenGui.Enabled == true) and (MainFrame.Visible == true)
+end
+
+ScreenGui:GetPropertyChangedSignal("Enabled"):Connect(updateExternalCursorVisibility)
+MainFrame:GetPropertyChangedSignal("Visible"):Connect(updateExternalCursorVisibility)
+updateExternalCursorVisibility()
+
+RunService.RenderStepped:Connect(function()
+    if ExternalCursor.Visible then
+        local pos = UserInputService:GetMouseLocation()
+        ExternalCursor.Position = UDim2.fromOffset(pos.X, pos.Y)
+    end
+end)
 -- Try to load MiniFrame image from external URL via executor APIs (if available)
 do
     local url = "https://files.catbox.moe/jqehi8.jpg"
