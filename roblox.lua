@@ -652,7 +652,7 @@ closeStroke.Parent = CloseBtn
 
 local MiniFrame = Instance.new("ImageButton")
 MiniFrame.Size = UDim2.new(0, 40, 0, 40)
-MiniFrame.Position = UDim2.new(1, -70, 0, 10)
+MiniFrame.Position = UDim2.new(1, -50, 0.5, -20)
 MiniFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 30)
 MiniFrame.BackgroundTransparency = 0.1
 MiniFrame.Image = "https://files.catbox.moe/jqehi8.jpg"
