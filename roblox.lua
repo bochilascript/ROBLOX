@@ -284,7 +284,7 @@ do
 
     -- filtering helpers
     local rusuhKeywords = {"bringpart","spectator","noclip","tendang","unanchor","fly","esp","esp team"}
-    local utilityKeywords = {"free cam","freecam","click tp","clicktp","speed"}
+    local utilityKeywords = {"free cam","freecam","click tp","clicktp","speed","set waypoint","waypoint"}
     local function matchesAny(text, keywords)
         local lower = string.lower(text)
         for _, k in ipairs(keywords) do
@@ -379,6 +379,8 @@ end
             local fcBox    = UtilityScroll:FindFirstChild("FCBox")      or ScrollFrame:FindFirstChild("FCBox")
             local spdBtn   = UtilityScroll:FindFirstChild("SpeedBtn")   or ScrollFrame:FindFirstChild("SpeedBtn") or findBtn("Speed")
             local spdBox   = UtilityScroll:FindFirstChild("SpeedBox")   or ScrollFrame:FindFirstChild("SpeedBox")
+            local wpBtn    = UtilityScroll:FindFirstChild("WaypointBtn") or ScrollFrame:FindFirstChild("WaypointBtn") or findBtn("Set Waypoint")
+            local wpBox    = UtilityScroll:FindFirstChild("WaypointBox") or ScrollFrame:FindFirstChild("WaypointBox")
             if not spdBox then
                 for _, ch in ipairs(ScrollFrame:GetChildren()) do
                     if ch:IsA("TextBox") and string.lower(tostring(ch.PlaceholderText)) == "speed" then spdBox = ch break end
@@ -391,6 +393,7 @@ end
             moveToUtil(clickBtn, 1); moveToUtil(tpBox, 2)
             moveToUtil(freeBtn, 3);  moveToUtil(fcBox, 4)
             moveToUtil(spdBtn, 5);   moveToUtil(spdBox, 6)
+            moveToUtil(wpBtn, 7);    moveToUtil(wpBox, 8)
             -- juga pindahkan tombol waypoint tetap (urut A->Z)
             -- jangan tampilkan tombol waypoint tetap di Utility
             for _, ch in ipairs(UtilityScroll:GetChildren()) do
@@ -468,7 +471,7 @@ end
                     end
                     if inst then inst.Parent = ScrollFrame inst.Visible = false end
                 end
-                restore("TPBox"); restore("FCBox"); restore("SpeedBox")
+                restore("TPBox"); restore("FCBox"); restore("SpeedBox"); restore("WaypointBox")
                 -- restore fixed waypoint buttons
                 for _, ch in ipairs(UtilityScroll:GetChildren()) do
                     if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
@@ -504,6 +507,8 @@ end
             local fcBox   = ScrollFrame:FindFirstChild("FCBox")
             local spdBtn  = findButtonByText("Speed")
             local spdBox  = ScrollFrame:FindFirstChild("SpeedBox")
+            local wpBtn   = findButtonByText("Set Waypoint")
+            local wpBox   = ScrollFrame:FindFirstChild("WaypointBox")
             if not spdBox then
                 for _, ch in ipairs(ScrollFrame:GetChildren()) do
                     if ch:IsA("TextBox") and string.lower(tostring(ch.PlaceholderText)) == "speed" then
@@ -511,7 +516,7 @@ end
                     end
                 end
             end
-            local ordered = {clickBtn, tpBox, freeBtn, fcBox, spdBtn, spdBox}
+            local ordered = {clickBtn, tpBox, freeBtn, fcBox, spdBtn, spdBox, wpBtn, wpBox}
             local keep = {}
             local order = 1
             for _, inst in ipairs(ordered) do
@@ -1474,6 +1479,141 @@ FlingBtn.MouseButton1Click:Connect(function()
     else
         setButtonActive(FlingBtn, false)
     end
+end)
+
+-- Waypoint system with click-to-create functionality
+local Waypoints = {}
+local WaypointBtn = createButton("", "Set Waypoint")
+WaypointBtn.Name = "WaypointBtn"
+WaypointBtn.LayoutOrder = 6
+
+-- Waypoint name input box
+local WaypointBox = Instance.new("TextBox")
+WaypointBox.Size = UDim2.new(0, 150, 0, 25)
+WaypointBox.BackgroundColor3 = Color3.fromRGB(20, 20, 40)
+WaypointBox.BackgroundTransparency = 0.2
+WaypointBox.Text = ""
+WaypointBox.PlaceholderText = "waypoint name"
+WaypointBox.TextSize = 14
+WaypointBox.Font = Enum.Font.Gotham
+WaypointBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+WaypointBox.Parent = ButtonsFrame
+local wpCorner = Instance.new("UICorner")
+wpCorner.CornerRadius = UDim.new(0, 6)
+wpCorner.Parent = WaypointBox
+local wpStroke = Instance.new("UIStroke")
+wpStroke.Color = Color3.fromRGB(0, 220, 130)
+wpStroke.Thickness = 1
+wpStroke.Parent = WaypointBox
+local wpPadding = Instance.new("UIPadding")
+wpPadding.PaddingLeft = UDim.new(0, 8)
+wpPadding.Parent = WaypointBox
+
+-- Function to save waypoints
+local function saveWaypoints()
+    local success, json = pcall(function()
+        return game:GetService("HttpService"):JSONEncode(Waypoints)
+    end)
+    if success then
+        pcall(function()
+            writefile("waypoints.json", json)
+        end)
+    end
+end
+
+-- Function to load waypoints
+local function loadWaypoints()
+    local success, json = pcall(function()
+        return readfile("waypoints.json")
+    end)
+    if success then
+        local success2, data = pcall(function()
+            return game:GetService("HttpService"):JSONDecode(json)
+        end)
+        if success2 then
+            Waypoints = data
+        end
+    end
+end
+
+-- Function to create waypoint button in utility
+local function createWaypointButton(name, comps)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 150, 0, 35)
+    btn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    btn.BackgroundTransparency = 0.1
+    btn.Text = "📍 " .. name
+    btn.TextSize = 15
+    btn.Font = Enum.Font.GothamBold
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.AutoButtonColor = false
+    btn:SetAttribute("IsCustomWP", true)
+    btn.Visible = false
+    btn.Parent = ScrollFrame
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, 8)
+    c.Parent = btn
+    local s = Instance.new("UIStroke")
+    s.Color = Color3.fromRGB(0, 150, 255)
+    s.Thickness = 1.5
+    s.Parent = btn
+    local p = Instance.new("UIPadding")
+    p.PaddingLeft = UDim.new(0, 12)
+    p.Parent = btn
+    
+    btn.MouseButton1Click:Connect(function()
+        local ok, cf = pcall(function()
+            return CFrame.new(table.unpack(comps))
+        end)
+        if ok and typeof(cf) == "CFrame" then
+            local lplr = game:GetService("Players").LocalPlayer
+            local char = lplr.Character or lplr.CharacterAdded:Wait()
+            if char then
+                char:PivotTo(cf)
+            end
+        end
+    end)
+    
+    btn.MouseButton2Click:Connect(function()
+        Waypoints[name] = nil
+        saveWaypoints()
+        btn:Destroy()
+    end)
+    
+    return btn
+end
+
+-- Load existing waypoints
+loadWaypoints()
+
+-- Create buttons for existing waypoints
+for name, data in pairs(Waypoints) do
+    if type(data) == "table" and type(data.Components) == "table" then
+        createWaypointButton(name, data.Components)
+    end
+end
+
+WaypointBtn.MouseButton1Click:Connect(function()
+    local name = WaypointBox.Text
+    if not name or name == "" then
+        return
+    end
+    
+    local char = Player.Character or Player.CharacterAdded:Wait()
+    local cf
+    if char then
+        cf = char:GetPivot()
+    end
+    
+    if not cf then
+        return
+    end
+    
+    Waypoints[name] = { Components = { cf:GetComponents() } }
+    saveWaypoints()
+    createWaypointButton(name, Waypoints[name].Components)
+    WaypointBox.Text = ""
 end)
 
 -- Click TP and Free Cam integrations
@@ -2447,7 +2587,7 @@ do
     local btns = {
         AirwalkBtn, ESPBtn, ESPTeamBtn, LampBtn, JumpBtn, SpeedBtn, NoclipBtn, FlingBtn, FlyBtn,
         UnanchorBtn, BringPartBtn, AntiLagBtn, RecBtn, TeleBtn, SpectatorBtn,
-        AnimasiBtn, AvatarBtn, FishBtn, ClickTPBtn, FreeCamBtn
+        AnimasiBtn, AvatarBtn, FishBtn, ClickTPBtn, FreeCamBtn, WaypointBtn
     }
     local list = {}
     for _,b in ipairs(btns) do
@@ -2474,6 +2614,10 @@ do
         end
         if btn == FreeCamBtn and FCBox then
             FCBox.LayoutOrder = order
+            order = order + 1
+        end
+        if btn == WaypointBtn and WaypointBox then
+            WaypointBox.LayoutOrder = order
             order = order + 1
         end
     end
