@@ -1189,7 +1189,7 @@ end)
 
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local player = Players.LocalPlayer
+local player = game.Players.LocalPlayer
 
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
@@ -1627,7 +1627,7 @@ FreeCamBtn.LayoutOrder = 3
 local clickTpOn = false
 local freecamOn = false
 local freecamYaw, freecamPitch = 0, 0
-local freecamPos
+local freecamPos = Vector3.new(0, 0, 0)
 local freecamSpeed = 2
 
 ClickTPBtn.MouseButton1Click:Connect(function()
@@ -1786,7 +1786,7 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
-local player = Players.LocalPlayer
+local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local root = character:WaitForChild("HumanoidRootPart")
