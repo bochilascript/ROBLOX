@@ -4,9 +4,6 @@ local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
--- Define variables before use
-local desiredSpeed = 50
-
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = PlayerGui
 ScreenGui.Enabled = true
@@ -163,6 +160,8 @@ SpeedBox.FocusLost:Connect(function()
     end
 end)
 
+-- (blok Fixed Waypoints dipindah setelah createButton/setButtonActive)
+
 ProfilePicture.Image = "rbxasset://textures/ui/avatar_placeholder.png"
 
 task.spawn(loadThumbnailWithFallbacks)
@@ -232,37 +231,6 @@ UtilityGrid:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     UtilityScroll.CanvasSize = UDim2.new(0, 0, 0, UtilityGrid.AbsoluteContentSize.Y + 10)
 end)
 
--- Set Waypoint input box for waypoint name
-local WaypointBox = Instance.new("TextBox")
-WaypointBox.Name = "WaypointBox"
-WaypointBox.LayoutOrder = 7
-WaypointBox.Size = UDim2.new(0, 150, 0, 35)
-WaypointBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-WaypointBox.BackgroundTransparency = 0.1
-WaypointBox.Text = ""
-WaypointBox.PlaceholderText = "Waypoint Name"
-WaypointBox.TextSize = 15
-WaypointBox.Font = Enum.Font.GothamBold
-WaypointBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-WaypointBox.ClearTextOnFocus = false
-WaypointBox.LayoutOrder = 7
-WaypointBox.Parent = ScrollFrame
-
-do
-    local boxCorner = Instance.new("UICorner")
-    boxCorner.CornerRadius = UDim.new(0, 8)
-    boxCorner.Parent = WaypointBox
-
-    local boxStroke = Instance.new("UIStroke")
-    boxStroke.Color = Color3.fromRGB(0, 130, 80)
-    boxStroke.Thickness = 1.5
-    boxStroke.Parent = WaypointBox
-
-    local padding = Instance.new("UIPadding")
-    padding.PaddingLeft = UDim.new(0, 12)
-    padding.Parent = WaypointBox
-end
-
 -- Left quick panel under profile picture
 do
     local QuickPanel = Instance.new("Frame")
@@ -316,7 +284,7 @@ do
 
     -- filtering helpers
     local rusuhKeywords = {"bringpart","spectator","noclip","tendang","unanchor","fly","esp","esp team"}
-    local utilityKeywords = {"free cam","freecam","click tp","clicktp","speed","set waypoint"}
+    local utilityKeywords = {"free cam","freecam","click tp","clicktp","speed"}
     local function matchesAny(text, keywords)
         local lower = string.lower(text)
         for _, k in ipairs(keywords) do
@@ -423,10 +391,6 @@ end
             moveToUtil(clickBtn, 1); moveToUtil(tpBox, 2)
             moveToUtil(freeBtn, 3);  moveToUtil(fcBox, 4)
             moveToUtil(spdBtn, 5);   moveToUtil(spdBox, 6)
-            -- Add Set Waypoint button and box
-            local swpBtn = UtilityScroll:FindFirstChild("SetWaypointBtn") or ScrollFrame:FindFirstChild("SetWaypointBtn")
-            local swpBox = UtilityScroll:FindFirstChild("WaypointBox") or ScrollFrame:FindFirstChild("WaypointBox")
-            moveToUtil(swpBtn, 7);   moveToUtil(swpBox, 8)
             -- juga pindahkan tombol waypoint tetap (urut A->Z)
             -- jangan tampilkan tombol waypoint tetap di Utility
             for _, ch in ipairs(UtilityScroll:GetChildren()) do
@@ -504,7 +468,7 @@ end
                     end
                     if inst then inst.Parent = ScrollFrame inst.Visible = false end
                 end
-                restore("TPBox"); restore("FCBox"); restore("SpeedBox"); restore("WaypointBox")
+                restore("TPBox"); restore("FCBox"); restore("SpeedBox")
                 -- restore fixed waypoint buttons
                 for _, ch in ipairs(UtilityScroll:GetChildren()) do
                     if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
@@ -1315,6 +1279,7 @@ local Player = game.Players.LocalPlayer
 local SpeedBtn = createButton("", "Speed")
 SpeedBtn.Name = "SpeedBtn"
 SpeedBtn.LayoutOrder = 5
+local desiredSpeed = 50
 
 -- Inline Speed control textbox placed directly under Speed button
 do
@@ -1518,65 +1483,6 @@ ClickTPBtn.LayoutOrder = 1
 local FreeCamBtn = createButton("", "Free Cam")
 FreeCamBtn.Name = "FreeCamBtn"
 FreeCamBtn.LayoutOrder = 3
-
--- Set Waypoint button
-local SetWaypointBtn = createButton("", "Set Waypoint")
-SetWaypointBtn.Name = "SetWaypointBtn"
-SetWaypointBtn.LayoutOrder = 7
-
--- Waypoint system integration
-local WayPoints = {}
-local AllWaypoints = {}
-local PlaceId = game.PlaceId
-
--- Function to create notification (similar to admin.lua)
-local function notify(title, message)
-    local StarterGui = game:GetService("StarterGui")
-    StarterGui:SetCore("ChatMakeSystemMessage", {
-        Color = Color3.fromRGB(0, 255, 100);
-        Font = Enum.Font.SourceSansBold;
-        Text = "[" .. title .. "] " .. message;
-    })
-end
-
--- Function to get root part (similar to admin.lua)
-local function getRoot(char)
-    return char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
-end
-
-SetWaypointBtn.MouseButton1Click:Connect(function()
-    local waypointName = WaypointBox.Text
-    if waypointName and waypointName ~= "" then
-        local char = Player.Character or Player.CharacterAdded:Wait()
-        local torso = getRoot(char)
-        if torso then
-            notify("Modified Waypoints", "Created waypoint: " .. waypointName)
-            WayPoints[#WayPoints + 1] = {
-                NAME = waypointName, 
-                COORD = {
-                    math.floor(torso.Position.X), 
-                    math.floor(torso.Position.Y), 
-                    math.floor(torso.Position.Z)
-                }, 
-                GAME = PlaceId
-            }
-            if AllWaypoints ~= nil then
-                AllWaypoints[#AllWaypoints + 1] = {
-                    NAME = waypointName, 
-                    COORD = {
-                        math.floor(torso.Position.X), 
-                        math.floor(torso.Position.Y), 
-                        math.floor(torso.Position.Z)
-                    }, 
-                    GAME = PlaceId
-                }
-            end
-            WaypointBox.Text = ""
-        end
-    else
-        notify("Error", "Please enter a waypoint name")
-    end
-end)
 
 local clickTpOn = false
 local freecamOn = false
@@ -2530,19 +2436,18 @@ AnimasiBtn.LayoutOrder = 16
 AvatarBtn.LayoutOrder = 17
 FishBtn.LayoutOrder = 18
 
+
 -- Place the new controls at the end
 ClickTPBtn.LayoutOrder = 19
 FreeCamBtn.LayoutOrder = 21
 TPBox.LayoutOrder = 20
-SetWaypointBtn.LayoutOrder = 22
-WaypointBox.LayoutOrder = 23
 
 -- A->Z sort all action buttons and place input boxes under their buttons
 do
     local btns = {
         AirwalkBtn, ESPBtn, ESPTeamBtn, LampBtn, JumpBtn, SpeedBtn, NoclipBtn, FlingBtn, FlyBtn,
         UnanchorBtn, BringPartBtn, AntiLagBtn, RecBtn, TeleBtn, SpectatorBtn,
-        AnimasiBtn, AvatarBtn, FishBtn, ClickTPBtn, FreeCamBtn, SetWaypointBtn
+        AnimasiBtn, AvatarBtn, FishBtn, ClickTPBtn, FreeCamBtn
     }
     local list = {}
     for _,b in ipairs(btns) do
@@ -2569,10 +2474,6 @@ do
         end
         if btn == FreeCamBtn and FCBox then
             FCBox.LayoutOrder = order
-            order = order + 1
-        end
-        if btn == SetWaypointBtn and WaypointBox then
-            WaypointBox.LayoutOrder = order
             order = order + 1
         end
     end
