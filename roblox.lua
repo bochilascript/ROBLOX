@@ -4,6 +4,9 @@ local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
+-- Define variables before use
+local desiredSpeed = 50
+
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = PlayerGui
 ScreenGui.Enabled = true
@@ -160,37 +163,6 @@ SpeedBox.FocusLost:Connect(function()
     end
 end)
 
--- Set Waypoint input box for waypoint name
-local WaypointBox = Instance.new("TextBox")
-WaypointBox.Name = "WaypointBox"
-WaypointBox.LayoutOrder = 7
-WaypointBox.Size = UDim2.new(0, 150, 0, 35)
-WaypointBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-WaypointBox.BackgroundTransparency = 0.1
-WaypointBox.Text = ""
-WaypointBox.PlaceholderText = "Waypoint Name"
-WaypointBox.TextSize = 15
-WaypointBox.Font = Enum.Font.GothamBold
-WaypointBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-WaypointBox.ClearTextOnFocus = false
-WaypointBox.LayoutOrder = 7
-WaypointBox.Parent = ScrollFrame
-
-do
-    local boxCorner = Instance.new("UICorner")
-    boxCorner.CornerRadius = UDim.new(0, 8)
-    boxCorner.Parent = WaypointBox
-
-    local boxStroke = Instance.new("UIStroke")
-    boxStroke.Color = Color3.fromRGB(0, 130, 80)
-    boxStroke.Thickness = 1.5
-    boxStroke.Parent = WaypointBox
-
-    local padding = Instance.new("UIPadding")
-    padding.PaddingLeft = UDim.new(0, 12)
-    padding.Parent = WaypointBox
-end
-
 ProfilePicture.Image = "rbxasset://textures/ui/avatar_placeholder.png"
 
 task.spawn(loadThumbnailWithFallbacks)
@@ -259,6 +231,37 @@ UtilityGrid.Parent = UtilityScroll
 UtilityGrid:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     UtilityScroll.CanvasSize = UDim2.new(0, 0, 0, UtilityGrid.AbsoluteContentSize.Y + 10)
 end)
+
+-- Set Waypoint input box for waypoint name
+local WaypointBox = Instance.new("TextBox")
+WaypointBox.Name = "WaypointBox"
+WaypointBox.LayoutOrder = 7
+WaypointBox.Size = UDim2.new(0, 150, 0, 35)
+WaypointBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+WaypointBox.BackgroundTransparency = 0.1
+WaypointBox.Text = ""
+WaypointBox.PlaceholderText = "Waypoint Name"
+WaypointBox.TextSize = 15
+WaypointBox.Font = Enum.Font.GothamBold
+WaypointBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+WaypointBox.ClearTextOnFocus = false
+WaypointBox.LayoutOrder = 7
+WaypointBox.Parent = ScrollFrame
+
+do
+    local boxCorner = Instance.new("UICorner")
+    boxCorner.CornerRadius = UDim.new(0, 8)
+    boxCorner.Parent = WaypointBox
+
+    local boxStroke = Instance.new("UIStroke")
+    boxStroke.Color = Color3.fromRGB(0, 130, 80)
+    boxStroke.Thickness = 1.5
+    boxStroke.Parent = WaypointBox
+
+    local padding = Instance.new("UIPadding")
+    padding.PaddingLeft = UDim.new(0, 12)
+    padding.Parent = WaypointBox
+end
 
 -- Left quick panel under profile picture
 do
@@ -1312,7 +1315,6 @@ local Player = game.Players.LocalPlayer
 local SpeedBtn = createButton("", "Speed")
 SpeedBtn.Name = "SpeedBtn"
 SpeedBtn.LayoutOrder = 5
-local desiredSpeed = 50
 
 -- Inline Speed control textbox placed directly under Speed button
 do
