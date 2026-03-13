@@ -1418,13 +1418,8 @@ local function removeSelendang()
 	if selendangPart then
 		selendangPart:Destroy()
 		selendangPart = nil
-        if speedOn then
-            local char = Player.Character or Player.CharacterAdded:Wait()
-            local hum = char:FindFirstChild("Humanoid")
-            if hum then hum.WalkSpeed = desiredSpeed * 2 end -- Double speed when Shift pressed
-        end
-    end
-end)
+	end
+end
 
 UserInputService.InputEnded:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then
