@@ -1742,12 +1742,14 @@ end
 
 local function enableFly()
     flying = true
-    DPad.Visible = true -- Always show DPad for control
+    DPad.Visible = stealthMode and false or true -- Hide DPad in stealth mode
     humanoid.PlatformStand = true
     noclip(true)
     
-    -- Enhanced stealth: Set gravity to very low instead of zero
-    Workspace.Gravity = stealthMode and 0.1 or 0
+    -- Stealth mode: Don't modify gravity to avoid detection
+    if not stealthMode then
+        Workspace.Gravity = 0
+    end
     
     setButtonActive(FlyBtn, true)
 
@@ -1764,8 +1766,10 @@ local function disableFly()
     humanoid.PlatformStand = false
     noclip(false)
     
-    -- Always restore gravity
-    Workspace.Gravity = oldGravity
+    -- Restore gravity only if not in stealth mode
+    if not stealthMode then
+        Workspace.Gravity = oldGravity
+    end
     frozenPos = nil
     
     setButtonActive(FlyBtn, false)
@@ -1814,15 +1818,27 @@ RunService.Heartbeat:Connect(function(dt)
         moving = true
         local newPos = root.Position + dir.Unit * flySpeed * dt * 60
         
-        -- Enhanced movement: Always use direct control but with stealth gravity
-        root.AssemblyLinearVelocity = Vector3.zero
-        root.AssemblyAngularVelocity = Vector3.zero
-        frozenPos = newPos
-        root.CFrame = CFrame.new(frozenPos, frozenPos + lookVec)
+        if stealthMode then
+            -- Stealth movement: Use small, smooth position updates
+            local offset = (newPos - root.Position) * 0.1 -- Move 10% at a time
+            root.CFrame = CFrame.new(root.Position + offset, root.Position + offset + lookVec)
+        else
+            -- Normal movement: Direct position control
+            root.AssemblyLinearVelocity = Vector3.zero
+            root.AssemblyAngularVelocity = Vector3.zero
+            frozenPos = newPos
+            root.CFrame = CFrame.new(frozenPos, frozenPos + lookVec)
+        end
     else
         moving = false
-        if frozenPos and savedOrientation then
-            root.CFrame = CFrame.new(frozenPos) * savedOrientation
+        if stealthMode then
+            -- Keep position stable in stealth mode
+            local currentPos = root.Position
+            root.CFrame = CFrame.new(currentPos, currentPos + lookVec)
+        else
+            if frozenPos and savedOrientation then
+                root.CFrame = CFrame.new(frozenPos) * savedOrientation
+            end
         end
     end
 
@@ -1850,14 +1866,18 @@ local function updateCharacterRefs()
 end
 
 player.CharacterAdded:Connect(function(char)
-    task.wait(1.5) -- Wait longer for character to fully load
+    task.wait(1) -- Wait for character to fully load
     updateCharacterRefs()
-    
-    -- Always try to re-enable fly if it was active before
-    if flying then
-        task.wait(1) -- Extra wait for map transition
+    if autoReenableFly and flying then
+        -- Auto re-enable fly after teleport
+        task.wait(0.5)
         if character and humanoid then
             enableFly()
+        end
+    else
+        if flying then
+            disableFly()
+            setButtonActive(FlyBtn, false)
         end
     end
 end)
@@ -1872,14 +1892,6 @@ game:GetService("RunService").Heartbeat:Connect(function()
     else
         -- Try to update references
         updateCharacterRefs()
-        
-        -- Periodic check: Re-enable fly if it should be active
-        if flying and not humanoid.PlatformStand then
-            task.wait(0.1)
-            if character and humanoid then
-                enableFly()
-            end
-        end
     end
 end)
 
