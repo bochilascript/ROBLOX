@@ -1742,14 +1742,12 @@ end
 
 local function enableFly()
     flying = true
-    DPad.Visible = stealthMode and false or true -- Hide DPad in stealth mode
+    DPad.Visible = true -- Always show DPad for control
     humanoid.PlatformStand = true
     noclip(true)
     
-    -- Stealth mode: Don't modify gravity to avoid detection
-    if not stealthMode then
-        Workspace.Gravity = 0
-    end
+    -- Enhanced stealth: Set gravity to very low instead of zero
+    Workspace.Gravity = stealthMode and 0.1 or 0
     
     setButtonActive(FlyBtn, true)
 
@@ -1766,10 +1764,8 @@ local function disableFly()
     humanoid.PlatformStand = false
     noclip(false)
     
-    -- Restore gravity only if not in stealth mode
-    if not stealthMode then
-        Workspace.Gravity = oldGravity
-    end
+    -- Always restore gravity
+    Workspace.Gravity = oldGravity
     frozenPos = nil
     
     setButtonActive(FlyBtn, false)
@@ -1818,27 +1814,15 @@ RunService.Heartbeat:Connect(function(dt)
         moving = true
         local newPos = root.Position + dir.Unit * flySpeed * dt * 60
         
-        if stealthMode then
-            -- Stealth movement: Use small, smooth position updates
-            local offset = (newPos - root.Position) * 0.1 -- Move 10% at a time
-            root.CFrame = CFrame.new(root.Position + offset, root.Position + offset + lookVec)
-        else
-            -- Normal movement: Direct position control
-            root.AssemblyLinearVelocity = Vector3.zero
-            root.AssemblyAngularVelocity = Vector3.zero
-            frozenPos = newPos
-            root.CFrame = CFrame.new(frozenPos, frozenPos + lookVec)
-        end
+        -- Enhanced movement: Always use direct control but with stealth gravity
+        root.AssemblyLinearVelocity = Vector3.zero
+        root.AssemblyAngularVelocity = Vector3.zero
+        frozenPos = newPos
+        root.CFrame = CFrame.new(frozenPos, frozenPos + lookVec)
     else
         moving = false
-        if stealthMode then
-            -- Keep position stable in stealth mode
-            local currentPos = root.Position
-            root.CFrame = CFrame.new(currentPos, currentPos + lookVec)
-        else
-            if frozenPos and savedOrientation then
-                root.CFrame = CFrame.new(frozenPos) * savedOrientation
-            end
+        if frozenPos and savedOrientation then
+            root.CFrame = CFrame.new(frozenPos) * savedOrientation
         end
     end
 
