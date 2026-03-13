@@ -1679,6 +1679,7 @@ end
 setupAnimator(humanoid)
 
 local flying = false
+local flyingNoGrav = false
 local flySpeed = 2
 local pressed = {Up=false,Down=false,Left=false,Right=false}
 local moving = false
@@ -1731,6 +1732,7 @@ connectBtn(LeftBtn,"Left")
 connectBtn(RightBtn,"Right")
 
 local FlyBtn = createButton("", "Fly")
+local FlyNoGravBtn = createButton("", "Fly NoGrav")
 
 local function noclip(state)
     for _,v in pairs(character:GetDescendants()) do
@@ -1777,11 +1779,64 @@ local function disableFly()
     for _, t in pairs(animTracks) do if t.IsPlaying then t:Stop() end end
 end
 
+local function enableFlyNoGrav()
+    flyingNoGrav = true
+    DPad.Visible = true
+    humanoid.PlatformStand = true
+    noclip(true)
+    
+    -- No gravity mode: Set gravity to zero
+    Workspace.Gravity = 0
+    
+    setButtonActive(FlyNoGravBtn, true)
+
+    frozenPos = root.Position
+    local _, y, _ = root.CFrame:ToOrientation()
+    savedOrientation = CFrame.Angles(0, math.rad(y), 0)
+
+    if animTracks.Idle then animTracks.Idle:Play() end
+end
+
+local function disableFlyNoGrav()
+    flyingNoGrav = false
+    DPad.Visible = false
+    humanoid.PlatformStand = false
+    noclip(false)
+    
+    -- Restore gravity
+    Workspace.Gravity = oldGravity
+    frozenPos = nil
+    
+    setButtonActive(FlyNoGravBtn, false)
+
+    for _, t in pairs(animTracks) do if t.IsPlaying then t:Stop() end end
+end
+
 FlyBtn.MouseButton1Click:Connect(function()
     if flying then 
         disableFly() 
     else 
         enableFly() 
+    end
+end)
+
+-- Hotkey G toggle Fly on/off
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.G then
+        if flying then
+            disableFly() 
+        else 
+            enableFly() 
+        end
+    end
+end)
+
+FlyNoGravBtn.MouseButton1Click:Connect(function()
+    if flyingNoGrav then 
+        disableFlyNoGrav() 
+    else 
+        enableFlyNoGrav() 
     end
 end)
 
@@ -2483,19 +2538,6 @@ end)
 AirwalkBtn.LayoutOrder = 1
 ESPBtn.LayoutOrder = 2
 LampBtn.LayoutOrder = 3
-JumpBtn.LayoutOrder = 4
-SpeedBtn.LayoutOrder = 5
-NoclipBtn.LayoutOrder = 7
-FlingBtn.LayoutOrder = 8
-FlyBtn.LayoutOrder = 9
-UnanchorBtn.LayoutOrder = 10
-BringPartBtn.LayoutOrder = 11
-AntiLagBtn.LayoutOrder = 12
-RecBtn.LayoutOrder = 13
-TeleBtn.LayoutOrder = 14
-SpectatorBtn.LayoutOrder = 15
-AnimasiBtn.LayoutOrder = 16
-AvatarBtn.LayoutOrder = 17
 FishBtn.LayoutOrder = 18
 
 
@@ -2509,7 +2551,7 @@ do
     local btns = {
         AirwalkBtn, ESPBtn, ESPTeamBtn, LampBtn, JumpBtn, SpeedBtn, NoclipBtn, FlingBtn, FlyBtn,
         UnanchorBtn, BringPartBtn, AntiLagBtn, RecBtn, TeleBtn, SpectatorBtn,
-        AnimasiBtn, AvatarBtn, FishBtn, ClickTPBtn, FreeCamBtn
+        AnimasiBtn, AvatarBtn, FishBtn, ClickTPBtn, FreeCamBtn, WaypointBtn, FlyNoGravBtn
     }
     local list = {}
     for _,b in ipairs(btns) do
@@ -2526,6 +2568,14 @@ do
     for _,btn in ipairs(list) do
         btn.LayoutOrder = order
         order = order + 1
+        if btn == FlyBtn and WaypointBox then
+            WaypointBox.LayoutOrder = order
+            order = order + 1
+        end
+        if btn == FlyNoGravBtn then
+            -- No additional box needed for FlyNoGrav
+            order = order + 1
+        end
         if btn == SpeedBtn and SpeedBox then
             SpeedBox.LayoutOrder = order
             order = order + 1
