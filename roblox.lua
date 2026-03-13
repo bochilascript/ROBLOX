@@ -1282,7 +1282,7 @@ local Player = game.Players.LocalPlayer
 local SpeedBtn = createButton("", "Speed")
 SpeedBtn.Name = "SpeedBtn"
 SpeedBtn.LayoutOrder = 5
-local desiredSpeed = 50
+local desiredSpeed = 25 -- Reduced from 50 to prevent too fast speed
 
 -- Inline Speed control textbox placed directly under Speed button
 do
@@ -1415,32 +1415,49 @@ local function addSelendang(char)
 end
 
 local function removeSelendang()
-	if selendangPart then
-		selendangPart:Destroy()
-		selendangPart = nil
-	end
+    if selendangPart then
+        selendangPart:Destroy()
+        selendangPart = nil
+    end
 end
 
-UserInputService.InputEnded:Connect(function(input)
+local function applySpeed(speed)
+    local char = Player.Character or Player.CharacterAdded:Wait()
+    local hum = char:FindFirstChild("Humanoid")
+    if hum then
+        hum.WalkSpeed = speed
+        -- Force override every frame to prevent other scripts from changing it
+        task.spawn(function()
+            while speedOn do
+                if hum and hum.Parent then
+                    hum.WalkSpeed = speed
+                end
+                task.wait(0.1) -- Check every 100ms
+            end
+        end)
+    end
+end
+
+-- Hotkey SHIFT for speed boost
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
     if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then
         if speedOn then
-            local char = Player.Character or Player.CharacterAdded:Wait()
-            local hum = char:FindFirstChild("Humanoid")
-            if hum then hum.WalkSpeed = desiredSpeed end -- Return to normal speed
+            applySpeed(desiredSpeed * 2) -- Double speed when Shift pressed
         end
     end
 end)
 
 SpeedBtn.MouseButton1Click:Connect(function()
     speedOn = not speedOn
-    local char = Player.Character or Player.CharacterAdded:Wait()
-    local hum = char:FindFirstChild("Humanoid")
-
+    
     if speedOn then
-        if hum then hum.WalkSpeed = desiredSpeed end
-        addSelendang(char)
+        applySpeed(desiredSpeed)
+        addSelendang(Player.Character or Player.CharacterAdded:Wait())
         setButtonActive(SpeedBtn, true)
     else
+        local char = Player.Character or Player.CharacterAdded:Wait()
+        local hum = char:FindFirstChild("Humanoid")
         if hum then hum.WalkSpeed = 16 end
         removeSelendang()
         setButtonActive(SpeedBtn, false)
