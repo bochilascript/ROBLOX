@@ -1868,16 +1868,12 @@ end
 player.CharacterAdded:Connect(function(char)
     task.wait(1) -- Wait for character to fully load
     updateCharacterRefs()
-    if autoReenableFly and flying then
-        -- Auto re-enable fly after teleport
-        task.wait(0.5)
+    
+    -- ALWAYS re-enable fly if it was active before teleport
+    if flying then
+        task.wait(0.5) -- Wait for map transition
         if character and humanoid then
             enableFly()
-        end
-    else
-        if flying then
-            disableFly()
-            setButtonActive(FlyBtn, false)
         end
     end
 end)
@@ -1885,13 +1881,27 @@ end)
 game:GetService("RunService").Heartbeat:Connect(function()
     if not player.Character or player.Character.Parent ~= workspace then
         -- Character was removed/teleported
-        if flying then
-            disableFly()
-            setButtonActive(FlyBtn, false)
-        end
+        -- Keep flying state active, don't disable
     else
         -- Try to update references
         updateCharacterRefs()
+        
+        -- CRITICAL: Always ensure fly is active if it should be
+        if flying and character and humanoid then
+            if not humanoid.PlatformStand then
+                -- Re-enable fly if PlatformStand was reset
+                enableFly()
+            end
+            
+            if stealthMode then
+                -- Ensure movement works in stealth mode
+                local cam = workspace.CurrentCamera
+                if cam and root then
+                    local lookVec = cam.CFrame.LookVector
+                    root.CFrame = CFrame.new(root.Position, root.Position + lookVec)
+                end
+            end
+        end
     end
 end)
 
