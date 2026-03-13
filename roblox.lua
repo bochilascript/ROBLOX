@@ -1850,18 +1850,14 @@ local function updateCharacterRefs()
 end
 
 player.CharacterAdded:Connect(function(char)
-    task.wait(1) -- Wait for character to fully load
+    task.wait(1.5) -- Wait longer for character to fully load
     updateCharacterRefs()
-    if autoReenableFly and flying then
-        -- Auto re-enable fly after teleport
-        task.wait(0.5)
+    
+    -- Always try to re-enable fly if it was active before
+    if flying then
+        task.wait(1) -- Extra wait for map transition
         if character and humanoid then
             enableFly()
-        end
-    else
-        if flying then
-            disableFly()
-            setButtonActive(FlyBtn, false)
         end
     end
 end)
@@ -1876,6 +1872,14 @@ game:GetService("RunService").Heartbeat:Connect(function()
     else
         -- Try to update references
         updateCharacterRefs()
+        
+        -- Periodic check: Re-enable fly if it should be active
+        if flying and not humanoid.PlatformStand then
+            task.wait(0.1)
+            if character and humanoid then
+                enableFly()
+            end
+        end
     end
 end)
 
