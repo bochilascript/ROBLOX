@@ -1685,6 +1685,7 @@ local moving = false
 local savedOrientation = nil
 local oldGravity = Workspace.Gravity
 local frozenPos = nil
+local autoReenableFly = true -- Auto re-enable fly after teleport
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "FlyGui"
@@ -1827,23 +1828,48 @@ RunService.Heartbeat:Connect(function(dt)
     end
 end)
 
-humanoid.Died:Connect(function()
-    disableFly()
-    setButtonActive(FlyBtn, false)
-end)
+local function updateCharacterRefs()
+    local newChar = player.Character
+    if newChar and newChar ~= character then
+        character = newChar
+        humanoid = character:WaitForChild("Humanoid", 5)
+        root = character:WaitForChild("HumanoidRootPart", 5)
+        if humanoid then
+            setupAnimator(humanoid)
+        end
+        return true
+    end
+    return false
+end
 
 player.CharacterAdded:Connect(function(char)
-    character = char
-    humanoid = char:WaitForChild("Humanoid")
-    root = char:WaitForChild("HumanoidRootPart")
-    setupAnimator(humanoid)
-    
-    humanoid.Died:Connect(function()
-        disableFly()
-        setButtonActive(FlyBtn, false)
-    end)
-    
-    setButtonActive(FlyBtn, false)
+    task.wait(1) -- Wait for character to fully load
+    updateCharacterRefs()
+    if autoReenableFly and flying then
+        -- Auto re-enable fly after teleport
+        task.wait(0.5)
+        if character and humanoid then
+            enableFly()
+        end
+    else
+        if flying then
+            disableFly()
+            setButtonActive(FlyBtn, false)
+        end
+    end
+end)
+
+game:GetService("RunService").Heartbeat:Connect(function()
+    if not player.Character or player.Character.Parent ~= workspace then
+        -- Character was removed/teleported
+        if flying then
+            disableFly()
+            setButtonActive(FlyBtn, false)
+        end
+    else
+        -- Try to update references
+        updateCharacterRefs()
+    end
 end)
 
 setButtonActive(FlyBtn, false)
