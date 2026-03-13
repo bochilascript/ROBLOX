@@ -1418,36 +1418,51 @@ local function removeSelendang()
 	if selendangPart then
 		selendangPart:Destroy()
 		selendangPart = nil
-	end
-end
+        if speedOn then
+            local char = Player.Character or Player.CharacterAdded:Wait()
+            local hum = char:FindFirstChild("Humanoid")
+            if hum then hum.WalkSpeed = desiredSpeed * 2 end -- Double speed when Shift pressed
+        end
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then
+        if speedOn then
+            local char = Player.Character or Player.CharacterAdded:Wait()
+            local hum = char:FindFirstChild("Humanoid")
+            if hum then hum.WalkSpeed = desiredSpeed end -- Return to normal speed
+        end
+    end
+end)
 
 SpeedBtn.MouseButton1Click:Connect(function()
-	speedOn = not speedOn
-	local char = Player.Character or Player.CharacterAdded:Wait()
-	local hum = char:FindFirstChild("Humanoid")
+    speedOn = not speedOn
+    local char = Player.Character or Player.CharacterAdded:Wait()
+    local hum = char:FindFirstChild("Humanoid")
 
-	if speedOn then
-		if hum then hum.WalkSpeed = desiredSpeed end
-		addSelendang(char)
-		setButtonActive(SpeedBtn, true)
-	else
-		if hum then hum.WalkSpeed = 16 end
-		removeSelendang()
-		setButtonActive(SpeedBtn, false)
-	end
+    if speedOn then
+        if hum then hum.WalkSpeed = desiredSpeed end
+        addSelendang(char)
+        setButtonActive(SpeedBtn, true)
+    else
+        if hum then hum.WalkSpeed = 16 end
+        removeSelendang()
+        setButtonActive(SpeedBtn, false)
+    end
 end)
 
 Player.CharacterAdded:Connect(function(char)
-	local hum = char:WaitForChild("Humanoid")
-	task.wait(0.5)
-	if speedOn then
-		hum.WalkSpeed = desiredSpeed
-		addSelendang(char)
-		setButtonActive(SpeedBtn, true)
-	else
-		hum.WalkSpeed = 16
-		setButtonActive(SpeedBtn, false)
-	end
+    local hum = char:WaitForChild("Humanoid")
+    task.wait(0.5)
+    if speedOn then
+        hum.WalkSpeed = desiredSpeed
+        addSelendang(char)
+        setButtonActive(SpeedBtn, true)
+    else
+        hum.WalkSpeed = 16
+        setButtonActive(SpeedBtn, false)
+    end
 end)
 
 local FlingBtn = createButton("", "Tendang")
