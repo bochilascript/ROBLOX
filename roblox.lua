@@ -1426,24 +1426,36 @@ local function applySpeed(speed)
     local hum = char:FindFirstChild("Humanoid")
     if hum then
         hum.WalkSpeed = speed
-        -- Force override every frame to prevent other scripts from changing it
+        -- Simple override every 200ms
         task.spawn(function()
             while speedOn do
                 if hum and hum.Parent then
                     hum.WalkSpeed = speed
                 end
-                task.wait(0.1) -- Check every 100ms
+                task.wait(0.2)
             end
         end)
     end
 end
 
--- Hotkey SHIFT for speed boost
+-- Simple SHIFT boost
 UserInputService.InputBegan:Connect(function(input, gpe)
     if gpe then return end
     if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then
         if speedOn then
-            applySpeed(desiredSpeed * 2) -- Double speed when Shift pressed
+            local char = Player.Character or Player.CharacterAdded:Wait()
+            local hum = char:FindFirstChild("Humanoid")
+            if hum then hum.WalkSpeed = desiredSpeed * 2 end
+        end
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then
+        if speedOn then
+            local char = Player.Character or Player.CharacterAdded:Wait()
+            local hum = char:FindFirstChild("Humanoid")
+            if hum then hum.WalkSpeed = desiredSpeed end
         end
     end
 end)
@@ -2039,6 +2051,10 @@ local function getstring(begin)
                 AA = AA .. v
             end
         end
+    end
+    return AA
+end
+
 UnanchorBtn.MouseButton1Click:Connect(function()
     aktif = not aktif
     if aktif then
