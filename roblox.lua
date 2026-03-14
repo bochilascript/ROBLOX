@@ -2022,14 +2022,23 @@ local function mulaiUnanchor()
             applyForce(v)
         end
     end)
+
+local function getRoot(char)
+    local rootPart = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+    return rootPart
 end
 
-local function stopUnanchor()
-    if koneksi1 then koneksi1:Disconnect() end
-    if folder then folder:Destroy() end
-    folder, attachment1 = nil, nil
-end
-
+local function getstring(begin)
+    local start = begin-1
+    local AA = '' 
+    for i,v in pairs(cargs) do
+        if i > start then
+            if AA ~= '' then
+                AA = AA .. ' ' .. v
+            else
+                AA = AA .. v
+            end
+        end
 UnanchorBtn.MouseButton1Click:Connect(function()
     aktif = not aktif
     if aktif then
