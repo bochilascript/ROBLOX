@@ -733,9 +733,6 @@ end
 -- Fixed Waypoints (from JSON) -> buttons under Utility after Speed
 do
     local FixedWPs = {
-        LAVABASIN = {Components={906.6796875,88.55152893066406,-10215.4228515625,-0.5195371508598328,0.09052596986293793,-0.849638819694519,0.05717359483242035,0.9958264231681824,0.07114124298095703,0.8525328636169434,-0.011616379022598267,-0.5225445032119751}},
-        HEARTFELTCAVE = {Components={1321.1048583984376,-52.0398063659668,2750.950439453125,-0.47880521416664126,-0.004182417411357164,0.8779112696647644,-0.000018075583284371534,0.9999887347221375,0.004754133056849241,-0.8779211640357971,0.002260419074445963,-0.47879987955093386}},
-        HEARTFELTISLAND = {Components={1104.46826171875,6.326234817504883,2719.3427734375,0.022930260747671129,0.004608471877872944,-0.999726414680481,-0.000017696951545076446,0.99998939037323,0.004609278403222561,0.999737024307251,-0.00008802271622698754,0.022930098697543145}},
         FISHERMAN = {Components={15.01081371307373,18.508968353271486,2886.0537109375,0.9958893656730652,-0.00034908627276308835,0.09057725220918656,-0.000014927989468560554,0.9999919533729553,0.0040184142999351028,-0.09057792276144028,-0.0040032509714365009,0.9958813786506653}},
         VOLCANOCAVERN = {Components={1108.23095703125,87.50140380859375,-10248.6572265625,0.008187858387827874,0.00759594701230526,0.9999376535415649,-0.000013005867003812455,0.9999711513519287,-0.007596094626933336,-0.9999665021896362,0.000049182814109371978,0.00818772055208683}},
         CRYSTALDEPTHS = {Components={5735.92822265625,-903.3184814453125,15410.943359375,0.03468192741274834,1.9270406104165972e-10,-0.999398410320282,-1.3490972783358757e-9,1,1.4600259889974155e-10,0.999398410320282,1.3432219780895594e-9,0.03468192741274834}},
@@ -1282,7 +1279,7 @@ local Player = game.Players.LocalPlayer
 local SpeedBtn = createButton("", "Speed")
 SpeedBtn.Name = "SpeedBtn"
 SpeedBtn.LayoutOrder = 5
-local desiredSpeed = 25 -- Reduced from 50 to prevent too fast speed
+local desiredSpeed = 50
 
 -- Inline Speed control textbox placed directly under Speed button
 do
@@ -1415,78 +1412,39 @@ local function addSelendang(char)
 end
 
 local function removeSelendang()
-    if selendangPart then
-        selendangPart:Destroy()
-        selendangPart = nil
-    end
+	if selendangPart then
+		selendangPart:Destroy()
+		selendangPart = nil
+	end
 end
-
-local function applySpeed(speed)
-    local char = Player.Character or Player.CharacterAdded:Wait()
-    local hum = char:FindFirstChild("Humanoid")
-    if hum then
-        hum.WalkSpeed = speed
-        -- Simple override every 200ms
-        task.spawn(function()
-            while speedOn do
-                if hum and hum.Parent then
-                    hum.WalkSpeed = speed
-                end
-                task.wait(0.2)
-            end
-        end)
-    end
-end
-
--- Simple SHIFT boost
-UserInputService.InputBegan:Connect(function(input, gpe)
-    if gpe then return end
-    if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then
-        if speedOn then
-            local char = Player.Character or Player.CharacterAdded:Wait()
-            local hum = char:FindFirstChild("Humanoid")
-            if hum then hum.WalkSpeed = desiredSpeed * 2 end
-        end
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then
-        if speedOn then
-            local char = Player.Character or Player.CharacterAdded:Wait()
-            local hum = char:FindFirstChild("Humanoid")
-            if hum then hum.WalkSpeed = desiredSpeed end
-        end
-    end
-end)
 
 SpeedBtn.MouseButton1Click:Connect(function()
-    speedOn = not speedOn
-    
-    if speedOn then
-        applySpeed(desiredSpeed)
-        addSelendang(Player.Character or Player.CharacterAdded:Wait())
-        setButtonActive(SpeedBtn, true)
-    else
-        local char = Player.Character or Player.CharacterAdded:Wait()
-        local hum = char:FindFirstChild("Humanoid")
-        if hum then hum.WalkSpeed = 16 end
-        removeSelendang()
-        setButtonActive(SpeedBtn, false)
-    end
+	speedOn = not speedOn
+	local char = Player.Character or Player.CharacterAdded:Wait()
+	local hum = char:FindFirstChild("Humanoid")
+
+	if speedOn then
+		if hum then hum.WalkSpeed = desiredSpeed end
+		addSelendang(char)
+		setButtonActive(SpeedBtn, true)
+	else
+		if hum then hum.WalkSpeed = 16 end
+		removeSelendang()
+		setButtonActive(SpeedBtn, false)
+	end
 end)
 
 Player.CharacterAdded:Connect(function(char)
-    local hum = char:WaitForChild("Humanoid")
-    task.wait(0.5)
-    if speedOn then
-        hum.WalkSpeed = desiredSpeed
-        addSelendang(char)
-        setButtonActive(SpeedBtn, true)
-    else
-        hum.WalkSpeed = 16
-        setButtonActive(SpeedBtn, false)
-    end
+	local hum = char:WaitForChild("Humanoid")
+	task.wait(0.5)
+	if speedOn then
+		hum.WalkSpeed = desiredSpeed
+		addSelendang(char)
+		setButtonActive(SpeedBtn, true)
+	else
+		hum.WalkSpeed = 16
+		setButtonActive(SpeedBtn, false)
+	end
 end)
 
 local FlingBtn = createButton("", "Tendang")
@@ -1724,8 +1682,6 @@ local moving = false
 local savedOrientation = nil
 local oldGravity = Workspace.Gravity
 local frozenPos = nil
-local autoReenableFly = true -- Auto re-enable fly after teleport
-local stealthMode = true -- Stealth mode to avoid detection
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "FlyGui"
@@ -1781,14 +1737,10 @@ end
 
 local function enableFly()
     flying = true
-    DPad.Visible = stealthMode and false or true -- Hide DPad in stealth mode
+    DPad.Visible = true
     humanoid.PlatformStand = true
     noclip(true)
-    
-    -- Stealth mode: Don't modify gravity to avoid detection
-    if not stealthMode then
-        Workspace.Gravity = 0
-    end
+    Workspace.Gravity = 0
     
     setButtonActive(FlyBtn, true)
 
@@ -1804,11 +1756,7 @@ local function disableFly()
     DPad.Visible = false
     humanoid.PlatformStand = false
     noclip(false)
-    
-    -- Restore gravity only if not in stealth mode
-    if not stealthMode then
-        Workspace.Gravity = oldGravity
-    end
+    Workspace.Gravity = oldGravity
     frozenPos = nil
     
     setButtonActive(FlyBtn, false)
@@ -1843,6 +1791,9 @@ end)
 RunService.Heartbeat:Connect(function(dt)
     if not flying or not root then return end
 
+    root.AssemblyLinearVelocity = Vector3.zero
+    root.AssemblyAngularVelocity = Vector3.zero
+
     local cam = workspace.CurrentCamera
     local lookVec = cam.CFrame.LookVector
     local rightVec = cam.CFrame.RightVector
@@ -1855,29 +1806,12 @@ RunService.Heartbeat:Connect(function(dt)
 
     if dir.Magnitude > 0 then
         moving = true
-        local newPos = root.Position + dir.Unit * flySpeed * dt * 60
-        
-        if stealthMode then
-            -- Stealth movement: Use small, smooth position updates
-            local offset = (newPos - root.Position) * 0.1 -- Move 10% at a time
-            root.CFrame = CFrame.new(root.Position + offset, root.Position + offset + lookVec)
-        else
-            -- Normal movement: Direct position control
-            root.AssemblyLinearVelocity = Vector3.zero
-            root.AssemblyAngularVelocity = Vector3.zero
-            frozenPos = newPos
-            root.CFrame = CFrame.new(frozenPos, frozenPos + lookVec)
-        end
+        frozenPos = root.Position + dir.Unit * flySpeed * dt * 60
+        root.CFrame = CFrame.new(frozenPos, frozenPos + lookVec)
     else
         moving = false
-        if stealthMode then
-            -- Keep position stable in stealth mode
-            local currentPos = root.Position
-            root.CFrame = CFrame.new(currentPos, currentPos + lookVec)
-        else
-            if frozenPos and savedOrientation then
-                root.CFrame = CFrame.new(frozenPos) * savedOrientation
-            end
+        if frozenPos and savedOrientation then
+            root.CFrame = CFrame.new(frozenPos) * savedOrientation
         end
     end
 
@@ -1890,58 +1824,23 @@ RunService.Heartbeat:Connect(function(dt)
     end
 end)
 
-local function updateCharacterRefs()
-    local newChar = player.Character
-    if newChar and newChar ~= character then
-        character = newChar
-        humanoid = character:WaitForChild("Humanoid", 5)
-        root = character:WaitForChild("HumanoidRootPart", 5)
-        if humanoid then
-            setupAnimator(humanoid)
-        end
-        return true
-    end
-    return false
-end
-
-player.CharacterAdded:Connect(function(char)
-    task.wait(1) -- Wait for character to fully load
-    updateCharacterRefs()
-    
-    -- ALWAYS re-enable fly if it was active before teleport
-    if flying then
-        task.wait(0.5) -- Wait for map transition
-        if character and humanoid then
-            enableFly()
-        end
-    end
+humanoid.Died:Connect(function()
+    disableFly()
+    setButtonActive(FlyBtn, false)
 end)
 
-game:GetService("RunService").Heartbeat:Connect(function()
-    if not player.Character or player.Character.Parent ~= workspace then
-        -- Character was removed/teleported
-        -- Keep flying state active, don't disable
-    else
-        -- Try to update references
-        updateCharacterRefs()
-        
-        -- CRITICAL: Always ensure fly is active if it should be
-        if flying and character and humanoid then
-            if not humanoid.PlatformStand then
-                -- Re-enable fly if PlatformStand was reset
-                enableFly()
-            end
-            
-            if stealthMode then
-                -- Ensure movement works in stealth mode
-                local cam = workspace.CurrentCamera
-                if cam and root then
-                    local lookVec = cam.CFrame.LookVector
-                    root.CFrame = CFrame.new(root.Position, root.Position + lookVec)
-                end
-            end
-        end
-    end
+player.CharacterAdded:Connect(function(char)
+    character = char
+    humanoid = char:WaitForChild("Humanoid")
+    root = char:WaitForChild("HumanoidRootPart")
+    setupAnimator(humanoid)
+    
+    humanoid.Died:Connect(function()
+        disableFly()
+        setButtonActive(FlyBtn, false)
+    end)
+    
+    setButtonActive(FlyBtn, false)
 end)
 
 setButtonActive(FlyBtn, false)
@@ -2034,25 +1933,12 @@ local function mulaiUnanchor()
             applyForce(v)
         end
     end)
-
-local function getRoot(char)
-    local rootPart = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
-    return rootPart
 end
 
-local function getstring(begin)
-    local start = begin-1
-    local AA = '' 
-    for i,v in pairs(cargs) do
-        if i > start then
-            if AA ~= '' then
-                AA = AA .. ' ' .. v
-            else
-                AA = AA .. v
-            end
-        end
-    end
-    return AA
+local function stopUnanchor()
+    if koneksi1 then koneksi1:Disconnect() end
+    if folder then folder:Destroy() end
+    folder, attachment1 = nil, nil
 end
 
 UnanchorBtn.MouseButton1Click:Connect(function()
