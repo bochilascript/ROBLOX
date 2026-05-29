@@ -655,7 +655,7 @@ MiniFrame.Size = UDim2.new(0, 40, 0, 40)
 MiniFrame.Position = UDim2.new(1, -50, 0.5, -20)
 MiniFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 30)
 MiniFrame.BackgroundTransparency = 0.1
-MiniFrame.Image = "https://files.catbox.moe/jqehi8.jpg"
+MiniFrame.Image = "https://files.catbox.moe/61e1tk.webp"
 MiniFrame.ScaleType = Enum.ScaleType.Fit
 MiniFrame.Visible = false
 MiniFrame.Active = true
@@ -712,7 +712,7 @@ RunService.RenderStepped:Connect(function()
 end)
 -- Try to load MiniFrame image from external URL via executor APIs (if available)
 do
-    local url = "https://files.catbox.moe/jqehi8.jpg"
+    local url = "https://files.catbox.moe/61e1tk.webp"
     local ok, data = pcall(function()
         return game:HttpGet(url)
     end)
