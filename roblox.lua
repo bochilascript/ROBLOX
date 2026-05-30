@@ -2473,10 +2473,10 @@ do
         end
     end
 end
--- Hotkey \ toggle Fly on/off
+-- Hotkey ] toggle Fly on/off
 UserInputService.InputBegan:Connect(function(input, gpe)
     if gpe then return end
-    if input.KeyCode == Enum.KeyCode.BackSlash then
+    if input.KeyCode == Enum.KeyCode.RightBracket then
         if flying then
             disableFly()
         else
