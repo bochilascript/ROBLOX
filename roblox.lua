@@ -251,7 +251,7 @@ local function makeCustomWPBtn(name, comps)
     btn.Size = UDim2.new(0, 150, 0, 35)
     btn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     btn.BackgroundTransparency = 0.1
-    btn.Text = "â˜… " .. name
+    btn.Text = "★ " .. name
     btn.TextSize = 15
     btn.Font = Enum.Font.GothamBold
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
