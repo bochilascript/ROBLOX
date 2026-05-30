@@ -231,306 +231,6 @@ UtilityGrid:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     UtilityScroll.CanvasSize = UDim2.new(0, 0, 0, UtilityGrid.AbsoluteContentSize.Y + 10)
 end)
 
--- ========================================================
--- CUSTOM WAYPOINT SYSTEM (Like admin3.lua)
--- ========================================================
-local wpFileName = "CHIL_Waypoints_" .. tostring(game.PlaceId) .. ".json"
-local CustomWPs = {}
-local customWPButtons = {}
-
-local function saveCustomWPs()
-    if writefile then
-        pcall(function()
-            writefile(wpFileName, game:GetService("HttpService"):JSONEncode(CustomWPs))
-        end)
-    end
-end
-
-local function makeCustomWPBtn(name, comps)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 150, 0, 35)
-    btn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    btn.BackgroundTransparency = 0.1
-    btn.Text = "★ " .. name
-    btn.TextSize = 15
-    btn.Font = Enum.Font.GothamBold
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextXAlignment = Enum.TextXAlignment.Left
-    btn.AutoButtonColor = false
-    btn:SetAttribute("IsCustomWP", true)
-    btn.Visible = false
-    btn.Parent = ScrollFrame
-    
-    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0,8); c.Parent = btn
-    local s = Instance.new("UIStroke"); s.Color = Color3.fromRGB(0, 120, 200); s.Thickness = 1.5; s.Parent = btn
-    local p = Instance.new("UIPadding"); p.PaddingLeft = UDim.new(0,12); p.Parent = btn
-    
-    btn.MouseButton1Click:Connect(function()
-        local ok, cf = pcall(function() return CFrame.new(table.unpack(comps)) end)
-        if ok and typeof(cf)=="CFrame" then
-            local lplr = game:GetService("Players").LocalPlayer
-            local char = lplr.Character or lplr.CharacterAdded:Wait()
-            if char then char:PivotTo(cf) end
-        end
-    end)
-    
-    customWPButtons[name] = btn
-    return btn
-end
-
-local refreshMancingCategory
-local refreshUtilityCategory
-
-local function loadCustomWPs()
-    local isfile = isfile or function() return false end
-    local readfile = readfile or function() return "" end
-    if isfile(wpFileName) then
-        local ok, parsed = pcall(function()
-            return game:GetService("HttpService"):JSONDecode(readfile(wpFileName))
-        end)
-        if ok and type(parsed) == "table" then
-            CustomWPs = parsed
-            for name, data in pairs(CustomWPs) do
-                if type(data) == "table" and type(data.Components) == "table" then
-                    makeCustomWPBtn(name, data.Components)
-                end
-            end
-        end
-    end
-end
-
-local WPNameBox = Instance.new("TextBox")
-WPNameBox.Name = "WPNameBox"
-WPNameBox.Size = UDim2.new(0, 150, 0, 35)
-WPNameBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-WPNameBox.BackgroundTransparency = 0.1
-WPNameBox.Text = ""
-WPNameBox.PlaceholderText = "WP Name"
-WPNameBox.TextSize = 15
-WPNameBox.Font = Enum.Font.GothamBold
-WPNameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-WPNameBox.ClearTextOnFocus = false
-WPNameBox.Visible = false
-WPNameBox.Parent = ScrollFrame
-do
-    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 8); c.Parent = WPNameBox
-    local s = Instance.new("UIStroke"); s.Color = Color3.fromRGB(0, 120, 200); s.Thickness = 1.5; s.Parent = WPNameBox
-    local p = Instance.new("UIPadding"); p.PaddingLeft = UDim.new(0, 12); p.Parent = WPNameBox
-end
-
-local WPSetBtn = Instance.new("TextButton")
-WPSetBtn.Name = "WPSetBtn"
-WPSetBtn.Size = UDim2.new(0, 150, 0, 35)
-WPSetBtn.BackgroundColor3 = Color3.fromRGB(0, 80, 40)
-WPSetBtn.BackgroundTransparency = 0.1
-WPSetBtn.Text = "Set WP"
-WPSetBtn.TextSize = 15
-WPSetBtn.Font = Enum.Font.GothamBold
-WPSetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-WPSetBtn.Visible = false
-WPSetBtn.Parent = ScrollFrame
-do
-    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 8); c.Parent = WPSetBtn
-    local s = Instance.new("UIStroke"); s.Color = Color3.fromRGB(0, 180, 100); s.Thickness = 1.5; s.Parent = WPSetBtn
-end
-
-local WPDellBtn = Instance.new("TextButton")
-WPDellBtn.Name = "WPDellBtn"
-WPDellBtn.Size = UDim2.new(0, 150, 0, 35)
-WPDellBtn.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
-WPDellBtn.BackgroundTransparency = 0.1
-WPDellBtn.Text = "Del WP"
-WPDellBtn.TextSize = 15
-WPDellBtn.Font = Enum.Font.GothamBold
-WPDellBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-WPDellBtn.Visible = false
-WPDellBtn.Parent = ScrollFrame
-do
-    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 8); c.Parent = WPDellBtn
-    local s = Instance.new("UIStroke"); s.Color = Color3.fromRGB(180, 40, 40); s.Thickness = 1.5; s.Parent = WPDellBtn
-end
-
-WPSetBtn.MouseButton1Click:Connect(function()
-    local name = WPNameBox.Text
-    if name == "" then return end
-    local lplr = game:GetService("Players").LocalPlayer
-    local char = lplr.Character or lplr.CharacterAdded:Wait()
-    if not char then return end
-    local cf = char:GetPivot()
-    if not cf then return end
-    
-    if customWPButtons[name] then
-        customWPButtons[name]:Destroy()
-        customWPButtons[name] = nil
-    end
-    
-    CustomWPs[name] = { Components = { cf:GetComponents() } }
-    saveCustomWPs()
-    makeCustomWPBtn(name, CustomWPs[name].Components)
-    
-    WPNameBox.Text = ""
-    if UtilityFrame.Visible and WPNameBox.Parent == UtilityScroll and refreshUtilityCategory then
-        refreshUtilityCategory()
-    end
-end)
-
-WPDellBtn.MouseButton1Click:Connect(function()
-    local name = WPNameBox.Text
-    if name == "" then return end
-    if CustomWPs[name] then
-        CustomWPs[name] = nil
-        saveCustomWPs()
-    end
-    if customWPButtons[name] then
-        customWPButtons[name]:Destroy()
-        customWPButtons[name] = nil
-    end
-    
-    WPNameBox.Text = ""
-    if UtilityFrame.Visible and WPNameBox.Parent == UtilityScroll and refreshUtilityCategory then
-        refreshUtilityCategory()
-    end
-end)
-
-refreshMancingCategory = function()
-    ScrollFrame.Visible = false
-    UtilityFrame.Visible = true
-
-    -- Clean non-mancing items from UtilityScroll
-    for _, ch in ipairs(UtilityScroll:GetChildren()) do
-        if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") ~= true then
-            ch.Parent = ScrollFrame
-            ch.Visible = false
-        elseif ch:IsA("TextBox") then
-            ch.Parent = ScrollFrame
-            ch.Visible = false
-        end
-    end
-
-    -- Collect all fixed waypoint buttons
-    local wps = {}
-    for _, ch in ipairs(ScrollFrame:GetChildren()) do
-        if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
-            table.insert(wps, ch)
-        end
-    end
-    for _, ch in ipairs(UtilityScroll:GetChildren()) do
-        if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
-            table.insert(wps, ch)
-        end
-    end
-
-    -- Sort A->Z
-    table.sort(wps, function(a, b)
-        local at = tostring(a.Text or ""):lower()
-        local bt = tostring(b.Text or ""):lower()
-        return at < bt
-    end)
-
-    local order = 1
-    for _, ch in ipairs(wps) do
-        ch.Parent = UtilityScroll
-        ch.Visible = true
-        ch.LayoutOrder = order
-        order = order + 1
-    end
-end
-
-refreshUtilityCategory = function()
-    ScrollFrame.Visible = false
-    UtilityFrame.Visible = true
-
-    local function findBtn(txt)
-        local needle = string.lower(txt)
-        for _, ch in ipairs(ScrollFrame:GetChildren()) do
-            if ch:IsA("TextButton") and ch.Text and string.find(string.lower(ch.Text), needle, 1, true) then
-                return ch
-            end
-        end
-        for _, ch in ipairs(UtilityScroll:GetChildren()) do
-            if ch:IsA("TextButton") and ch.Text and string.find(string.lower(ch.Text), needle, 1, true) then
-                return ch
-            end
-        end
-        return nil
-    end
-
-    local clickBtn = UtilityScroll:FindFirstChild("ClickTPBtn") or ScrollFrame:FindFirstChild("ClickTPBtn") or findBtn("Click TP")
-    local tpBox    = UtilityScroll:FindFirstChild("TPBox")     or ScrollFrame:FindFirstChild("TPBox")
-    local freeBtn  = UtilityScroll:FindFirstChild("FreeCamBtn") or ScrollFrame:FindFirstChild("FreeCamBtn") or findBtn("Free Cam")
-    local fcBox    = UtilityScroll:FindFirstChild("FCBox")      or ScrollFrame:FindFirstChild("FCBox")
-    local spdBtn   = UtilityScroll:FindFirstChild("SpeedBtn")   or ScrollFrame:FindFirstChild("SpeedBtn") or findBtn("Speed")
-    local spdBox   = UtilityScroll:FindFirstChild("SpeedBox")   or ScrollFrame:FindFirstChild("SpeedBox")
-    if not spdBox then
-        for _, ch in ipairs(ScrollFrame:GetChildren()) do
-            if ch:IsA("TextBox") and string.lower(tostring(ch.PlaceholderText)) == "speed" then spdBox = ch break end
-        end
-        if not spdBox then
-            for _, ch in ipairs(UtilityScroll:GetChildren()) do
-                if ch:IsA("TextBox") and string.lower(tostring(ch.PlaceholderText)) == "speed" then spdBox = ch break end
-            end
-        end
-    end
-
-    for _, ch in ipairs(UtilityScroll:GetChildren()) do
-        if ch ~= clickBtn and ch ~= tpBox and ch ~= freeBtn and ch ~= fcBox and ch ~= spdBtn and ch ~= spdBox 
-           and ch.Name ~= "WPNameBox" and ch.Name ~= "WPSetBtn" and ch.Name ~= "WPDellBtn" 
-           and ch:GetAttribute("IsCustomWP") ~= true and ch:IsA("GuiObject") then
-            ch.Parent = ScrollFrame
-            ch.Visible = false
-        end
-    end
-
-    local customWps = {}
-    for _, ch in ipairs(ScrollFrame:GetChildren()) do
-        if ch:IsA("TextButton") and ch:GetAttribute("IsCustomWP") == true then
-            table.insert(customWps, ch)
-        end
-    end
-    for _, ch in ipairs(UtilityScroll:GetChildren()) do
-        if ch:IsA("TextButton") and ch:GetAttribute("IsCustomWP") == true then
-            table.insert(customWps, ch)
-        end
-    end
-    table.sort(customWps, function(a, b)
-        local at = tostring(a.Text or ""):lower()
-        local bt = tostring(b.Text or ""):lower()
-        return at < bt
-    end)
-
-    local order = 1
-    local function place(child)
-        if child then
-            child.Parent = UtilityScroll
-            child.Visible = true
-            child.LayoutOrder = order
-            order = order + 1
-        end
-    end
-
-    place(clickBtn)
-    place(tpBox)
-    place(freeBtn)
-    place(fcBox)
-    place(spdBtn)
-    place(spdBox)
-    
-    local wpNameBox = UtilityScroll:FindFirstChild("WPNameBox") or ScrollFrame:FindFirstChild("WPNameBox")
-    local wpSetBtn = UtilityScroll:FindFirstChild("WPSetBtn") or ScrollFrame:FindFirstChild("WPSetBtn")
-    local wpDellBtn = UtilityScroll:FindFirstChild("WPDellBtn") or ScrollFrame:FindFirstChild("WPDellBtn")
-
-    place(wpNameBox)
-    place(wpSetBtn)
-    place(wpDellBtn)
-
-    for _, ch in ipairs(customWps) do
-        place(ch)
-    end
-end
-
-task.spawn(loadCustomWPs)
--- ========================================================
-
 -- Left quick panel under profile picture
 do
     local QuickPanel = Instance.new("Frame")
@@ -660,15 +360,104 @@ end
         end
 
         if cat == "Utility" then
-            if refreshUtilityCategory then
-                refreshUtilityCategory()
+            -- Show UtilityFrame and hide ScrollFrame
+            ScrollFrame.Visible = false
+            UtilityFrame.Visible = true
+            local function findBtn(txt)
+                local needle = string.lower(txt)
+                for _, ch in ipairs(ScrollFrame:GetChildren()) do
+                    if ch:IsA("TextButton") and ch.Text and string.find(string.lower(ch.Text), needle, 1, true) then
+                        return ch
+                    end
+                end
+                return nil
             end
-        elseif cat == "Mancing" then
-            if refreshMancingCategory then
-                refreshMancingCategory()
+            -- Prefer finding by Name to be robust (gunakan UtilityScroll agar bisa scroll)
+            local clickBtn = UtilityScroll:FindFirstChild("ClickTPBtn") or ScrollFrame:FindFirstChild("ClickTPBtn") or findBtn("Click TP")
+            local tpBox    = UtilityScroll:FindFirstChild("TPBox")     or ScrollFrame:FindFirstChild("TPBox")
+            local freeBtn  = UtilityScroll:FindFirstChild("FreeCamBtn") or ScrollFrame:FindFirstChild("FreeCamBtn") or findBtn("Free Cam")
+            local fcBox    = UtilityScroll:FindFirstChild("FCBox")      or ScrollFrame:FindFirstChild("FCBox")
+            local spdBtn   = UtilityScroll:FindFirstChild("SpeedBtn")   or ScrollFrame:FindFirstChild("SpeedBtn") or findBtn("Speed")
+            local spdBox   = UtilityScroll:FindFirstChild("SpeedBox")   or ScrollFrame:FindFirstChild("SpeedBox")
+            if not spdBox then
+                for _, ch in ipairs(ScrollFrame:GetChildren()) do
+                    if ch:IsA("TextBox") and string.lower(tostring(ch.PlaceholderText)) == "speed" then spdBox = ch break end
+                end
+            end
+
+            local function moveToUtil(child, order)
+                if child then child.Parent = UtilityScroll child.Visible = true child.LayoutOrder = order end
+            end
+            moveToUtil(clickBtn, 1); moveToUtil(tpBox, 2)
+            moveToUtil(freeBtn, 3);  moveToUtil(fcBox, 4)
+            moveToUtil(spdBtn, 5);   moveToUtil(spdBox, 6)
+            -- juga pindahkan tombol waypoint tetap (urut A->Z)
+            -- jangan tampilkan tombol waypoint tetap di Utility
+            for _, ch in ipairs(UtilityScroll:GetChildren()) do
+                if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
+                    ch.Parent = ScrollFrame
+                    ch.Visible = false
+                end
+            end
+            for _, ch in ipairs(ScrollFrame:GetChildren()) do
+                if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
+                    ch.Visible = false
+                end
+            end
+            -- -- also move fixed waypoint buttons if present
+            -- local nextOrder = 7
+            -- for _, ch in ipairs(ScrollFrame:GetChildren()) do
+            --     if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
+            --         moveToUtil(ch, nextOrder)
+            --         nextOrder += 1
+            --     end
+            -- end
+            elseif cat == "Mancing" then
+            -- Tampilkan khusus tombol waypoint tetap (IsFixedWP) di UtilityScroll
+            ScrollFrame.Visible = false
+            UtilityFrame.Visible = true
+
+            -- Singkirkan item non-waypoint dari UtilityScroll
+            for _, ch in ipairs(UtilityScroll:GetChildren()) do
+                if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") ~= true then
+                    ch.Parent = ScrollFrame
+                    ch.Visible = false
+                elseif ch:IsA("TextBox") then
+                    ch.Parent = ScrollFrame
+                    ch.Visible = false
+                end
+            end
+
+            -- Kumpulkan tombol waypoint tetap dari kedua parent
+            local fixed = {}
+            for _, ch in ipairs(ScrollFrame:GetChildren()) do
+                if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
+                    table.insert(fixed, ch)
+                end
+            end
+            for _, ch in ipairs(UtilityScroll:GetChildren()) do
+                if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
+                    table.insert(fixed, ch)
+                end
+            end
+
+            -- Urutkan A->Z
+            table.sort(fixed, function(a, b)
+                local at = tostring(a.Text or ""):lower()
+                local bt = tostring(b.Text or ""):lower()
+                return at < bt
+            end)
+
+            -- Tempatkan berurutan dari atas
+            local order = 1
+            for _, ch in ipairs(fixed) do
+                ch.Parent = UtilityScroll
+                ch.Visible = true
+                ch.LayoutOrder = order
+                order = order + 1
             end
         else
-            -- Leaving Utility/Mancing: move items back to ScrollFrame and hide UtilityFrame
+            -- Leaving Utility: move items back to ScrollFrame and hide UtilityFrame
             if UtilityFrame.Visible then
                 local function restore(nameOrBtn)
                     local inst
@@ -679,17 +468,67 @@ end
                     end
                     if inst then inst.Parent = ScrollFrame inst.Visible = false end
                 end
-                restore("TPBox"); restore("FCBox"); restore("SpeedBox"); restore("WPNameBox"); restore("WPSetBtn"); restore("WPDellBtn")
-                -- restore fixed and custom waypoint buttons, and other textbuttons
+                restore("TPBox"); restore("FCBox"); restore("SpeedBox")
+                -- restore fixed waypoint buttons
                 for _, ch in ipairs(UtilityScroll:GetChildren()) do
-                    if ch:IsA("TextButton") or ch:IsA("TextBox") then
+                    if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
                         ch.Parent = ScrollFrame
                         ch.Visible = false
                     end
                 end
+                -- buttons may not have unique names; find by text
+                for _, ch in ipairs(UtilityScroll:GetChildren()) do
+                    if ch:IsA("TextButton") then ch.Parent = ScrollFrame ch.Visible = false end
+                end
             end
             UtilityFrame.Visible = false
             ScrollFrame.Visible = true
+        end
+        -- enforce Utility ordering so each button is beside its textbox
+        if cat == "Utility" then
+            local function findButtonByText(txt)
+                local needle = string.lower(txt)
+                for _, ch in ipairs(ScrollFrame:GetChildren()) do
+                    if ch:IsA("TextButton") and ch.Text then
+                        local hay = string.lower(ch.Text)
+                        if string.find(hay, needle, 1, true) then
+                            return ch
+                        end
+                    end
+                end
+                return nil
+            end
+            local clickBtn = findButtonByText("Click TP")
+            local tpBox   = ScrollFrame:FindFirstChild("TPBox")
+            local freeBtn = findButtonByText("Free Cam")
+            local fcBox   = ScrollFrame:FindFirstChild("FCBox")
+            local spdBtn  = findButtonByText("Speed")
+            local spdBox  = ScrollFrame:FindFirstChild("SpeedBox")
+            if not spdBox then
+                for _, ch in ipairs(ScrollFrame:GetChildren()) do
+                    if ch:IsA("TextBox") and string.lower(tostring(ch.PlaceholderText)) == "speed" then
+                        spdBox = ch; break
+                    end
+                end
+            end
+            local ordered = {clickBtn, tpBox, freeBtn, fcBox, spdBtn, spdBox}
+            local keep = {}
+            local order = 1
+            for _, inst in ipairs(ordered) do
+                if inst then
+                    inst.Visible = true
+                    inst.LayoutOrder = order
+                    keep[inst] = true
+                    order = order + 1
+                end
+            end
+            for _, ch in ipairs(ScrollFrame:GetChildren()) do
+                if not keep[ch] then
+                    if ch:IsA("TextButton") or ch:IsA("TextBox") or ch:IsA("Frame") or ch:IsA("ImageButton") or ch:IsA("ImageLabel") then
+                        ch.Visible = false
+                    end
+                end
+            end
         end
         -- also toggle SpeedBox (in case it's not parented directly to ScrollFrame yet in some executors)
         if typeof(SpeedBox) == "Instance" then
