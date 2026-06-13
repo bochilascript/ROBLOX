@@ -267,7 +267,7 @@ local function makeCopyBtn(text, copyText, order)
     stroke.Parent = btn
 
     btn.MouseButton1Click:Connect(function()
-        if setclipboard then
+        if type(setclipboard) == "function" then
             setclipboard(copyText)
             game:GetService("StarterGui"):SetCore("SendNotification", {
                 Title = "Tersalin!";
@@ -743,15 +743,28 @@ miniStroke.Parent = MiniFrame
 
 
 -- External cursor overlay to help when zoom/locked cursor hides the pointer
-local ExternalCursor = Instance.new("ImageLabel")
+local ExternalCursor = Instance.new("Frame")
 ExternalCursor.Name = "ExternalCursor"
-ExternalCursor.Size = UDim2.fromOffset(20, 20)
-ExternalCursor.AnchorPoint = Vector2.new(0, 0)
+ExternalCursor.Size = UDim2.fromOffset(18, 18)
+ExternalCursor.AnchorPoint = Vector2.new(0.5, 0.5)
 ExternalCursor.BackgroundTransparency = 1
-ExternalCursor.Image = "rbxasset://textures/Cursors/KeyboardMouse/ArrowCursor.png"
 ExternalCursor.Visible = false
 ExternalCursor.ZIndex = 1000
 ExternalCursor.Parent = ScreenGui
+do
+    local dot = Instance.new("Frame")
+    dot.Size = UDim2.fromScale(1, 1)
+    dot.BackgroundTransparency = 1
+    dot.Parent = ExternalCursor
+    local stroke = Instance.new("UIStroke")
+    stroke.Thickness = 2
+    stroke.Color = Color3.fromRGB(255, 255, 255)
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    stroke.Parent = dot
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(1, 0)
+    corner.Parent = dot
+end
 
 local function updateExternalCursorVisibility()
     ExternalCursor.Visible = (ScreenGui.Enabled == true) and (MainFrame.Visible == true)
