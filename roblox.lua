@@ -558,6 +558,26 @@ end
     btnMancing.MouseButton1Click:Connect(function()
         setCategory("Mancing")
     end)
+
+    local btnCredits = makeSmallBtn("Credits", 5)
+    btnCredits.MouseButton1Click:Connect(function()
+        local credText = "Github: https://github.com/bochilascript\nTelegram: https://t.me/pocketedition09"
+        if setclipboard then
+            setclipboard(credText)
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "Credits Copied!";
+                Text = "Link Github & Telegram telah disalin!";
+                Duration = 5;
+            })
+        else
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "Credits";
+                Text = credText;
+                Duration = 10;
+            })
+        end
+    end)
+
     -- default to Menu
     setCategory("Menu")
 end
