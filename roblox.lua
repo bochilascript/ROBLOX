@@ -1866,6 +1866,8 @@ local aktif = false
 local folder, attachment1, koneksi1
 local RADIUS = 500
 
+local activeParts = {}
+
 local function scanParts()
     local parts = {}
     local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
@@ -1930,21 +1932,28 @@ local function mulaiUnanchor()
 
     task.spawn(function()
         settings().Physics.AllowSleep = false
-        while aktif and task.wait() do
+        while aktif do
+            -- Cache parts once a second instead of every frame
+            activeParts = scanParts()
+            
             for _, pl in next, game.Players:GetPlayers() do
                 if pl ~= player then
                     pl.MaximumSimulationRadius = 0
-                    sethiddenproperty(pl, "SimulationRadius", 0)
+                    pcall(function() sethiddenproperty(pl, "SimulationRadius", 0) end)
                 end
             end
             player.MaximumSimulationRadius = math.pow(math.huge, math.huge)
-            setsimulationradius(math.huge)
+            pcall(function() setsimulationradius(math.huge) end)
+            
+            task.wait(1)
         end
     end)
 
     koneksi1 = game:GetService("RunService").Stepped:Connect(function()
-        local list = scanParts()
-        for _, v in pairs(list) do
+        if attachment1 and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            attachment1.Parent.Position = player.Character.HumanoidRootPart.Position
+        end
+        for _, v in ipairs(activeParts) do
             applyForce(v)
         end
     end)
