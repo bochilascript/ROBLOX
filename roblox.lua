@@ -231,6 +231,63 @@ UtilityGrid:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     UtilityScroll.CanvasSize = UDim2.new(0, 0, 0, UtilityGrid.AbsoluteContentSize.Y + 10)
 end)
 
+local CreditsFrame = Instance.new("Frame")
+CreditsFrame.Name = "CreditsFrame"
+CreditsFrame.Size = UDim2.new(1, 0, 1, 0)
+CreditsFrame.Visible = false
+CreditsFrame.BackgroundTransparency = 1
+CreditsFrame.Parent = ButtonsFrame
+
+local CreditsLayout = Instance.new("UIListLayout")
+CreditsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+CreditsLayout.Padding = UDim.new(0, 15)
+CreditsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+CreditsLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+CreditsLayout.Parent = CreditsFrame
+
+local function makeCopyBtn(text, copyText, order)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 300, 0, 45)
+    btn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    btn.BackgroundTransparency = 0.1
+    btn.Text = text
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.LayoutOrder = order
+    btn.Parent = CreditsFrame
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = btn
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(0, 130, 80)
+    stroke.Thickness = 1.5
+    stroke.Parent = btn
+
+    btn.MouseButton1Click:Connect(function()
+        if setclipboard then
+            setclipboard(copyText)
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "Tersalin!";
+                Text = text .. " tersalin ke clipboard!";
+                Duration = 3;
+            })
+        else
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = text;
+                Text = copyText;
+                Duration = 5;
+            })
+        end
+    end)
+    return btn
+end
+
+makeCopyBtn("Salin Github (bochilascript)", "https://github.com/bochilascript", 1)
+makeCopyBtn("Salin Telegram (@pocketedition09)", "https://t.me/pocketedition09", 2)
+
 -- Left quick panel under profile picture
 do
     local QuickPanel = Instance.new("Frame")
@@ -359,9 +416,14 @@ end
             return row
         end
 
-        if cat == "Utility" then
+        if cat == "Credits" then
+            ScrollFrame.Visible = false
+            UtilityFrame.Visible = false
+            CreditsFrame.Visible = true
+        elseif cat == "Utility" then
             -- Show UtilityFrame and hide ScrollFrame
             ScrollFrame.Visible = false
+            CreditsFrame.Visible = false
             UtilityFrame.Visible = true
             local function findBtn(txt)
                 local needle = string.lower(txt)
@@ -415,6 +477,7 @@ end
             elseif cat == "Mancing" then
             -- Tampilkan khusus tombol waypoint tetap (IsFixedWP) di UtilityScroll
             ScrollFrame.Visible = false
+            CreditsFrame.Visible = false
             UtilityFrame.Visible = true
 
             -- Singkirkan item non-waypoint dari UtilityScroll
@@ -458,6 +521,7 @@ end
             end
         else
             -- Leaving Utility: move items back to ScrollFrame and hide UtilityFrame
+            CreditsFrame.Visible = false
             if UtilityFrame.Visible then
                 local function restore(nameOrBtn)
                     local inst
@@ -561,21 +625,7 @@ end
 
     local btnCredits = makeSmallBtn("Credits", 5)
     btnCredits.MouseButton1Click:Connect(function()
-        local credText = "Github: https://github.com/bochilascript\nTelegram: https://t.me/pocketedition09"
-        if setclipboard then
-            setclipboard(credText)
-            game:GetService("StarterGui"):SetCore("SendNotification", {
-                Title = "Credits Copied!";
-                Text = "Link Github & Telegram telah disalin!";
-                Duration = 5;
-            })
-        else
-            game:GetService("StarterGui"):SetCore("SendNotification", {
-                Title = "Credits";
-                Text = credText;
-                Duration = 10;
-            })
-        end
+        setCategory("Credits")
     end)
 
     -- default to Menu
@@ -693,28 +743,15 @@ miniStroke.Parent = MiniFrame
 
 
 -- External cursor overlay to help when zoom/locked cursor hides the pointer
-local ExternalCursor = Instance.new("Frame")
+local ExternalCursor = Instance.new("ImageLabel")
 ExternalCursor.Name = "ExternalCursor"
-ExternalCursor.Size = UDim2.fromOffset(18, 18)
-ExternalCursor.AnchorPoint = Vector2.new(0.5, 0.5)
+ExternalCursor.Size = UDim2.fromOffset(20, 20)
+ExternalCursor.AnchorPoint = Vector2.new(0, 0)
 ExternalCursor.BackgroundTransparency = 1
+ExternalCursor.Image = "rbxasset://textures/Cursors/KeyboardMouse/ArrowCursor.png"
 ExternalCursor.Visible = false
 ExternalCursor.ZIndex = 1000
 ExternalCursor.Parent = ScreenGui
-do
-    local dot = Instance.new("Frame")
-    dot.Size = UDim2.fromScale(1, 1)
-    dot.BackgroundTransparency = 1
-    dot.Parent = ExternalCursor
-    local stroke = Instance.new("UIStroke")
-    stroke.Thickness = 2
-    stroke.Color = Color3.fromRGB(255, 255, 255)
-    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    stroke.Parent = dot
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(1, 0)
-    corner.Parent = dot
-end
 
 local function updateExternalCursorVisibility()
     ExternalCursor.Visible = (ScreenGui.Enabled == true) and (MainFrame.Visible == true)
@@ -728,6 +765,7 @@ RunService.RenderStepped:Connect(function()
     if ExternalCursor.Visible then
         local pos = UserInputService:GetMouseLocation()
         ExternalCursor.Position = UDim2.fromOffset(pos.X, pos.Y)
+        UserInputService.MouseBehavior = Enum.MouseBehavior.Default
     end
 end)
 -- Try to load MiniFrame image from external URL via executor APIs (if available)
