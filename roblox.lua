@@ -2571,6 +2571,7 @@ local function launchFlyV2()
 	local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
 
 	local nowe = false
+	local noclipConnectionFly2 = nil
 
 	game:GetService("StarterGui"):SetCore("SendNotification", { 
 		Title = "GUI TERBANG V3";
@@ -2585,6 +2586,11 @@ local function launchFlyV2()
 
 		if nowe == true then
 			nowe = false
+
+			if noclipConnectionFly2 then
+				noclipConnectionFly2:Disconnect()
+				noclipConnectionFly2 = nil
+			end
 
 			speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing,true)
 			speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown,true)
@@ -2605,7 +2611,18 @@ local function launchFlyV2()
 		else 
 			nowe = true
 
-
+			if not noclipConnectionFly2 then
+				noclipConnectionFly2 = game:GetService("RunService").Stepped:Connect(function()
+					local chr = speaker.Character
+					if chr then
+						for _, obj in ipairs(chr:GetDescendants()) do
+							if obj:IsA("BasePart") then
+								obj.CanCollide = false
+							end
+						end
+					end
+				end)
+			end
 
 			for i = 1, speeds do
 				spawn(function()
