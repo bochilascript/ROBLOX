@@ -1433,7 +1433,7 @@ local function removeSelendang()
 	end
 end
 
-SpeedBtn.MouseButton1Click:Connect(function()
+local function toggleSpeed()
 	speedOn = not speedOn
 	local char = Player.Character or Player.CharacterAdded:Wait()
 	local hum = char:FindFirstChild("Humanoid")
@@ -1446,6 +1446,15 @@ SpeedBtn.MouseButton1Click:Connect(function()
 		if hum then hum.WalkSpeed = 16 end
 		removeSelendang()
 		setButtonActive(SpeedBtn, false)
+	end
+end
+
+SpeedBtn.MouseButton1Click:Connect(toggleSpeed)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	if input.KeyCode == Enum.KeyCode.RightBracket then
+		toggleSpeed()
 	end
 end)
 
