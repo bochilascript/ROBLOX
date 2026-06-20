@@ -272,6 +272,8 @@ CmdsFrame.Visible = false
 CmdsFrame.BackgroundTransparency = 1
 CmdsFrame.Parent = ButtonsFrame
 
+
+
 -- Left quick panel under profile picture
 do
     local QuickPanel = Instance.new("ScrollingFrame")
@@ -283,13 +285,23 @@ do
     QuickPanel.ScrollBarThickness = 3
     QuickPanel.ScrollBarImageColor3 = Color3.fromRGB(0, 220, 130)
     QuickPanel.ScrollingDirection = Enum.ScrollingDirection.Y
-    QuickPanel.CanvasSize = UDim2.new(0, 0, 0, 210)
+    QuickPanel.CanvasSize = UDim2.new(0, 0, 0, 0)
     QuickPanel.Parent = ProfileContent
+
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.FillDirection = Enum.FillDirection.Vertical
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    listLayout.Padding = UDim.new(0, 6)
+    listLayout.Parent = QuickPanel
+
+    listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        QuickPanel.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 10)
+    end)
 
     local function makeSmallBtn(text, order)
         local btn = Instance.new("TextButton")
         btn.Size = UDim2.new(1, -6, 0, 28)
-        btn.Position = UDim2.new(0, 0, 0, (order-1)*34)
+        btn.LayoutOrder = order
         btn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
         btn.BackgroundTransparency = 0.1
         btn.Text = text
@@ -682,6 +694,8 @@ end
             setCategory("Commands")
         end
     end)
+
+
 
     -- default to Menu
     setCategory("Menu")
@@ -1406,20 +1420,31 @@ JumpBtn.MouseButton1Click:Connect(function()
     setButtonActive(JumpBtn, infiniteJumpEnabled)
 end)
 
+-- Helper to auto re-execute script on teleport / rejoin
+local function queueTeleport()
+    local qot = (syn and syn.queue_on_teleport) or queue_on_teleport
+    if qot then
+        pcall(function()
+            qot([[loadstring(game:HttpGet("https://pastebin.com/raw/zh4yDg0Q"))()]])
+        end)
+    end
+end
+
 -- Rejoin button (Menu): rejoin same server if possible, else rejoin place
 local RejoinBtn = createButton("", "Rejoin")
 RejoinBtn.LayoutOrder = 1
 RejoinBtn.MouseButton1Click:Connect(function()
     local player = game:GetService("Players").LocalPlayer
     local ts = game:GetService("TeleportService")
-    local placeId = game.PlaceId
-    local jobId = game.JobId
+    local currentPlaceId = game.PlaceId
+    local currentJobId = game.JobId
+    queueTeleport()
     local ok = pcall(function()
-        ts:TeleportToPlaceInstance(placeId, jobId, player)
+        ts:TeleportToPlaceInstance(currentPlaceId, currentJobId, player)
     end)
     if not ok then
         pcall(function()
-            ts:Teleport(placeId, player)
+            ts:Teleport(currentPlaceId, player)
         end)
     end
 end)
@@ -1568,22 +1593,35 @@ local function createServerHopWindow()
     jobIdLabel.TextColor3 = Color3.fromRGB(0, 220, 130)
     jobIdLabel.TextXAlignment = Enum.TextXAlignment.Left
     
-    local cleanJobId = tostring(jobId)
-    if #cleanJobId > 16 then
-        jobIdLabel.Text = "Job ID (Click to Copy): " .. string.sub(cleanJobId, 1, 8) .. "..." .. string.sub(cleanJobId, -8)
+    local cleanJobId = tostring(game.JobId)
+    if cleanJobId ~= "" then
+        if #cleanJobId > 16 then
+            jobIdLabel.Text = "Job ID (Click to Copy): " .. string.sub(cleanJobId, 1, 8) .. "..." .. string.sub(cleanJobId, -8)
+        else
+            jobIdLabel.Text = "Job ID (Click to Copy): " .. cleanJobId
+        end
     else
-        jobIdLabel.Text = "Job ID (Click to Copy): " .. cleanJobId
+        jobIdLabel.Text = "Job ID (Click to Copy): Loading..."
     end
     jobIdLabel.Parent = infoFrame
 
     jobIdLabel.MouseButton1Click:Connect(function()
         if setclipboard then
-            setclipboard(cleanJobId)
-            game:GetService("StarterGui"):SetCore("SendNotification", {
-                Title = "JobId Copied!",
-                Text = "Server Job ID has been copied to clipboard.",
-                Duration = 3
-            })
+            local currentJobId = tostring(game.JobId)
+            if currentJobId ~= "" then
+                setclipboard(currentJobId)
+                game:GetService("StarterGui"):SetCore("SendNotification", {
+                    Title = "JobId Copied!",
+                    Text = "Server Job ID has been copied to clipboard.",
+                    Duration = 3
+                })
+            else
+                game:GetService("StarterGui"):SetCore("SendNotification", {
+                    Title = "JobId Error",
+                    Text = "Job ID is not loaded yet.",
+                    Duration = 3
+                })
+            end
         end
     end)
 
@@ -1613,8 +1651,25 @@ local function createServerHopWindow()
         loading.Parent = scroll
         
         task.spawn(function()
+            local currentPlaceId = tostring(game.PlaceId)
+            local currentJobId = tostring(game.JobId)
+
+            -- Update info labels in case JobId loaded late
+            pcall(function()
+                placeIdLabel.Text = "Place ID: " .. currentPlaceId
+                if currentJobId ~= "" then
+                    if #currentJobId > 16 then
+                        jobIdLabel.Text = "Job ID (Click to Copy): " .. string.sub(currentJobId, 1, 8) .. "..." .. string.sub(currentJobId, -8)
+                    else
+                        jobIdLabel.Text = "Job ID (Click to Copy): " .. currentJobId
+                    end
+                else
+                    jobIdLabel.Text = "Job ID (Click to Copy): Loading..."
+                end
+            end)
+
             local success, result = pcall(function()
-                return game:HttpGetAsync("https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Desc&limit=100")
+                return game:HttpGetAsync("https://games.roblox.com/v1/games/" .. currentPlaceId .. "/servers/Public?sortOrder=Desc&limit=100")
             end)
 
             loading:Destroy()
@@ -1622,10 +1677,31 @@ local function createServerHopWindow()
             if success and result then
                 local ok, data = pcall(function() return httpService:JSONDecode(result).data end)
                 if ok and data then
+                    -- Check if our current server is in the fetched list
+                    local hasCurrent = false
+                    if currentJobId ~= "" then
+                        for _, v in ipairs(data) do
+                            if type(v) == "table" and v.id == currentJobId then
+                                hasCurrent = true
+                                break
+                            end
+                        end
+                    end
+                    
+                    -- If our server is not in the API list, manually insert it at the very top
+                    if not hasCurrent and currentJobId ~= "" then
+                        table.insert(data, 1, {
+                            id = currentJobId,
+                            playing = #game.Players:GetPlayers(),
+                            maxPlayers = game.Players.MaxPlayers,
+                            ping = 99
+                        })
+                    end
+
                     local count = 0
                     for _, v in ipairs(data) do
-                        if type(v) == "table" and v.playing and v.maxPlayers and (v.id == jobId or v.playing < v.maxPlayers) then
-                            local isCurrent = (v.id == jobId)
+                        if type(v) == "table" and v.playing and v.maxPlayers and (v.id == currentJobId or v.playing < v.maxPlayers) then
+                            local isCurrent = (v.id == currentJobId)
                             count = count + 1
                             local sBtn = Instance.new("TextButton")
                             sBtn.Size = UDim2.new(1, -10, 0, 35)
@@ -1650,7 +1726,8 @@ local function createServerHopWindow()
                                 sBtn.MouseButton1Click:Connect(function()
                                     sBtn.Text = "Joining..."
                                     sBtn.BackgroundColor3 = Color3.fromRGB(60, 100, 60)
-                                    teleportService:TeleportToPlaceInstance(placeId, v.id)
+                                    queueTeleport()
+                                    teleportService:TeleportToPlaceInstance(currentPlaceId, v.id)
                                 end)
                             end
                         end
@@ -3526,7 +3603,7 @@ SWPBtn.LayoutOrder = 22
 SWPBox.LayoutOrder = 23
 
 -- A->Z sort all action buttons and place input boxes under their buttons
-do
+(function()
     local btns = {
         AirwalkBtn, ESPBtn, ESPTeamBtn, LampBtn, JumpBtn, SpeedBtn, NoclipBtn, FlingBtn, FlyBtn,
         UnanchorBtn, BringPartBtn, AntiLagBtn, RecBtn, TeleBtn, SpectatorBtn,
@@ -3564,7 +3641,7 @@ do
             order = order + 1
         end
     end
-end
+end)()
 
 -- Hook chat commands & Command Bar (e.g. swp <name>) like Infinite Yield
 local success, err = pcall(function()
@@ -3580,7 +3657,6 @@ local success, err = pcall(function()
             })
         end)
     end
-
     local commandsList = {
         { name = "cmds", aliases = {"commands"}, desc = "Menampilkan daftar perintah ini.", usage = "" },
         { name = "swp", aliases = {"savewp", "savewaypoint"}, desc = "Simpan posisi saat ini sebagai waypoint.", usage = " [nama]" },
@@ -3661,7 +3737,7 @@ local success, err = pcall(function()
         searchIcon.Position = UDim2.new(0, 8, 0, 0)
         searchIcon.BackgroundTransparency = 1
         searchIcon.Font = Enum.Font.Gotham
-        searchIcon.Text = "🔍"
+        searchIcon.Text = "Ã°Å¸â€Â"
         searchIcon.TextColor3 = Color3.fromRGB(150, 150, 150)
         searchIcon.TextSize = 14
         searchIcon.Parent = searchFrame
