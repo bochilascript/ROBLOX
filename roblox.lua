@@ -12,7 +12,7 @@ customWaypoints = {}
 customWPButtons = {}
 currentPlaceId = tostring(game.PlaceId)
 
-function saveCustomWaypoints()
+function saveCustomWaypoints()  
     pcall(function()
         if writefile then
             local allData = {}
@@ -1464,6 +1464,31 @@ RefreshBtn.MouseButton1Click:Connect(function()
                 newHRP.CFrame = savedCFrame
                 if savedVel then newHRP.AssemblyLinearVelocity = savedVel end
             end)
+        end)
+    end
+end)
+
+-- Anti AFK (Menu)
+local AntiAFKBtn = createButton("", "Anti AFK")
+AntiAFKBtn.LayoutOrder = 3
+local antiAFKConnection = nil
+AntiAFKBtn.MouseButton1Click:Connect(function()
+    if antiAFKConnection then
+        antiAFKConnection:Disconnect()
+        antiAFKConnection = nil
+        setButtonActive(AntiAFKBtn, false)
+        pcall(function()
+            game:GetService("StarterGui"):SetCore("SendNotification", {Title="Anti AFK", Text="Dinonaktifkan", Duration=3})
+        end)
+    else
+        local VirtualUser = game:GetService("VirtualUser")
+        antiAFKConnection = game.Players.LocalPlayer.Idled:Connect(function()
+            VirtualUser:CaptureController()
+            VirtualUser:ClickButton2(Vector2.new())
+        end)
+        setButtonActive(AntiAFKBtn, true)
+        pcall(function()
+            game:GetService("StarterGui"):SetCore("SendNotification", {Title="Anti AFK", Text="Aktif", Duration=3})
         end)
     end
 end)
