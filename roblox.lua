@@ -3,6 +3,12 @@ local PlayerGui = Player:WaitForChild("PlayerGui")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local showCommandsWindow
+local showCmdBar
+local CmdsFrame
+
+
+
 
 currentCategory = "Menu"
 customWaypoints = {}
@@ -88,8 +94,8 @@ LightingContainer.BackgroundTransparency = 1
 LightingContainer.Parent = ScreenGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 560, 0, 320)
-MainFrame.Position = UDim2.new(0.5, -280, 0.5, -160)
+MainFrame.Size = UDim2.new(0, 600, 0, 340)
+MainFrame.Position = UDim2.new(0.5, -300, 0.5, -170)
 MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 30)
 MainFrame.BackgroundTransparency = 0.1
 MainFrame.Active = true
@@ -259,18 +265,30 @@ UtilityGrid:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     UtilityScroll.CanvasSize = UDim2.new(0, 0, 0, UtilityGrid.AbsoluteContentSize.Y + 10)
 end)
 
+CmdsFrame = Instance.new("Frame")
+CmdsFrame.Name = "CmdsFrame"
+CmdsFrame.Size = UDim2.new(1, 0, 1, 0)
+CmdsFrame.Visible = false
+CmdsFrame.BackgroundTransparency = 1
+CmdsFrame.Parent = ButtonsFrame
+
 -- Left quick panel under profile picture
 do
-    local QuickPanel = Instance.new("Frame")
+    local QuickPanel = Instance.new("ScrollingFrame")
     QuickPanel.Name = "QuickPanel"
-    QuickPanel.Size = UDim2.new(1, -10, 0, 170)
+    QuickPanel.Size = UDim2.new(1, -10, 1, -105)
     QuickPanel.Position = UDim2.new(0, 5, 0, 100)
     QuickPanel.BackgroundTransparency = 1
+    QuickPanel.BorderSizePixel = 0
+    QuickPanel.ScrollBarThickness = 3
+    QuickPanel.ScrollBarImageColor3 = Color3.fromRGB(0, 220, 130)
+    QuickPanel.ScrollingDirection = Enum.ScrollingDirection.Y
+    QuickPanel.CanvasSize = UDim2.new(0, 0, 0, 210)
     QuickPanel.Parent = ProfileContent
 
     local function makeSmallBtn(text, order)
         local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1, 0, 0, 28)
+        btn.Size = UDim2.new(1, -6, 0, 28)
         btn.Position = UDim2.new(0, 0, 0, (order-1)*34)
         btn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
         btn.BackgroundTransparency = 0.1
@@ -428,8 +446,9 @@ end
         end
 
         if cat == "Utility" then
-            -- Show UtilityFrame and hide ScrollFrame
+            -- Show UtilityFrame and hide ScrollFrame/CmdsFrame
             ScrollFrame.Visible = false
+            CmdsFrame.Visible = false
             UtilityFrame.Visible = true
             local function findBtn(txt)
                 local needle = string.lower(txt)
@@ -551,7 +570,13 @@ end
                 end
             end
             UtilityFrame.Visible = false
-            ScrollFrame.Visible = true
+            if cat == "Commands" then
+                ScrollFrame.Visible = false
+                CmdsFrame.Visible = true
+            else
+                CmdsFrame.Visible = false
+                ScrollFrame.Visible = true
+            end
         end
         -- enforce Utility ordering so each button is beside its textbox
         if cat == "Utility" then
@@ -646,6 +671,15 @@ end
                 Text = credText;
                 Duration = 10;
             })
+        end
+    end)
+
+    local btnCommands = makeSmallBtn("Commands", 6)
+    btnCommands.MouseButton1Click:Connect(function()
+        if showCommandsWindow then
+            showCommandsWindow()
+        else
+            setCategory("Commands")
         end
     end)
 
@@ -958,7 +992,7 @@ MiniFrame.MouseButton1Click:Connect(function()
     MiniFrame.Visible = false
     MainFrame.Visible = true
     MainFrame.Size = UDim2.new(0, 0, 0, 0)
-    local tween = TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 560, 0, 320)})
+    local tween = TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 600, 0, 340)})
     tween:Play()
 end)
 
@@ -1425,43 +1459,240 @@ local teleportService = game:GetService("TeleportService")
 local placeId = game.PlaceId
 local jobId = game.JobId
 
-local function serverhop()
-    local highestPlayers = 0
-    local servers = {}
+local ServerHopGui = nil
+local function createServerHopWindow()
+    if ServerHopGui then
+        ServerHopGui.Visible = not ServerHopGui.Visible
+        return
+    end
 
-    local success, result = pcall(function()
-        return game:HttpGetAsync("https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Asc&limit=100")
+    local guiParent = nil
+    local ok = pcall(function()
+        if typeof(gethui) == "function" then guiParent = gethui()
+        elseif typeof(get_hidden_gui) == "function" then guiParent = get_hidden_gui()
+        elseif game:GetService("CoreGui") then guiParent = game:GetService("CoreGui")
+        else guiParent = PlayerGui end
+    end)
+    if not guiParent then guiParent = PlayerGui end
+
+    local sgui = Instance.new("ScreenGui")
+    sgui.Name = "ServerHopGui"
+    sgui.ResetOnSpawn = false
+    sgui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    sgui.Parent = guiParent
+
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 340, 0, 360)
+    mainFrame.Position = UDim2.new(0.5, -170, 0.5, -180)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Parent = sgui
+    ServerHopGui = mainFrame
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = mainFrame
+
+    local topBar = Instance.new("Frame")
+    topBar.Name = "TopBar"
+    topBar.Size = UDim2.new(1, 0, 0, 30)
+    topBar.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    topBar.BorderSizePixel = 0
+    topBar.Parent = mainFrame
+    local topCorner = Instance.new("UICorner")
+    topCorner.CornerRadius = UDim.new(0, 8)
+    topCorner.Parent = topBar
+
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, -60, 1, 0)
+    title.Position = UDim2.new(0, 10, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Text = "Server List"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.TextSize = 14
+    title.Font = Enum.Font.GothamBold
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Parent = topBar
+
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Size = UDim2.new(0, 30, 0, 30)
+    closeBtn.Position = UDim2.new(1, -30, 0, 0)
+    closeBtn.BackgroundTransparency = 1
+    closeBtn.Text = "X"
+    closeBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+    closeBtn.TextSize = 16
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.Parent = topBar
+    closeBtn.MouseButton1Click:Connect(function() mainFrame.Visible = false end)
+
+    local refreshBtn = Instance.new("TextButton")
+    refreshBtn.Size = UDim2.new(0, 30, 0, 30)
+    refreshBtn.Position = UDim2.new(1, -60, 0, 0)
+    refreshBtn.BackgroundTransparency = 1
+    refreshBtn.Text = "R"
+    refreshBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
+    refreshBtn.TextSize = 16
+    refreshBtn.Font = Enum.Font.GothamBold
+    refreshBtn.Parent = topBar
+
+    local infoFrame = Instance.new("Frame")
+    infoFrame.Name = "InfoFrame"
+    infoFrame.Size = UDim2.new(1, -20, 0, 40)
+    infoFrame.Position = UDim2.new(0, 10, 0, 35)
+    infoFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    infoFrame.BorderSizePixel = 0
+    infoFrame.Parent = mainFrame
+
+    local infoCorner = Instance.new("UICorner")
+    infoCorner.CornerRadius = UDim.new(0, 6)
+    infoCorner.Parent = infoFrame
+
+    local placeIdLabel = Instance.new("TextLabel")
+    placeIdLabel.Size = UDim2.new(1, -10, 0, 20)
+    placeIdLabel.Position = UDim2.new(0, 8, 0, 2)
+    placeIdLabel.BackgroundTransparency = 1
+    placeIdLabel.Font = Enum.Font.Gotham
+    placeIdLabel.TextSize = 11
+    placeIdLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+    placeIdLabel.TextXAlignment = Enum.TextXAlignment.Left
+    placeIdLabel.Text = "Place ID: " .. tostring(placeId)
+    placeIdLabel.Parent = infoFrame
+
+    local jobIdLabel = Instance.new("TextButton")
+    jobIdLabel.Size = UDim2.new(1, -10, 0, 18)
+    jobIdLabel.Position = UDim2.new(0, 8, 0, 20)
+    jobIdLabel.BackgroundTransparency = 1
+    jobIdLabel.Font = Enum.Font.Gotham
+    jobIdLabel.TextSize = 10
+    jobIdLabel.TextColor3 = Color3.fromRGB(0, 220, 130)
+    jobIdLabel.TextXAlignment = Enum.TextXAlignment.Left
+    
+    local cleanJobId = tostring(jobId)
+    if #cleanJobId > 16 then
+        jobIdLabel.Text = "Job ID (Click to Copy): " .. string.sub(cleanJobId, 1, 8) .. "..." .. string.sub(cleanJobId, -8)
+    else
+        jobIdLabel.Text = "Job ID (Click to Copy): " .. cleanJobId
+    end
+    jobIdLabel.Parent = infoFrame
+
+    jobIdLabel.MouseButton1Click:Connect(function()
+        if setclipboard then
+            setclipboard(cleanJobId)
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "JobId Copied!",
+                Text = "Server Job ID has been copied to clipboard.",
+                Duration = 3
+            })
+        end
     end)
 
-    if success and result then
-        local ok, data = pcall(function() return httpService:JSONDecode(result).data end)
-        if ok and data then
-            for _, v in ipairs(data) do
-                if type(v) == "table" and v.maxPlayers > v.playing and v.id ~= jobId then
-                    if v.playing > highestPlayers then
-                        highestPlayers = v.playing
-                        servers[1] = v.id
+    local scroll = Instance.new("ScrollingFrame")
+    scroll.Size = UDim2.new(1, -20, 1, -85)
+    scroll.Position = UDim2.new(0, 10, 0, 80)
+    scroll.BackgroundTransparency = 1
+    scroll.ScrollBarThickness = 4
+    scroll.Parent = mainFrame
+
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.Padding = UDim.new(0, 5)
+    listLayout.Parent = scroll
+
+    local function refreshServers()
+        for _, child in ipairs(scroll:GetChildren()) do
+            if child:IsA("TextButton") or child:IsA("TextLabel") then child:Destroy() end
+        end
+
+        local loading = Instance.new("TextLabel")
+        loading.Size = UDim2.new(1, 0, 0, 30)
+        loading.BackgroundTransparency = 1
+        loading.Text = "Loading servers..."
+        loading.TextColor3 = Color3.fromRGB(200, 200, 200)
+        loading.Font = Enum.Font.Gotham
+        loading.TextSize = 14
+        loading.Parent = scroll
+        
+        task.spawn(function()
+            local success, result = pcall(function()
+                return game:HttpGetAsync("https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Desc&limit=100")
+            end)
+
+            loading:Destroy()
+
+            if success and result then
+                local ok, data = pcall(function() return httpService:JSONDecode(result).data end)
+                if ok and data then
+                    local count = 0
+                    for _, v in ipairs(data) do
+                        if type(v) == "table" and v.playing and v.maxPlayers and (v.id == jobId or v.playing < v.maxPlayers) then
+                            local isCurrent = (v.id == jobId)
+                            count = count + 1
+                            local sBtn = Instance.new("TextButton")
+                            sBtn.Size = UDim2.new(1, -10, 0, 35)
+                            if isCurrent then
+                                sBtn.BackgroundColor3 = Color3.fromRGB(0, 130, 80)
+                                sBtn.Text = string.format("Server %d (YOU) | Players: %d/%d | Ping: %s", count, v.playing, v.maxPlayers, tostring(v.ping or "?"))
+                                sBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                            else
+                                sBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+                                sBtn.Text = string.format("Server %d | Players: %d/%d | Ping: %s", count, v.playing, v.maxPlayers, tostring(v.ping or "?"))
+                                sBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
+                            end
+                            sBtn.Font = Enum.Font.Gotham
+                            sBtn.TextSize = 12
+                            sBtn.Parent = scroll
+
+                            local sCorner = Instance.new("UICorner")
+                            sCorner.CornerRadius = UDim.new(0, 6)
+                            sCorner.Parent = sBtn
+
+                            if not isCurrent then
+                                sBtn.MouseButton1Click:Connect(function()
+                                    sBtn.Text = "Joining..."
+                                    sBtn.BackgroundColor3 = Color3.fromRGB(60, 100, 60)
+                                    teleportService:TeleportToPlaceInstance(placeId, v.id)
+                                end)
+                            end
+                        end
                     end
+                    scroll.CanvasSize = UDim2.new(0, 0, 0, count * 40)
                 end
             end
-        end
+        end)
     end
 
-    if #servers > 0 then
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "Teleporting",
-            Text = "Moving you to a new server...",
-            Duration = 5
-        })
-        task.wait(0.3)
-        teleportService:TeleportToPlaceInstance(placeId, servers[1])
-    else
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "No Servers Found",
-            Text = "We couldn't find another server.",
-            Duration = 5
-        })
-    end
+    refreshBtn.MouseButton1Click:Connect(refreshServers)
+    refreshServers()
+
+    -- Basic dragging functionality
+    local dragging, dragInput, dragStart, startPos
+    topBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = mainFrame.Position
+        end
+    end)
+    topBar.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+end
+
+local function serverhop()
+    createServerHopWindow()
 end
 
 local Player = game.Players.LocalPlayer
@@ -2574,6 +2805,13 @@ FlyV3Btn = createButton("", "Fly V3")
 ServerHopBtn = createButton("", "Server Hop")
 DexBtn = createButton("", "Dex Explorer")
 
+local CmdBarBtn = createButton("", "Command Bar")
+CmdBarBtn.MouseButton1Click:Connect(function()
+    if showCmdBar then
+        showCmdBar()
+    end
+end)
+
 DexBtn.MouseButton1Click:Connect(function()
     local ok, err = pcall(function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/bochilascript/ROBLOX/refs/heads/main/dex.lua"))()
@@ -3292,7 +3530,7 @@ do
     local btns = {
         AirwalkBtn, ESPBtn, ESPTeamBtn, LampBtn, JumpBtn, SpeedBtn, NoclipBtn, FlingBtn, FlyBtn,
         UnanchorBtn, BringPartBtn, AntiLagBtn, RecBtn, TeleBtn, SpectatorBtn,
-        AnimasiBtn, AvatarBtn, FishBtn, FlyV2Btn, FlyV3Btn, ClickTPBtn, FreeCamBtn, ServerHopBtn, SWPBtn, DexBtn
+        AnimasiBtn, AvatarBtn, FishBtn, FlyV2Btn, FlyV3Btn, ClickTPBtn, FreeCamBtn, ServerHopBtn, SWPBtn, DexBtn, CmdBarBtn
     }
     local list = {}
     for _,b in ipairs(btns) do
@@ -3344,21 +3582,20 @@ local success, err = pcall(function()
     end
 
     local commandsList = {
-        { name = "cmds", aliases = {"commands"}, desc = "Shows this commands list window.", usage = "" },
-        { name = "swp", aliases = {"savewp", "savewaypoint"}, desc = "Saves your current position as a waypoint.", usage = " [name]" },
-        { name = "speed", aliases = {"spd", "ws"}, desc = "Sets walkspeed (16-300) or toggles speed.", usage = " [number]" },
-        { name = "fly", aliases = {}, desc = "Enables flying mode.", usage = "" },
-        { name = "unfly", aliases = {"nofly"}, desc = "Disables flying mode.", usage = "" },
-        { name = "freecam", aliases = {"fc"}, desc = "Toggles freecam camera mode.", usage = "" },
-        { name = "nofreecam", aliases = {"nofc"}, desc = "Disables freecam camera mode.", usage = "" },
-        { name = "clicktp", aliases = {"ctp"}, desc = "Toggles click-to-teleport mode (Ctrl + click).", usage = "" },
-        { name = "unanchor", aliases = {}, desc = "Toggles the unanchor parts feature.", usage = "" },
-        { name = "fling", aliases = {"tendang"}, desc = "Toggles the administrative fling/kick mode.", usage = "" },
-        { name = "explorer", aliases = {"dex"}, desc = "Opens DEX Explorer by Moon.", usage = "" }
+        { name = "cmds", aliases = {"commands"}, desc = "Menampilkan daftar perintah ini.", usage = "" },
+        { name = "swp", aliases = {"savewp", "savewaypoint"}, desc = "Simpan posisi saat ini sebagai waypoint.", usage = " [nama]" },
+        { name = "speed", aliases = {"spd", "ws"}, desc = "Atur kecepatan jalan (16-300) atau aktifkan/nonaktifkan speed.", usage = " [angka]" },
+        { name = "fly", aliases = {}, desc = "Aktifkan mode terbang.", usage = "" },
+        { name = "unfly", aliases = {"nofly"}, desc = "Nonaktifkan mode terbang.", usage = "" },
+        { name = "freecam", aliases = {"fc"}, desc = "Aktifkan/nonaktifkan mode kamera bebas.", usage = "" },
+        { name = "nofreecam", aliases = {"nofc"}, desc = "Nonaktifkan mode kamera bebas.", usage = "" },
+        { name = "clicktp", aliases = {"ctp"}, desc = "Aktifkan/nonaktifkan teleport dengan klik (Ctrl + klik).", usage = "" },
+        { name = "unanchor", aliases = {}, desc = "Aktifkan/nonaktifkan fitur unanchor parts.", usage = "" },
+        { name = "fling", aliases = {"tendang"}, desc = "Aktifkan/nonaktifkan mode fling untuk lempar pemain.", usage = "" },
+        { name = "explorer", aliases = {"dex"}, desc = "Buka DEX Explorer untuk menjelajahi instance game.", usage = "" }
     }
 
     local CmdListFrame = nil
-    local showCommandsWindow
 
     local function makeDraggable(frame, parentFrame)
         parentFrame = parentFrame or frame
@@ -3398,98 +3635,16 @@ local success, err = pcall(function()
     end
 
     local function createCommandsWindow()
-        local listGui = Instance.new("ScreenGui")
-        listGui.Name = "CHCmdListGUI"
-        listGui.ResetOnSpawn = false
-        listGui.DisplayOrder = 2147483646
-        
-        local pSuccess, pErr = pcall(function()
-            if typeof(gethui) == "function" then
-                listGui.Parent = gethui()
-            elseif typeof(get_hidden_gui) == "function" then
-                listGui.Parent = get_hidden_gui()
-            elseif game:GetService("CoreGui") then
-                listGui.Parent = game:GetService("CoreGui")
-            else
-                listGui.Parent = Player:WaitForChild("PlayerGui")
-            end
-        end)
-        if not pSuccess or not listGui.Parent then
-            listGui.Parent = Player:WaitForChild("PlayerGui")
-        end
-
-        CmdListFrame = Instance.new("Frame")
-        CmdListFrame.Name = "CmdListFrame"
-        CmdListFrame.Size = UDim2.new(0, 360, 0, 420)
-        CmdListFrame.Position = UDim2.new(0.5, -180, 0.5, -210)
-        CmdListFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-        CmdListFrame.BackgroundTransparency = 0.15
-        CmdListFrame.Visible = false
-        CmdListFrame.Parent = listGui
-
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(0, 12)
-        corner.Parent = CmdListFrame
-
-        local stroke = Instance.new("UIStroke")
-        stroke.Color = Color3.fromRGB(50, 50, 60)
-        stroke.Thickness = 1.5
-        stroke.Parent = CmdListFrame
-
-        -- Top Header Bar
-        local header = Instance.new("Frame")
-        header.Name = "Header"
-        header.Size = UDim2.new(1, 0, 0, 40)
-        header.BackgroundTransparency = 1
-        header.Parent = CmdListFrame
-
-        local titleIcon = Instance.new("TextLabel")
-        titleIcon.Name = "Icon"
-        titleIcon.Size = UDim2.new(0, 30, 1, 0)
-        titleIcon.Position = UDim2.new(0, 12, 0, 0)
-        titleIcon.BackgroundTransparency = 1
-        titleIcon.Font = Enum.Font.GothamBold
-        titleIcon.Text = "P|"
-        titleIcon.TextColor3 = Color3.fromRGB(0, 220, 130)
-        titleIcon.TextSize = 18
-        titleIcon.TextXAlignment = Enum.TextXAlignment.Left
-        titleIcon.Parent = header
-
-        local titleLabel = Instance.new("TextLabel")
-        titleLabel.Name = "Title"
-        titleLabel.Size = UDim2.new(1, -80, 1, 0)
-        titleLabel.Position = UDim2.new(0, 40, 0, 0)
-        titleLabel.BackgroundTransparency = 1
-        titleLabel.Font = Enum.Font.GothamBold
-        titleLabel.Text = "Commands"
-        titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-        titleLabel.TextSize = 18
-        titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-        titleLabel.Parent = header
-
-        local closeBtn = Instance.new("TextButton")
-        closeBtn.Name = "Close"
-        closeBtn.Size = UDim2.new(0, 24, 0, 24)
-        closeBtn.Position = UDim2.new(1, -34, 0.5, -12)
-        closeBtn.BackgroundTransparency = 1
-        closeBtn.Font = Enum.Font.GothamBold
-        closeBtn.Text = "X"
-        closeBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-        closeBtn.TextSize = 16
-        closeBtn.Parent = header
-        closeBtn.MouseButton1Click:Connect(function()
-            CmdListFrame.Visible = false
-        end)
-
-        makeDraggable(header, CmdListFrame)
+        if not CmdsFrame then return end
+        if CmdsFrame:FindFirstChild("ListScroll") then return end -- Already created
 
         -- Search Bar Container
         local searchFrame = Instance.new("Frame")
         searchFrame.Name = "SearchFrame"
-        searchFrame.Size = UDim2.new(1, -24, 0, 32)
-        searchFrame.Position = UDim2.new(0, 12, 0, 42)
+        searchFrame.Size = UDim2.new(1, -120, 0, 32)
+        searchFrame.Position = UDim2.new(0, 5, 0, 5)
         searchFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-        searchFrame.Parent = CmdListFrame
+        searchFrame.Parent = CmdsFrame
 
         local searchCorner = Instance.new("UICorner")
         searchCorner.CornerRadius = UDim.new(0, 6)
@@ -3518,7 +3673,7 @@ local success, err = pcall(function()
         searchBox.BackgroundTransparency = 1
         searchBox.Font = Enum.Font.Gotham
         searchBox.Text = ""
-        searchBox.PlaceholderText = "Search"
+        searchBox.PlaceholderText = "Search commands..."
         searchBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
         searchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
         searchBox.TextSize = 14
@@ -3526,18 +3681,37 @@ local success, err = pcall(function()
         searchBox.ClearTextOnFocus = false
         searchBox.Parent = searchFrame
 
+        -- Command Bar Button
+        local barBtn = Instance.new("TextButton")
+        barBtn.Name = "OpenBarBtn"
+        barBtn.Size = UDim2.new(0, 105, 0, 32)
+        barBtn.Position = UDim2.new(1, -110, 0, 5)
+        barBtn.BackgroundColor3 = Color3.fromRGB(0, 130, 80)
+        barBtn.Text = "Command Bar"
+        barBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        barBtn.Font = Enum.Font.GothamBold
+        barBtn.TextSize = 12
+        barBtn.Parent = CmdsFrame
+
+        local barCorner = Instance.new("UICorner")
+        barCorner.CornerRadius = UDim.new(0, 6)
+        barCorner.Parent = barBtn
+
+        barBtn.MouseButton1Click:Connect(function()
+            showCmdBar()
+        end)
+
         -- Scrolling Frame for commands
         local scrollFrame = Instance.new("ScrollingFrame")
         scrollFrame.Name = "ListScroll"
-        scrollFrame.Size = UDim2.new(1, -24, 0, 320)
-        scrollFrame.Position = UDim2.new(0, 12, 0, 85)
+        scrollFrame.Size = UDim2.new(1, -10, 1, -45)
+        scrollFrame.Position = UDim2.new(0, 5, 0, 40)
         scrollFrame.BackgroundTransparency = 1
         scrollFrame.ScrollBarThickness = 4
-        scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(200, 200, 200)
-        scrollFrame.AutomaticCanvasSize = Enum.AutomaticCanvasSize.None
+        scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 220, 130)
         scrollFrame.CanvasSize = UDim2.new(0, 0, 0, #commandsList * 56 + 15)
         scrollFrame.Visible = true
-        scrollFrame.Parent = CmdListFrame
+        scrollFrame.Parent = CmdsFrame
 
         local listLayout = Instance.new("UIListLayout")
         listLayout.Padding = UDim.new(0, 8)
@@ -3546,67 +3720,81 @@ local success, err = pcall(function()
 
         -- Render Command Items
         for idx, cmdData in ipairs(commandsList) do
-            local itemFrame = Instance.new("Frame")
-            itemFrame.Name = "CmdItem"
-            itemFrame.Size = UDim2.new(1, 0, 0, 48)
-            itemFrame.BackgroundTransparency = 1
-            itemFrame.LayoutOrder = idx
-            itemFrame.Visible = true
-            itemFrame.Parent = scrollFrame
+            local renderSuccess, renderErr = pcall(function()
+                local itemFrame = Instance.new("Frame")
+                itemFrame.Name = "CmdItem"
+                itemFrame.Size = UDim2.new(1, -8, 0, 48)
+                itemFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+                itemFrame.BackgroundTransparency = 0
+                itemFrame.LayoutOrder = idx
+                itemFrame.Visible = true
+                itemFrame.Parent = scrollFrame
 
-            -- Store command name/description in StringValues (much more compatible than SetAttribute across executors)
-            local cmdNameVal = Instance.new("StringValue")
-            cmdNameVal.Name = "CmdNameValue"
-            cmdNameVal.Value = cmdData.name
-            cmdNameVal.Parent = itemFrame
+                local itemCorner = Instance.new("UICorner")
+                itemCorner.CornerRadius = UDim.new(0, 6)
+                itemCorner.Parent = itemFrame
 
-            local cmdDescVal = Instance.new("StringValue")
-            cmdDescVal.Name = "CmdDescValue"
-            cmdDescVal.Value = cmdData.desc
-            cmdDescVal.Parent = itemFrame
+                -- Store command name/description in StringValues
+                local cmdNameVal = Instance.new("StringValue")
+                cmdNameVal.Name = "CmdNameValue"
+                cmdNameVal.Value = cmdData.name
+                cmdNameVal.Parent = itemFrame
 
-            -- Dot Indicator
-            local dot = Instance.new("Frame")
-            dot.Name = "Dot"
-            dot.Size = UDim2.new(0, 6, 0, 6)
-            dot.Position = UDim2.new(0, 4, 0, 12)
-            dot.BackgroundColor3 = Color3.fromRGB(150, 150, 150)
-            dot.BorderSizePixel = 0
-            dot.Parent = itemFrame
-            local dotCorner = Instance.new("UICorner")
-            dotCorner.CornerRadius = UDim.new(1, 0)
-            dotCorner.Parent = dot
+                local cmdDescVal = Instance.new("StringValue")
+                cmdDescVal.Name = "CmdDescValue"
+                cmdDescVal.Value = cmdData.desc
+                cmdDescVal.Parent = itemFrame
 
-            -- Title and Aliases
-            local aliasesStr = ""
-            if #cmdData.aliases > 0 then
-                aliasesStr = "  (" .. table.concat(cmdData.aliases, ", ") .. ")"
+                -- Dot Indicator
+                local dot = Instance.new("Frame")
+                dot.Name = "Dot"
+                dot.Size = UDim2.new(0, 6, 0, 6)
+                dot.Position = UDim2.new(0, 8, 0, 12)
+                dot.BackgroundColor3 = Color3.fromRGB(0, 220, 130)
+                dot.BorderSizePixel = 0
+                dot.Parent = itemFrame
+                local dotCorner = Instance.new("UICorner")
+                dotCorner.CornerRadius = UDim.new(1, 0)
+                dotCorner.Parent = dot
+
+                -- Title and Aliases
+                local aliasesStr = ""
+                if #cmdData.aliases > 0 then
+                    aliasesStr = "  (" .. table.concat(cmdData.aliases, ", ") .. ")"
+                end
+
+                local nameLabel = Instance.new("TextLabel")
+                nameLabel.Name = "CmdTitle"
+                nameLabel.Size = UDim2.new(1, -26, 0, 20)
+                nameLabel.Position = UDim2.new(0, 22, 0, 4)
+                nameLabel.BackgroundTransparency = 1
+                nameLabel.Font = Enum.Font.GothamBold
+                nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+                nameLabel.TextSize = 12
+                nameLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+                nameLabel.Text = cmdData.name .. cmdData.usage .. aliasesStr
+                nameLabel.Visible = true
+                nameLabel.ZIndex = 10
+                nameLabel.Parent = itemFrame
+
+                -- Description
+                local descLabel = Instance.new("TextLabel")
+                descLabel.Name = "CmdDesc"
+                descLabel.Size = UDim2.new(1, -26, 0, 18)
+                descLabel.Position = UDim2.new(0, 22, 0, 24)
+                descLabel.BackgroundTransparency = 1
+                descLabel.Font = Enum.Font.Gotham
+                descLabel.TextXAlignment = Enum.TextXAlignment.Left
+                descLabel.TextSize = 10
+                descLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+                descLabel.Text = cmdData.desc
+                descLabel.Visible = true
+                descLabel.ZIndex = 10
+                descLabel.Parent = itemFrame
+            end)
+            if not renderSuccess then
+                warn("Failed to render command item " .. tostring(idx) .. ": " .. tostring(renderErr))
             end
-
-            local nameLabel = Instance.new("TextLabel")
-            nameLabel.Name = "CmdTitle"
-            nameLabel.Size = UDim2.new(1, -20, 0, 20)
-            nameLabel.Position = UDim2.new(0, 18, 0, 4)
-            nameLabel.BackgroundTransparency = 1
-            nameLabel.Font = Enum.Font.SourceSansBold
-            nameLabel.TextXAlignment = Enum.TextXAlignment.Left
-            nameLabel.TextSize = 14
-            nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-            nameLabel.Text = "'" .. cmdData.name .. cmdData.usage .. aliasesStr
-            nameLabel.Parent = itemFrame
-
-            -- Description
-            local descLabel = Instance.new("TextLabel")
-            descLabel.Name = "CmdDesc"
-            descLabel.Size = UDim2.new(1, -20, 0, 18)
-            descLabel.Position = UDim2.new(0, 18, 0, 24)
-            descLabel.BackgroundTransparency = 1
-            descLabel.Font = Enum.Font.SourceSans
-            descLabel.TextXAlignment = Enum.TextXAlignment.Left
-            descLabel.TextSize = 12
-            descLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
-            descLabel.Text = cmdData.desc
-            descLabel.Parent = itemFrame
         end
 
         -- Search Filtering Connection
@@ -3632,15 +3820,12 @@ local success, err = pcall(function()
     end
 
     showCommandsWindow = function()
-        if not CmdListFrame then
-            local ok, err = pcall(createCommandsWindow)
-            if not ok then
-                warn("Failed to create commands list GUI: " .. tostring(err))
-                return
-            end
+        local success, err = pcall(createCommandsWindow)
+        if not success then
+            warn("Failed to create commands window: " .. tostring(err))
         end
-        if CmdListFrame then
-            CmdListFrame.Visible = not CmdListFrame.Visible
+        if setCategory then
+            setCategory("Commands")
         end
     end
 
@@ -3792,16 +3977,17 @@ local success, err = pcall(function()
     -- Create Command Bar UI
     local CmdBarFrame = Instance.new("Frame")
     CmdBarFrame.Name = "CmdBarFrame"
-    CmdBarFrame.Size = UDim2.new(0, 400, 0, 40)
-    CmdBarFrame.Position = UDim2.new(0.5, -200, 0.5, -20)
+    CmdBarFrame.Size = UDim2.new(0, 440, 0, 44)
+    CmdBarFrame.Position = UDim2.new(0.5, -220, 0.5, -22)
     CmdBarFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 30)
-    CmdBarFrame.BackgroundTransparency = 0.15
+    CmdBarFrame.BackgroundTransparency = 0.1
     CmdBarFrame.Visible = false
     CmdBarFrame.ZIndex = 99999
+    CmdBarFrame.Active = true
     CmdBarFrame.Parent = CmdBarGui
 
     local cmdCorner = Instance.new("UICorner")
-    cmdCorner.CornerRadius = UDim.new(0, 8)
+    cmdCorner.CornerRadius = UDim.new(0, 10)
     cmdCorner.Parent = CmdBarFrame
 
     local cmdStroke = Instance.new("UIStroke")
@@ -3810,58 +3996,118 @@ local success, err = pcall(function()
     cmdStroke.Transparency = 0
     cmdStroke.Parent = CmdBarFrame
 
+    -- Drag bar (top strip)
+    local dragHandle = Instance.new("Frame")
+    dragHandle.Name = "DragHandle"
+    dragHandle.Size = UDim2.new(1, 0, 1, 0)
+    dragHandle.BackgroundTransparency = 1
+    dragHandle.ZIndex = 99999
+    dragHandle.Parent = CmdBarFrame
+
+    -- TextBox input
     local CmdBarInput = Instance.new("TextBox")
     CmdBarInput.Name = "CmdBarInput"
-    CmdBarInput.Size = UDim2.new(1, -20, 1, -10)
+    CmdBarInput.Size = UDim2.new(1, -52, 1, -10)
     CmdBarInput.Position = UDim2.new(0, 10, 0, 5)
     CmdBarInput.BackgroundTransparency = 1
     CmdBarInput.Font = Enum.Font.GothamBold
     CmdBarInput.TextSize = 15
     CmdBarInput.TextColor3 = Color3.fromRGB(255, 255, 255)
     CmdBarInput.TextTransparency = 0
-    CmdBarInput.PlaceholderText = "Command Bar (e.g. swp name)"
+    CmdBarInput.PlaceholderText = "Ketik perintah... (cth: swp nama)"
     CmdBarInput.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
     CmdBarInput.TextXAlignment = Enum.TextXAlignment.Left
     CmdBarInput.Text = ""
-    CmdBarInput.ClearTextOnFocus = true
+    CmdBarInput.ClearTextOnFocus = false
     CmdBarInput.ZIndex = 100000
     CmdBarInput.Parent = CmdBarFrame
 
-    -- Prevent Quote/Semicolon trigger key from showing up inside the textbox when focused
+    -- Close (X) button
+    local closeBarBtn = Instance.new("TextButton")
+    closeBarBtn.Name = "CloseBarBtn"
+    closeBarBtn.Size = UDim2.new(0, 36, 0, 36)
+    closeBarBtn.Position = UDim2.new(1, -40, 0, 4)
+    closeBarBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    closeBarBtn.BackgroundTransparency = 0.2
+    closeBarBtn.Text = "X"
+    closeBarBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBarBtn.TextSize = 16
+    closeBarBtn.Font = Enum.Font.GothamBold
+    closeBarBtn.ZIndex = 100001
+    closeBarBtn.Parent = CmdBarFrame
+
+    local closeBtnCorner = Instance.new("UICorner")
+    closeBtnCorner.CornerRadius = UDim.new(0, 6)
+    closeBtnCorner.Parent = closeBarBtn
+
+    -- Drag logic
+    do
+        local dragging = false
+        local dragStart, startPos
+
+        dragHandle.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = true
+                dragStart = input.Position
+                startPos = CmdBarFrame.Position
+                input.Changed:Connect(function()
+                    if input.UserInputState == Enum.UserInputState.End then
+                        dragging = false
+                    end
+                end)
+            end
+        end)
+
+        UserInputService.InputChanged:Connect(function(input)
+            if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch) then
+                local delta = input.Position - dragStart
+                CmdBarFrame.Position = UDim2.new(
+                    startPos.X.Scale, startPos.X.Offset + delta.X,
+                    startPos.Y.Scale, startPos.Y.Offset + delta.Y
+                )
+            end
+        end)
+    end
+
+    -- Prevent ' or ; from appearing when first opened via shortcut
     CmdBarInput:GetPropertyChangedSignal("Text"):Connect(function()
         if CmdBarInput.Text == "'" or CmdBarInput.Text == ";" then
             CmdBarInput.Text = ""
         end
     end)
 
-    local function showCmdBar()
-        CmdBarFrame.Visible = true
-        CmdBarFrame.Position = UDim2.new(0.5, -200, 0.5, -60)
-        TweenService:Create(CmdBarFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
-            Position = UDim2.new(0.5, -200, 0.5, -20)
-        }):Play()
-        
-        -- Wait for rendering step to finish processing the key press so it's not written into the textbox
-        pcall(function()
-            RunService.RenderStepped:Wait()
-        end)
-        CmdBarInput:CaptureFocus()
-        CmdBarInput.Text = ""
-    end
-
     local function hideCmdBar()
-        local t1 = TweenService:Create(CmdBarFrame, TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {
-            Position = UDim2.new(0.5, -200, 0.5, -60)
-        })
-        t1:Play()
-        t1.Completed:Connect(function()
-            if CmdBarFrame.Position.Y.Offset == -60 then
-                CmdBarFrame.Visible = false
-                CmdBarInput.Text = ""
-            end
+        TweenService:Create(CmdBarFrame, TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {
+            Position = UDim2.new(CmdBarFrame.Position.X.Scale, CmdBarFrame.Position.X.Offset,
+                                  CmdBarFrame.Position.Y.Scale, CmdBarFrame.Position.Y.Offset - 40)
+        }):Play()
+        task.delay(0.18, function()
+            CmdBarFrame.Visible = false
+            CmdBarInput.Text = ""
         end)
     end
 
+    closeBarBtn.MouseButton1Click:Connect(hideCmdBar)
+
+    showCmdBar = function()
+        local cx = CmdBarFrame.Position.X.Offset
+        local cy = CmdBarFrame.Position.Y.Offset
+        if not CmdBarFrame.Visible then
+            -- Reset to center if first open
+            CmdBarFrame.Position = UDim2.new(0.5, -220, 0.5, -62)
+            CmdBarFrame.Visible = true
+            TweenService:Create(CmdBarFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+                Position = UDim2.new(0.5, -220, 0.5, -22)
+            }):Play()
+        end
+        pcall(function() RunService.RenderStepped:Wait() end)
+        CmdBarInput.Text = ""
+        CmdBarInput:CaptureFocus()
+    end
+
+    -- Enter runs command but keeps bar open & re-focuses
     CmdBarInput.FocusLost:Connect(function(enterPressed)
         if enterPressed then
             local text = CmdBarInput.Text
@@ -3871,11 +4117,18 @@ local success, err = pcall(function()
                     warn("Command Bar Error: " .. tostring(err))
                 end
             end
+            CmdBarInput.Text = ""
+            -- Re-focus so user can keep typing (friendly for mobile)
+            task.defer(function()
+                if CmdBarFrame.Visible then
+                    CmdBarInput:CaptureFocus()
+                end
+            end)
         end
-        hideCmdBar()
+        -- NOTE: tidak memanggil hideCmdBar() di sini supaya bar tetap terbuka
     end)
 
-    -- Keybind to open Command Bar (Quote), using Mouse.KeyDown for 100% detection rate (matching Infinite Yield)
+    -- Keybind ' to open Command Bar
     pcall(function()
         local Mouse = Player:GetMouse()
         Mouse.KeyDown:Connect(function(key)
