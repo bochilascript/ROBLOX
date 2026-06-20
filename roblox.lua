@@ -7,9 +7,6 @@ local showCommandsWindow
 local showCmdBar
 local CmdsFrame
 
-
-
-
 currentCategory = "Menu"
 customWaypoints = {}
 customWPButtons = {}
@@ -192,8 +189,6 @@ local function loadThumbnailWithFallbacks()
     ProfilePicture.Image = "rbxasset://textures/ui/avatar_placeholder.png"
 end
 
-
-
 -- (blok Fixed Waypoints dipindah setelah createButton/setButtonActive)
 
 ProfilePicture.Image = "rbxasset://textures/ui/avatar_placeholder.png"
@@ -271,8 +266,6 @@ CmdsFrame.Size = UDim2.new(1, 0, 1, 0)
 CmdsFrame.Visible = false
 CmdsFrame.BackgroundTransparency = 1
 CmdsFrame.Parent = ButtonsFrame
-
-
 
 -- Left quick panel under profile picture
 do
@@ -695,9 +688,7 @@ end
         end
     end)
 
-
-
-    -- default to Menu
+-- default to Menu
     setCategory("Menu")
 end
 
@@ -809,7 +800,6 @@ local miniStroke = Instance.new("UIStroke")
 miniStroke.Color = Color3.fromRGB(0, 220, 130)
 miniStroke.Thickness = 1.5
 miniStroke.Parent = MiniFrame
-
 
 -- External cursor overlay to help when zoom/locked cursor hides the pointer
 local ExternalCursor = Instance.new("Frame")
@@ -974,7 +964,6 @@ do
     loadCustomWaypoints()
     refreshCustomWaypointButtons()
 end
-
 
 CloseBtn.MouseButton1Click:Connect(function()
     local tween = TweenService:Create(MainFrame, TweenInfo.new(0.2), {Size = UDim2.new(0, 0, 0, 0)})
@@ -2872,11 +2861,7 @@ if Player.Character then
 end
 
 SpectatorBtn = createButton("", "Spectator")
-RecBtn = createButton("", "Record")
-TeleBtn = createButton("", "Teleport")
 AnimasiBtn = createButton("", "Animasi")
-AvatarBtn = createButton("", "Avatar")
-FishBtn = createButton("", "Fish it")
 FlyV2Btn = createButton("", "Fly V2")
 FlyV3Btn = createButton("", "Fly V3")
 ServerHopBtn = createButton("", "Server Hop")
@@ -2916,73 +2901,9 @@ end)
 
 ServerHopBtn.MouseButton1Click:Connect(serverhop)
 
-RecBtn.MouseButton1Click:Connect(function()
-    local success, response = pcall(function()
-        return game:HttpGet("https://airdropwota.io/r1.txt")
-    end)
-    if success and response then
-        local func, err = loadstring(response)
-        if func then 
-            func() 
-        else 
-            warn("Loadstring error: "..tostring(err)) 
-        end
-    else 
-        warn("HttpGet failed for Rec") 
-    end
-end)
-
 AnimasiBtn.MouseButton1Click:Connect(function()
     local success, response = pcall(function()
         return game:HttpGet("https://raw.githubusercontent.com/bochilascript/ROBLOX/refs/heads/main/animasi.lua")
-    end)
-    if success and response then
-        local func, err = loadstring(response)
-        if func then 
-            func() 
-        else 
-            warn("Loadstring error: "..tostring(err)) 
-        end
-    else 
-        warn("HttpGet failed for Spectator") 
-    end
-end)
-
-AvatarBtn.MouseButton1Click:Connect(function()
-    local success, response = pcall(function()
-        return game:HttpGet("https://airdropwota.io/c2.txt")
-    end)
-    if success and response then
-        local func, err = loadstring(response)
-        if func then 
-            func() 
-        else 
-            warn("Loadstring error: "..tostring(err)) 
-        end
-    else 
-        warn("HttpGet failed for Spectator") 
-    end
-end)
-
-TeleBtn.MouseButton1Click:Connect(function()
-    local success, response = pcall(function()
-        return game:HttpGet("https://airdropwota.io/t4.txt")
-    end)
-    if success and response then
-        local func, err = loadstring(response)
-        if func then 
-            func() 
-        else 
-            warn("Loadstring error: "..tostring(err)) 
-        end
-    else 
-        warn("HttpGet failed for Spectator") 
-    end
-end)
-
-FishBtn.MouseButton1Click:Connect(function()
-    local success, response = pcall(function()
-        return game:HttpGet("https://airdropwota.io/m3.txt")
     end)
     if success and response then
         local func, err = loadstring(response)
@@ -3191,8 +3112,7 @@ local function launchFlyV2()
 
 					local hb = game:GetService("RunService").Heartbeat	
 
-
-					tpwalking = true
+tpwalking = true
 					local chr = game.Players.LocalPlayer.Character
 					local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
 					while tpwalking and hb:Wait() and chr and hum and hum.Parent do
@@ -3228,14 +3148,9 @@ local function launchFlyV2()
 			speaker.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Swimming)
 		end
 
+if game:GetService("Players").LocalPlayer.Character:FindFirstChildOfClass("Humanoid").RigType == Enum.HumanoidRigType.R6 then
 
-
-
-		if game:GetService("Players").LocalPlayer.Character:FindFirstChildOfClass("Humanoid").RigType == Enum.HumanoidRigType.R6 then
-
-
-
-			local plr = game.Players.LocalPlayer
+local plr = game.Players.LocalPlayer
 			local torso = plr.Character.Torso
 			local flying = true
 			local deb = true
@@ -3244,8 +3159,7 @@ local function launchFlyV2()
 			local maxspeed = 50
 			local speed = 0
 
-
-			local bg = Instance.new("BodyGyro", torso)
+local bg = Instance.new("BodyGyro", torso)
 			bg.P = 9e4
 			bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
 			bg.cframe = torso.CFrame
@@ -3289,10 +3203,7 @@ local function launchFlyV2()
 			game.Players.LocalPlayer.Character.Animate.Disabled = false
 			tpwalking = false
 
-
-
-
-		else
+else
 			local plr = game.Players.LocalPlayer
 			local UpperTorso = plr.Character.UpperTorso
 			local flying = true
@@ -3302,8 +3213,7 @@ local function launchFlyV2()
 			local maxspeed = 50
 			local speed = 0
 
-
-			local bg = Instance.new("BodyGyro", UpperTorso)
+local bg = Instance.new("BodyGyro", UpperTorso)
 			bg.P = 9e4
 			bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
 			bg.cframe = UpperTorso.CFrame
@@ -3347,15 +3257,9 @@ local function launchFlyV2()
 			game.Players.LocalPlayer.Character.Animate.Disabled = false
 			tpwalking = false
 
+end
 
-
-		end
-
-
-
-
-
-	end)
+end)
 
 	local movingUp = false
 	up.MouseButton1Down:Connect(function()
@@ -3403,29 +3307,25 @@ local function launchFlyV2()
 		movingDown = false
 	end)
 
-
-	game:GetService("Players").LocalPlayer.CharacterAdded:Connect(function(char)
+game:GetService("Players").LocalPlayer.CharacterAdded:Connect(function(char)
 		wait(0.7)
 		game.Players.LocalPlayer.Character.Humanoid.PlatformStand = false
 		game.Players.LocalPlayer.Character.Animate.Disabled = false
 
 	end)
 
-
-	plus.MouseButton1Down:connect(function()
+plus.MouseButton1Down:connect(function()
 		speeds = speeds + 1
 		speed.Text = speeds
 		if nowe == true then
 
-
-			tpwalking = false
+tpwalking = false
 			for i = 1, speeds do
 				spawn(function()
 
 					local hb = game:GetService("RunService").Heartbeat	
 
-
-					tpwalking = true
+tpwalking = true
 					local chr = game.Players.LocalPlayer.Character
 					local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
 					while tpwalking and hb:Wait() and chr and hum and hum.Parent do
@@ -3453,8 +3353,7 @@ local function launchFlyV2()
 
 						local hb = game:GetService("RunService").Heartbeat	
 
-
-						tpwalking = true
+tpwalking = true
 						local chr = game.Players.LocalPlayer.Character
 						local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
 						while tpwalking and hb:Wait() and chr and hum and hum.Parent do
@@ -3586,14 +3485,9 @@ FlyBtn.LayoutOrder = 9
 UnanchorBtn.LayoutOrder = 10
 BringPartBtn.LayoutOrder = 11
 AntiLagBtn.LayoutOrder = 12
-RecBtn.LayoutOrder = 13
-TeleBtn.LayoutOrder = 14
 SpectatorBtn.LayoutOrder = 15
 AnimasiBtn.LayoutOrder = 16
-AvatarBtn.LayoutOrder = 17
-FishBtn.LayoutOrder = 18
 FlyV2Btn.LayoutOrder = 18.5
-
 
 -- Place the new controls at the end
 ClickTPBtn.LayoutOrder = 19
@@ -3606,8 +3500,8 @@ SWPBox.LayoutOrder = 23
 (function()
     local btns = {
         AirwalkBtn, ESPBtn, ESPTeamBtn, LampBtn, JumpBtn, SpeedBtn, NoclipBtn, FlingBtn, FlyBtn,
-        UnanchorBtn, BringPartBtn, AntiLagBtn, RecBtn, TeleBtn, SpectatorBtn,
-        AnimasiBtn, AvatarBtn, FishBtn, FlyV2Btn, FlyV3Btn, ClickTPBtn, FreeCamBtn, ServerHopBtn, SWPBtn, DexBtn, CmdBarBtn
+        UnanchorBtn, BringPartBtn, AntiLagBtn, SpectatorBtn,
+        AnimasiBtn, FlyV2Btn, FlyV3Btn, ClickTPBtn, FreeCamBtn, ServerHopBtn, SWPBtn, DexBtn, CmdBarBtn
     }
     local list = {}
     for _,b in ipairs(btns) do
