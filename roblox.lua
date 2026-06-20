@@ -1460,62 +1460,45 @@ SpeedBtn.LayoutOrder = 5
 local desiredSpeed = 50
 
 do
-    SpeedBox = Instance.new("TextButton")
+    SpeedBox = Instance.new("TextBox")
     SpeedBox.Name = "SpeedBox"
-    SpeedBox.Text = ""
-    SpeedBox.AutoButtonColor = false
-    SpeedBox.Active = true
+    SpeedBox.Text = tostring(desiredSpeed)
+    SpeedBox.PlaceholderText = "Speed (16-300)"
     SpeedBox.LayoutOrder = 6
     SpeedBox.Size = UDim2.new(0, 150, 0, 35)
-    SpeedBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    SpeedBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    SpeedBox.BackgroundTransparency = 0.1
+    SpeedBox.TextSize = 15
+    SpeedBox.Font = Enum.Font.GothamBold
+    SpeedBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    SpeedBox.ClearTextOnFocus = false
     SpeedBox.Parent = ScrollFrame
 
-    local SpeedSliderFill = Instance.new("Frame")
-    SpeedSliderFill.Active = true
-    SpeedSliderFill.Size = UDim2.new(desiredSpeed/300, 0, 1, 0)
-    SpeedSliderFill.BackgroundColor3 = Color3.fromRGB(44, 153, 93) -- Green like Sirius
-    SpeedSliderFill.Parent = SpeedBox
+    local c_spd = Instance.new("UICorner")
+    c_spd.CornerRadius = UDim.new(0, 8)
+    c_spd.Parent = SpeedBox
 
-    local SpeedSliderText = Instance.new("TextLabel")
-    SpeedSliderText.Active = true
-    SpeedSliderText.Size = UDim2.new(1, 0, 1, 0)
-    SpeedSliderText.BackgroundTransparency = 1
-    SpeedSliderText.Text = "Walk Speed: " .. tostring(desiredSpeed)
-    SpeedSliderText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    SpeedSliderText.Font = Enum.Font.GothamBold
-    SpeedSliderText.TextSize = 13
-    SpeedSliderText.Parent = SpeedBox
+    local s_spd = Instance.new("UIStroke")
+    s_spd.Color = Color3.fromRGB(0, 130, 80)
+    s_spd.Thickness = 1.5
+    s_spd.Parent = SpeedBox
 
-    local c1_spd = Instance.new("UICorner") c1_spd.CornerRadius = UDim.new(0, 8) c1_spd.Parent = SpeedBox
-    local c2_spd = Instance.new("UICorner") c2_spd.CornerRadius = UDim.new(0, 8) c2_spd.Parent = SpeedSliderFill
-    local s1_spd = Instance.new("UIStroke") s1_spd.Color = Color3.fromRGB(0, 130, 80) s1_spd.Thickness = 1.5 s1_spd.Parent = SpeedBox
+    local p_spd = Instance.new("UIPadding")
+    p_spd.PaddingLeft = UDim.new(0, 12)
+    p_spd.Parent = SpeedBox
 
-    local isSpeedSliding = false
-    SpeedBox.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            isSpeedSliding = true
-        end
-    end)
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            isSpeedSliding = false
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if isSpeedSliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local relativeX = math.clamp(input.Position.X - SpeedBox.AbsolutePosition.X, 0, SpeedBox.AbsoluteSize.X)
-            local percentage = relativeX / SpeedBox.AbsoluteSize.X
-            desiredSpeed = math.floor(percentage * 300) -- max 300
-            if desiredSpeed < 16 then desiredSpeed = 16 end
-            SpeedSliderFill.Size = UDim2.new(percentage, 0, 1, 0)
-            SpeedSliderText.Text = "Walk Speed: " .. tostring(desiredSpeed)
-            
+    SpeedBox.FocusLost:Connect(function()
+        local n = tonumber(SpeedBox.Text)
+        if n then
+            n = math.clamp(n, 16, 300)
+            desiredSpeed = n
             if speedOn then
                 local char = Player.Character or Player.CharacterAdded:Wait()
                 local hum = char:FindFirstChild("Humanoid")
                 if hum then hum.WalkSpeed = desiredSpeed end
             end
         end
+        SpeedBox.Text = tostring(desiredSpeed)
     end)
 end
 
