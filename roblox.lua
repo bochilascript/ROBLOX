@@ -4,6 +4,72 @@ local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
+currentCategory = "Menu"
+customWaypoints = {}
+customWPButtons = {}
+currentPlaceId = tostring(game.PlaceId)
+
+function saveCustomWaypoints()
+    pcall(function()
+        if writefile then
+            local allData = {}
+            if isfile and isfile("ch_waypoints.json") then
+                local content = readfile("ch_waypoints.json")
+                if content then
+                    local ok, decoded = pcall(function() return game:GetService("HttpService"):JSONDecode(content) end)
+                    if ok and type(decoded) == "table" then
+                        allData = decoded
+                    end
+                end
+            end
+            allData[currentPlaceId] = customWaypoints
+            writefile("ch_waypoints.json", game:GetService("HttpService"):JSONEncode(allData))
+        end
+    end)
+end
+
+function loadCustomWaypoints()
+    customWaypoints = {}
+    local success, content = pcall(function()
+        if isfile and isfile("ch_waypoints.json") then
+            return readfile("ch_waypoints.json")
+        end
+    end)
+    if success and content then
+        local ok, data = pcall(function() return game:GetService("HttpService"):JSONDecode(content) end)
+        if ok and type(data) == "table" then
+            local isOldFormat = false
+            for k, v in pairs(data) do
+                if type(v) == "table" and #v > 0 and type(v[1]) == "number" then
+                    isOldFormat = true
+                    break
+                end
+            end
+            if isOldFormat then
+                local migrated = {}
+                for k, v in pairs(data) do
+                    if type(v) == "table" and #v > 0 and type(v[1]) == "number" then
+                        migrated[k] = v
+                    end
+                end
+                customWaypoints = migrated
+                pcall(function()
+                    if writefile then
+                        local allData = {}
+                        allData[currentPlaceId] = customWaypoints
+                        writefile("ch_waypoints.json", game:GetService("HttpService"):JSONEncode(allData))
+                    end
+                end)
+            else
+                local mapWPs = data[currentPlaceId]
+                if type(mapWPs) == "table" then
+                    customWaypoints = mapWPs
+                end
+            end
+        end
+    end
+end
+
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = PlayerGui
 ScreenGui.Enabled = true
@@ -27,7 +93,7 @@ MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
 -- Hotkey toggle (left bracket) untuk show/hide GUI
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
+    if UserInputService:GetFocusedTextBox() then return end
     if input.KeyCode == Enum.KeyCode.LeftBracket then
         ScreenGui.Enabled = not ScreenGui.Enabled
     end
@@ -115,50 +181,7 @@ local function loadThumbnailWithFallbacks()
     ProfilePicture.Image = "rbxasset://textures/ui/avatar_placeholder.png"
 end
 
--- Speed input box to set desired walk speed
-local SpeedBox = Instance.new("TextBox")
-SpeedBox.Name = "SpeedBox"
-SpeedBox.LayoutOrder = 6
-SpeedBox.Size = UDim2.new(0, 150, 0, 35)
-SpeedBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-SpeedBox.BackgroundTransparency = 0.1
-SpeedBox.Text = tostring(desiredSpeed)
-SpeedBox.PlaceholderText = "Speed"
-SpeedBox.TextSize = 15
-SpeedBox.Font = Enum.Font.GothamBold
-SpeedBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-SpeedBox.ClearTextOnFocus = false
-SpeedBox.LayoutOrder = 6
-SpeedBox.Parent = ScrollFrame
 
-do
-    local boxCorner = Instance.new("UICorner")
-    boxCorner.CornerRadius = UDim.new(0, 8)
-    boxCorner.Parent = SpeedBox
-
-    local boxStroke = Instance.new("UIStroke")
-    boxStroke.Color = Color3.fromRGB(0, 130, 80)
-    boxStroke.Thickness = 1.5
-    boxStroke.Parent = SpeedBox
-
-    local padding = Instance.new("UIPadding")
-    padding.PaddingLeft = UDim.new(0, 12)
-    padding.Parent = SpeedBox
-end
-
-SpeedBox.FocusLost:Connect(function()
-    local n = tonumber(SpeedBox.Text)
-    if n and n > 0 and n < 1000 then
-        desiredSpeed = n
-        if speedOn then
-            local char = Player.Character or Player.CharacterAdded:Wait()
-            local hum = char:FindFirstChild("Humanoid")
-            if hum then hum.WalkSpeed = desiredSpeed end
-        end
-    else
-        SpeedBox.Text = tostring(desiredSpeed)
-    end
-end)
 
 -- (blok Fixed Waypoints dipindah setelah createButton/setButtonActive)
 
@@ -235,8 +258,8 @@ end)
 do
     local QuickPanel = Instance.new("Frame")
     QuickPanel.Name = "QuickPanel"
-    QuickPanel.Size = UDim2.new(1, -10, 0, 120)
-    QuickPanel.Position = UDim2.new(0, 5, 0, 110)
+    QuickPanel.Size = UDim2.new(1, -10, 0, 170)
+    QuickPanel.Position = UDim2.new(0, 5, 0, 100)
     QuickPanel.BackgroundTransparency = 1
     QuickPanel.Parent = ProfileContent
 
@@ -284,7 +307,7 @@ do
 
     -- filtering helpers
     local rusuhKeywords = {"bringpart","spectator","noclip","tendang","unanchor","fly","esp","esp team"}
-    local utilityKeywords = {"free cam","freecam","click tp","clicktp","speed"}
+    local utilityKeywords = {"free cam","freecam","click tp","clicktp","speed","save wp","savewp","swp"}
     local function matchesAny(text, keywords)
         local lower = string.lower(text)
         for _, k in ipairs(keywords) do
@@ -293,7 +316,47 @@ do
         return false
     end
 
-    local function setCategory(cat)
+    local function getChunks(s)
+        local chunks = {}
+        local pos = 1
+        while pos <= #s do
+            local startD, endD = string.find(s, "^%d+", pos)
+            if startD then
+                table.insert(chunks, tonumber(string.sub(s, startD, endD)) or 0)
+                pos = endD + 1
+            else
+                local startND, endND = string.find(s, "^[^%d]+", pos)
+                if startND then
+                    table.insert(chunks, string.sub(s, startND, endND))
+                    pos = endND + 1
+                else
+                    break
+                end
+            end
+        end
+        return chunks
+    end
+
+    local function naturalCompare(aStr, bStr)
+        local aName, bName = tostring(aStr):lower(), tostring(bStr):lower()
+        if aName == bName then return tostring(aStr) < tostring(bStr) end
+        
+        local aChunks = getChunks(aName)
+        local bChunks = getChunks(bName)
+        
+        for i = 1, math.min(#aChunks, #bChunks) do
+            local ac, bc = aChunks[i], bChunks[i]
+            if typeof(ac) ~= typeof(bc) then
+                return typeof(ac) == "number"
+            elseif ac ~= bc then
+                return ac < bc
+            end
+        end
+        return #aChunks < #bChunks
+    end
+
+    setCategory = function(cat)
+        currentCategory = cat
         for _, child in ipairs(ScrollFrame:GetChildren()) do
             if child:IsA("TextButton") then
                 if cat == "Menu" then
@@ -305,14 +368,14 @@ do
                     child.Visible = matchesAny(child.Text, rusuhKeywords)
                 elseif cat == "Utility" then
                     child.Visible = false
-                elseif cat == "Mancing" then
+                elseif cat == "Waypoints" then
                     child.Visible = false
 end
             elseif child:IsA("TextBox") then
                 -- Hide all textboxes in Menu dan Rusuh; Utility: tampilkan tiga textbox pasangan
                 if cat == "Utility" then
                     child.Visible = false
-                elseif cat == "Mancing" then
+                elseif cat == "Waypoints" then
                     child.Visible = false
                 else
                     child.Visible = false
@@ -384,6 +447,8 @@ end
                     if ch:IsA("TextBox") and string.lower(tostring(ch.PlaceholderText)) == "speed" then spdBox = ch break end
                 end
             end
+            local swpBtn   = UtilityScroll:FindFirstChild("SWPBtn")   or ScrollFrame:FindFirstChild("SWPBtn") or findBtn("Save WP")
+            local swpBox   = UtilityScroll:FindFirstChild("SWPBox")   or ScrollFrame:FindFirstChild("SWPBox")
 
             local function moveToUtil(child, order)
                 if child then child.Parent = UtilityScroll child.Visible = true child.LayoutOrder = order end
@@ -391,6 +456,7 @@ end
             moveToUtil(clickBtn, 1); moveToUtil(tpBox, 2)
             moveToUtil(freeBtn, 3);  moveToUtil(fcBox, 4)
             moveToUtil(spdBtn, 5);   moveToUtil(spdBox, 6)
+            moveToUtil(swpBtn, 7);   moveToUtil(swpBox, 8)
             -- juga pindahkan tombol waypoint tetap (urut A->Z)
             -- jangan tampilkan tombol waypoint tetap di Utility
             for _, ch in ipairs(UtilityScroll:GetChildren()) do
@@ -412,7 +478,7 @@ end
             --         nextOrder += 1
             --     end
             -- end
-            elseif cat == "Mancing" then
+            elseif cat == "Waypoints" then
             -- Tampilkan khusus tombol waypoint tetap (IsFixedWP) di UtilityScroll
             ScrollFrame.Visible = false
             UtilityFrame.Visible = true
@@ -441,11 +507,9 @@ end
                 end
             end
 
-            -- Urutkan A->Z
+            -- Urutkan dengan natural sort (abjad & nomor berurutan)
             table.sort(fixed, function(a, b)
-                local at = tostring(a.Text or ""):lower()
-                local bt = tostring(b.Text or ""):lower()
-                return at < bt
+                return naturalCompare(a.Text or "", b.Text or "")
             end)
 
             -- Tempatkan berurutan dari atas
@@ -468,7 +532,7 @@ end
                     end
                     if inst then inst.Parent = ScrollFrame inst.Visible = false end
                 end
-                restore("TPBox"); restore("FCBox"); restore("SpeedBox")
+                restore("TPBox"); restore("FCBox"); restore("SpeedBox"); restore("SWPBox")
                 -- restore fixed waypoint buttons
                 for _, ch in ipairs(UtilityScroll:GetChildren()) do
                     if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
@@ -511,7 +575,9 @@ end
                     end
                 end
             end
-            local ordered = {clickBtn, tpBox, freeBtn, fcBox, spdBtn, spdBox}
+            local swpBtn  = findButtonByText("Save WP")
+            local swpBox  = ScrollFrame:FindFirstChild("SWPBox")
+            local ordered = {clickBtn, tpBox, freeBtn, fcBox, spdBtn, spdBox, swpBtn, swpBox}
             local keep = {}
             local order = 1
             for _, inst in ipairs(ordered) do
@@ -554,9 +620,9 @@ end
     btnSpeed.MouseButton1Click:Connect(function()
         setCategory("Utility")
     end)
-    local btnMancing = makeSmallBtn("Mancing", 4)
-    btnMancing.MouseButton1Click:Connect(function()
-        setCategory("Mancing")
+    local btnWaypoints = makeSmallBtn("Waypoints", 4)
+    btnWaypoints.MouseButton1Click:Connect(function()
+        setCategory("Waypoints")
     end)
 
     local btnCredits = makeSmallBtn("Credits", 5)
@@ -610,7 +676,7 @@ local TitleLabel = Instance.new("TextLabel")
 TitleLabel.Size = UDim2.new(1, -60, 1, 0)
 TitleLabel.Position = UDim2.new(0, 10, 0, 0)
 TitleLabel.BackgroundTransparency = 1
-TitleLabel.Text = "CHIL SCRIPT"
+TitleLabel.Text = "BY PIXECUTE"
 TitleLabel.Font = Enum.Font.GothamBlack
 TitleLabel.TextSize = 14
 TitleLabel.TextColor3 = Color3.fromRGB(0, 200, 120)
@@ -750,51 +816,28 @@ do
     end
 end
 
--- Fixed Waypoints (from JSON) -> buttons under Utility after Speed
+-- Custom Waypoints Container (Mancing)
 do
-    local FixedWPs = {
-        FISHERMAN = {Components={15.01081371307373,18.508968353271486,2886.0537109375,0.9958893656730652,-0.00034908627276308835,0.09057725220918656,-0.000014927989468560554,0.9999919533729553,0.0040184142999351028,-0.09057792276144028,-0.0040032509714365009,0.9958813786506653}},
-        VOLCANOCAVERN = {Components={1108.23095703125,87.50140380859375,-10248.6572265625,0.008187858387827874,0.00759594701230526,0.9999376535415649,-0.000013005867003812455,0.9999711513519287,-0.007596094626933336,-0.9999665021896362,0.000049182814109371978,0.00818772055208683}},
-        CRYSTALDEPTHS = {Components={5735.92822265625,-903.3184814453125,15410.943359375,0.03468192741274834,1.9270406104165972e-10,-0.999398410320282,-1.3490972783358757e-9,1,1.4600259889974155e-10,0.999398410320282,1.3432219780895594e-9,0.03468192741274834}},
-        MEGAISLE    = {Components={-1106.183837890625,9.433477401733399,1673.1512451171876,-0.09335505962371826,-0.0016087450785562397,-0.9956315755844116,-3.806699453434703e-7,0.9999986886978149,-0.0016157656209543348,0.9956328868865967,-0.00015045782492961735,-0.09335494041442871}},
-        UNDERPIRATE = {Components={3426.990966796875,-297.8707275390625,3349.144287109375,-0.958910346031189,0.0010387625079602004,-0.28370723128318789,-0.00001326077472185716,0.9999931454658508,0.003706137416884303,0.2837091088294983,0.003557611722499132,-0.9589037299156189}},
-        MAZEROOM    = {Components={3374.086669921875,-296.6719665527344,3139.554931640625,0.8391153812408447,-0.009866614826023579,0.5438639521598816,0.004914095625281334,0.9999321699142456,0.01055859960615635,-0.5439311861991882,-0.006187278311699629,0.8391069769859314}},
-        PIRATEROOM  = {Components={3301.304931640625,-303.5945129394531,3039.94482421875,-0.4016875624656677,0.01344492007046938,-0.915678083896637,0.008394800126552582,0.9999042749404907,0.010998997837305069,0.9157382249832153,-0.003268786007538438,-0.4017619788646698}},
-        PIRATE      = {Components={3439.093017578125,5.684804916381836,3517.234375,0.977802574634552,0.0008971329079940915,-0.20952670276165009,-0.000011892683687619865,0.9999910593032837,0.004226256627589464,0.2095286101102829,-0.004129956476390362,0.97779381275177}},
-        MEGATROPICAL= {Components={-1158.0535888671876,3.4714646339416506,3630.33203125,0.6973140239715576,-0.10207787901163101,0.7094598412513733,-8.278624896718157e-9,0.9898070693016052,0.14241456985473634,-0.7167657613754273,-0.09930767863988877,0.6902063488960266}},
-        MEGACRATER  = {Components={407.9861755371094,6.750679016113281,4121.13134765625,-0.996380627155304,-0.0005656401626765728,-0.08500161021947861,-0.000010052577636088245,0.9999786615371704,-0.006536467000842094,0.08500349521636963,-0.006511954590678215,-0.9963593482971191}},
-        HARTA       = {Components={-3602.19677734375,-277.58441162109377,-1587.53759765625,0.999807596206665,0.0001278429408557713,0.01961546018719673,-0.000008475522918161005,0.9999814629554749,-0.006085243541747332,-0.01961587555706501,0.006083906162530184,0.9997890591621399}},
-        LUARKUIL    = {Components={1479.4808349609376,9.090734481811524,-343.2374267578125,-0.897347092628479,-0.00088000443065539,-0.4413246214389801,0.0000018022124095296022,0.9999979734420776,-0.0019976538605988027,0.44132551550865176,-0.0017933814087882639,-0.897345244884491}},
-        PATUNG      = {Components={-3736.75341796875,-133.80055236816407,-1015.416259765625,-0.9695653915405273,-0.0017945958534255624,-0.244826078414917,-0.000010721681064751465,0.999973475933075,-0.007287415210157633,0.24483263492584229,-0.007062999531626701,-0.9695396423339844}},
-        UNDERGROUND = {Components={2133.65087890625,-89.73197937011719,-694.9803466796875,0.9973929524421692,-0.00033288178383372724,-0.07216134667396546,-8.688780326338019e-7,0.9999892711639404,-0.004624960478395224,0.07216212153434754,0.0046129655092954639,0.9973822236061096}},
-        DALAMKUIL   = {Components={1471.4512939453126,-20.628217697143556,-614.5638427734375,-0.17553499341011048,-0.002957490272819996,0.9844687581062317,-0.000005203882210480515,0.9999954700469971,0.0030032077338546516,-0.9844731688499451,0.0005220481543801725,-0.1755342036485672}},
-        ESO         = {Components={3211.76708984375,-1301.3892822265626,1411.2330322265626,0.41895541548728945,-0.0020274349953979255,-0.9080045819282532,0.0000018786241753332434,0.9999974966049194,-0.0022319701965898277,0.9080068469047546,0.0009333821362815797,0.41895437240600588}},
-        RUIN        = {Components={6100.0380859375,-584.4552612304688,4667.64892578125,-0.04940324276685715,0.006274937652051449,0.9987591505050659,-0.000006197193670232082,0.9999802708625794,-0.006282915826886892,-0.9987788796424866,-0.00031658177613280714,-0.049402229487895969}},
-        TROPICAL    = {Components={-2049.992431640625,7.765800476074219,3659.89111328125,-0.7001360654830933,-0.0021480624563992025,0.7140061855316162,-0.000005275551757222274,0.9999954700469971,0.003003281308338046,-0.7140094637870789,0.002098941011354327,-0.7001329064369202}},
-        CRATER      = {Components={1077.8387451171876,5.977067470550537,5119.4794921875,0.4851735830307007,-4.953440679855703e-8,0.8744178414344788,-5.273897940583083e-8,1,8.591083400233401e-8,-0.8744178414344788,-8.77975736557346e-8,0.4851735830307007}},
-        KOHANA      = {Components={-602.82275390625,17.505319595336915,652.0319213867188,0.9999975562095642,0.0000015247237570292783,0.0021858136169612409,-0.000005804166448797332,0.9999980926513672,0.00196487782523036,-0.002185806632041931,-0.001964885974302888,0.9999956488609314}},
-        CORAL       = {Components={-2746.401611328125,5.49059534072876,2182.592529296875,0.6984241008758545,-0.0031200835946947338,0.7156773805618286,-0.000013386315913521685,0.9999904632568359,0.0043726721778512,-0.7156841158866882,-0.003063580021262169,0.6984174251556397}},
-        VOLCANO     = {Components={-445.505615234375,16.619747161865236,154.78125,-0.21563377976417542,-1.2664203019596698e-8,0.9764742851257324,2.1402719596608223e-8,1,1.7695654719318555e-8,-0.9764742851257324,2.4714987389984345e-8,-0.21563377976417542}},
-    }
-
-    local function makeWPBtn(name, comps)
-        -- Buat tombol langsung (tanpa createButton) agar tidak tergantung urutan definisi
+    local function makeCustomWPBtn(name, comps)
         local btn = Instance.new("TextButton")
         btn.Size = UDim2.new(0, 150, 0, 35)
         btn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
         btn.BackgroundTransparency = 0.1
         btn.Text = name
-        btn.TextSize = 15
+        btn.TextSize = 14
         btn.Font = Enum.Font.GothamBold
-        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        btn.TextColor3 = Color3.fromRGB(0, 220, 130) -- Green text for custom waypoints
         btn.TextXAlignment = Enum.TextXAlignment.Left
         btn.AutoButtonColor = false
         btn:SetAttribute("IsFixedWP", true)
+        btn:SetAttribute("IsCustomWP", true)
         btn.Visible = true
         btn.Parent = ScrollFrame
+        
         local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0,8); c.Parent = btn
         local s = Instance.new("UIStroke"); s.Color = Color3.fromRGB(0,130,80); s.Thickness = 1.5; s.Parent = btn
         local p = Instance.new("UIPadding"); p.PaddingLeft = UDim.new(0,12); p.Parent = btn
+        
         btn.MouseButton1Click:Connect(function()
             local ok, cf = pcall(function() return CFrame.new(table.unpack(comps)) end)
             if ok and typeof(cf)=="CFrame" then
@@ -803,14 +846,80 @@ do
                 if char then char:PivotTo(cf) end
             end
         end)
+        
+        -- Delete button
+        local del = Instance.new("TextButton")
+        del.Size = UDim2.new(0, 18, 0, 18)
+        del.Position = UDim2.new(1, -26, 0.5, -9)
+        del.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+        del.Text = "x"
+        del.TextColor3 = Color3.fromRGB(255, 255, 255)
+        del.Font = Enum.Font.GothamBold
+        del.TextSize = 12
+        del.ZIndex = 5
+        del.Parent = btn
+        
+        local delCorner = Instance.new("UICorner")
+        delCorner.CornerRadius = UDim.new(0, 4)
+        delCorner.Parent = del
+        
+        del.MouseButton1Click:Connect(function()
+            customWaypoints[name] = nil
+            saveCustomWaypoints()
+            btn:Destroy()
+            
+            for idx, button in ipairs(customWPButtons) do
+                if button == btn then
+                    table.remove(customWPButtons, idx)
+                    break
+                end
+            end
+            
+            task.defer(function()
+                if currentCategory == "Waypoints" then
+                    setCategory("Waypoints")
+                end
+            end)
+        end)
+        
+        table.insert(customWPButtons, btn)
         return btn
     end
 
-    for name, data in pairs(FixedWPs) do
-        if type(data)=="table" and type(data.Components)=="table" then
-            makeWPBtn(name, data.Components)
+    local function refreshCustomWaypointButtons()
+        for _, btn in ipairs(customWPButtons) do
+            pcall(function() btn:Destroy() end)
+        end
+        customWPButtons = {}
+        for name, comps in pairs(customWaypoints) do
+            if type(comps) == "table" then
+                makeCustomWPBtn(name, comps)
+            end
         end
     end
+    
+    saveCurrentPositionAsWaypoint = function(name)
+        if not name or name == "" then return end
+        local lp = game:GetService("Players").LocalPlayer
+        local char = lp.Character
+        local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso"))
+        if not root then return end
+        
+        local components = {root.CFrame:GetComponents()}
+        customWaypoints[name] = components
+        saveCustomWaypoints()
+        
+        makeCustomWPBtn(name, components)
+        
+        task.defer(function()
+            if currentCategory == "Waypoints" then
+                setCategory("Waypoints")
+            end
+        end)
+    end
+    
+    loadCustomWaypoints()
+    refreshCustomWaypointButtons()
 end
 
 CloseBtn.MouseButton1Click:Connect(function()
@@ -1295,53 +1404,112 @@ RefreshBtn.MouseButton1Click:Connect(function()
     end
 end)
 
+local httpService = game:GetService("HttpService")
+local teleportService = game:GetService("TeleportService")
+local placeId = game.PlaceId
+local jobId = game.JobId
+
+local function serverhop()
+    local highestPlayers = 0
+    local servers = {}
+
+    local success, result = pcall(function()
+        return game:HttpGetAsync("https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Asc&limit=100")
+    end)
+
+    if success and result then
+        local ok, data = pcall(function() return httpService:JSONDecode(result).data end)
+        if ok and data then
+            for _, v in ipairs(data) do
+                if type(v) == "table" and v.maxPlayers > v.playing and v.id ~= jobId then
+                    if v.playing > highestPlayers then
+                        highestPlayers = v.playing
+                        servers[1] = v.id
+                    end
+                end
+            end
+        end
+    end
+
+    if #servers > 0 then
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Teleporting",
+            Text = "Moving you to a new server...",
+            Duration = 5
+        })
+        task.wait(0.3)
+        teleportService:TeleportToPlaceInstance(placeId, servers[1])
+    else
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "No Servers Found",
+            Text = "We couldn't find another server.",
+            Duration = 5
+        })
+    end
+end
+
 local Player = game.Players.LocalPlayer
 local SpeedBtn = createButton("", "Speed")
 SpeedBtn.Name = "SpeedBtn"
 SpeedBtn.LayoutOrder = 5
 local desiredSpeed = 50
 
--- Inline Speed control textbox placed directly under Speed button
 do
-    local SpeedBox2 = Instance.new("TextBox")
-    SpeedBox2.Name = "SpeedBox"
-    SpeedBox2.LayoutOrder = 6
-    SpeedBox2.Size = UDim2.new(0, 150, 0, 35)
-    SpeedBox2.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    SpeedBox2.BackgroundTransparency = 0.1
-    SpeedBox2.Text = tostring(desiredSpeed)
-    SpeedBox2.PlaceholderText = "Speed"
-    SpeedBox2.TextSize = 15
-    SpeedBox2.Font = Enum.Font.GothamBold
-    SpeedBox2.TextColor3 = Color3.fromRGB(255, 255, 255)
-    SpeedBox2.ClearTextOnFocus = false
-    SpeedBox2.LayoutOrder = 6
-    SpeedBox2.Parent = ScrollFrame
+    SpeedBox = Instance.new("TextButton")
+    SpeedBox.Name = "SpeedBox"
+    SpeedBox.Text = ""
+    SpeedBox.AutoButtonColor = false
+    SpeedBox.Active = true
+    SpeedBox.LayoutOrder = 6
+    SpeedBox.Size = UDim2.new(0, 150, 0, 35)
+    SpeedBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    SpeedBox.Parent = ScrollFrame
 
-    local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, 8)
-    c.Parent = SpeedBox2
+    local SpeedSliderFill = Instance.new("Frame")
+    SpeedSliderFill.Active = true
+    SpeedSliderFill.Size = UDim2.new(desiredSpeed/300, 0, 1, 0)
+    SpeedSliderFill.BackgroundColor3 = Color3.fromRGB(44, 153, 93) -- Green like Sirius
+    SpeedSliderFill.Parent = SpeedBox
 
-    local s = Instance.new("UIStroke")
-    s.Color = Color3.fromRGB(0, 80, 160)
-    s.Thickness = 1.5
-    s.Parent = SpeedBox2
+    local SpeedSliderText = Instance.new("TextLabel")
+    SpeedSliderText.Active = true
+    SpeedSliderText.Size = UDim2.new(1, 0, 1, 0)
+    SpeedSliderText.BackgroundTransparency = 1
+    SpeedSliderText.Text = "Walk Speed: " .. tostring(desiredSpeed)
+    SpeedSliderText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    SpeedSliderText.Font = Enum.Font.GothamBold
+    SpeedSliderText.TextSize = 13
+    SpeedSliderText.Parent = SpeedBox
 
-    local p = Instance.new("UIPadding")
-    p.PaddingLeft = UDim.new(0, 12)
-    p.Parent = SpeedBox2
+    local c1_spd = Instance.new("UICorner") c1_spd.CornerRadius = UDim.new(0, 8) c1_spd.Parent = SpeedBox
+    local c2_spd = Instance.new("UICorner") c2_spd.CornerRadius = UDim.new(0, 8) c2_spd.Parent = SpeedSliderFill
+    local s1_spd = Instance.new("UIStroke") s1_spd.Color = Color3.fromRGB(0, 130, 80) s1_spd.Thickness = 1.5 s1_spd.Parent = SpeedBox
 
-    SpeedBox2.FocusLost:Connect(function()
-        local n = tonumber(SpeedBox2.Text)
-        if n and n > 0 and n < 1000 then
-            desiredSpeed = n
+    local isSpeedSliding = false
+    SpeedBox.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            isSpeedSliding = true
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            isSpeedSliding = false
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if isSpeedSliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local relativeX = math.clamp(input.Position.X - SpeedBox.AbsolutePosition.X, 0, SpeedBox.AbsoluteSize.X)
+            local percentage = relativeX / SpeedBox.AbsoluteSize.X
+            desiredSpeed = math.floor(percentage * 300) -- max 300
+            if desiredSpeed < 16 then desiredSpeed = 16 end
+            SpeedSliderFill.Size = UDim2.new(percentage, 0, 1, 0)
+            SpeedSliderText.Text = "Walk Speed: " .. tostring(desiredSpeed)
+            
             if speedOn then
                 local char = Player.Character or Player.CharacterAdded:Wait()
                 local hum = char:FindFirstChild("Humanoid")
                 if hum then hum.WalkSpeed = desiredSpeed end
             end
-        else
-            SpeedBox2.Text = tostring(desiredSpeed)
         end
     end)
 end
@@ -1350,8 +1518,8 @@ local speedOn = false
 local selendangPart = nil
 
 local colors = {
-	Color3.fromRGB(255,255,255),
-	Color3.fromRGB(0,0,0)
+	Color3.fromRGB(255, 255, 255),
+	Color3.fromRGB(150, 200, 255)
 }
 
 local function lerpColor(c1, c2, t)
@@ -1368,7 +1536,7 @@ local function addSelendang(char)
 		selendangPart = nil
 	end
 
-	local torso = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("UpperTorso")
+	local torso = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
 	if not torso then return end
 
 	selendangPart = Instance.new("Part")
@@ -1377,7 +1545,7 @@ local function addSelendang(char)
 	selendangPart.Transparency = 1
 	selendangPart.Anchored = false
 	selendangPart.CanCollide = false
-	selendangPart.CFrame = torso.CFrame
+	selendangPart.CFrame = torso.CFrame * CFrame.new(0, -2.5, 0)
 	selendangPart.Parent = char
 
 	local weld = Instance.new("WeldConstraint")
@@ -1386,25 +1554,25 @@ local function addSelendang(char)
 	weld.Parent = selendangPart
 
 	local trails = {}
-	local spacing = -0.04
-	local startY = 0.5
-
-	for i = 1, 40 do
-		local yPos = startY + (i-1) * spacing
+	for i = 1, 2 do
+		local yPos = (i - 1.5) * 0.2
 		local attLeft = Instance.new("Attachment", selendangPart)
-		attLeft.Position = Vector3.new(-1, yPos, 0)
+		attLeft.Position = Vector3.new(-0.8, yPos, 0)
 
 		local attRight = Instance.new("Attachment", selendangPart)
-		attRight.Position = Vector3.new(1, yPos, 0)
+		attRight.Position = Vector3.new(0.8, yPos, 0)
 
 		local newTrail = Instance.new("Trail")
 		newTrail.Attachment0 = attLeft
 		newTrail.Attachment1 = attRight
-		newTrail.Lifetime = 0.6
+		newTrail.Lifetime = 0.5
 		newTrail.MinLength = 0.1
-		newTrail.LightEmission = 1
-		newTrail.Transparency = NumberSequence.new(0,1)
-		newTrail.WidthScale = NumberSequence.new(0.5,0)
+		newTrail.LightEmission = 0.8
+		newTrail.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.4),
+			NumberSequenceKeypoint.new(1, 1)
+		})
+		newTrail.WidthScale = NumberSequence.new(0.4, 0)
 		newTrail.Parent = selendangPart
 
 		table.insert(trails, newTrail)
@@ -1452,7 +1620,7 @@ end
 SpeedBtn.MouseButton1Click:Connect(toggleSpeed)
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
+	if UserInputService:GetFocusedTextBox() then return end
 	if input.KeyCode == Enum.KeyCode.RightBracket then
 		toggleSpeed()
 	end
@@ -1627,6 +1795,54 @@ FCBox.FocusLost:Connect(function()
         freecamSpeed = n
     else
         FCBox.Text = tostring(freecamSpeed)
+    end
+end)
+
+-- Save Waypoint UI: a TextButton and a TextBox
+SWPBtn = createButton("", "Save WP")
+SWPBtn.Name = "SWPBtn"
+SWPBtn.LayoutOrder = 5
+
+SWPBox = Instance.new("TextBox")
+SWPBox.Name = "SWPBox"
+SWPBox.LayoutOrder = 6
+SWPBox.Size = UDim2.new(0, 150, 0, 35)
+SWPBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+SWPBox.BackgroundTransparency = 0.1
+SWPBox.Text = ""
+SWPBox.PlaceholderText = "Waypoint Name"
+SWPBox.TextSize = 15
+SWPBox.Font = Enum.Font.GothamBold
+SWPBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+SWPBox.ClearTextOnFocus = false
+SWPBox.Parent = ScrollFrame
+do
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, 8)
+    c.Parent = SWPBox
+    local s = Instance.new("UIStroke")
+    s.Color = Color3.fromRGB(0, 130, 80)
+    s.Thickness = 1.5
+    s.Parent = SWPBox
+    local p = Instance.new("UIPadding")
+    p.PaddingLeft = UDim.new(0, 12)
+    p.Parent = SWPBox
+end
+
+SWPBtn.MouseButton1Click:Connect(function()
+    local name = SWPBox.Text
+    if name and name ~= "" then
+        if typeof(saveCurrentPositionAsWaypoint) == "function" then
+            saveCurrentPositionAsWaypoint(name)
+        end
+        SWPBox.Text = ""
+        SWPBox:ReleaseFocus()
+        setButtonActive(SWPBtn, true)
+        task.delay(0.5, function() setButtonActive(SWPBtn, false) end)
+    else
+        SWPBox.PlaceholderText = "Enter name first!"
+        SWPBox:ReleaseFocus()
+        task.delay(1.5, function() SWPBox.PlaceholderText = "Waypoint Name" end)
     end
 end)
 
@@ -2158,10 +2374,10 @@ BringPartBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
-local AntiLagBtn = createButton("", "Anti Lag")
-local antiLagActive = false
-local connections = {}
-local originalStates = {}
+AntiLagBtn = createButton("", "Anti Lag")
+antiLagActive = false
+connections = {}
+originalStates = {}
 
 local function saveState(v)
     if not originalStates[v] then
@@ -2286,9 +2502,9 @@ AntiLagBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-local NoclipBtn = createButton("", "Noclip Ghost")
-local noclipActive = false
-local noclipConnection = nil
+NoclipBtn = createButton("", "Noclip Ghost")
+noclipActive = false
+noclipConnection = nil
 
 local function enableNoclip()
     noclipConnection = RunService.Stepped:Connect(function()
@@ -2348,13 +2564,15 @@ if Player.Character then
     onCharacterAdded(Player.Character)
 end
 
-local SpectatorBtn = createButton("", "Spectator")
-local RecBtn = createButton("", "Record")
-local TeleBtn = createButton("", "Teleport")
-local AnimasiBtn = createButton("", "Animasi")
-local AvatarBtn = createButton("", "Avatar")
-local FishBtn = createButton("", "Fish it")
-local FlyV2Btn = createButton("", "Fly V2")
+SpectatorBtn = createButton("", "Spectator")
+RecBtn = createButton("", "Record")
+TeleBtn = createButton("", "Teleport")
+AnimasiBtn = createButton("", "Animasi")
+AvatarBtn = createButton("", "Avatar")
+FishBtn = createButton("", "Fish it")
+FlyV2Btn = createButton("", "Fly V2")
+FlyV3Btn = createButton("", "Fly V3")
+ServerHopBtn = createButton("", "Server Hop")
 
 SpectatorBtn.MouseButton1Click:Connect(function()
     local success, response = pcall(function()
@@ -2371,6 +2589,8 @@ SpectatorBtn.MouseButton1Click:Connect(function()
         warn("HttpGet failed for Spectator") 
     end
 end)
+
+ServerHopBtn.MouseButton1Click:Connect(serverhop)
 
 RecBtn.MouseButton1Click:Connect(function()
     local success, response = pcall(function()
@@ -2950,6 +3170,77 @@ FlyV2Btn.MouseButton1Click:Connect(function()
     launchFlyV2()
 end)
 
+do
+    local flyV3Active = false
+    local flyV3Movers = {}
+
+    FlyV3Btn.MouseButton1Click:Connect(function()
+        flyV3Active = not flyV3Active
+        setButtonActive(FlyV3Btn, flyV3Active)
+        local char = Player.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum then hum.PlatformStand = flyV3Active end
+        if not flyV3Active and flyV3Movers[1] then
+            flyV3Movers[1].Parent = nil
+            flyV3Movers[2].Parent = nil
+        end
+    end)
+
+    RunService.Heartbeat:Connect(function()
+        if not flyV3Active then return end
+        local char = Player.Character
+        local primaryPart = char and char.PrimaryPart
+        local camera = workspace.CurrentCamera
+        if primaryPart then
+            local bodyVelocity, bodyGyro = unpack(flyV3Movers)
+            if not bodyVelocity then
+                bodyVelocity = Instance.new("BodyVelocity")
+                bodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+                bodyGyro = Instance.new("BodyGyro")
+                bodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+                bodyGyro.P = 9e4
+                local bodyAngularVelocity = Instance.new("BodyAngularVelocity")
+                bodyAngularVelocity.AngularVelocity = Vector3.yAxis * 9e9
+                bodyAngularVelocity.MaxTorque = Vector3.yAxis * 9e9
+                bodyAngularVelocity.P = 9e9
+                flyV3Movers = { bodyVelocity, bodyGyro, bodyAngularVelocity }
+            end
+            local camCFrame = camera.CFrame
+            local velocity = Vector3.zero
+            local rotation = camCFrame.Rotation
+            
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                velocity += camCFrame.LookVector
+                rotation *= CFrame.Angles(math.rad(-40), 0, 0)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                velocity -= camCFrame.LookVector
+                rotation *= CFrame.Angles(math.rad(40), 0, 0)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                velocity += camCFrame.RightVector
+                rotation *= CFrame.Angles(0, 0, math.rad(-40))
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                velocity -= camCFrame.RightVector
+                rotation *= CFrame.Angles(0, 0, math.rad(40))
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+                velocity += Vector3.yAxis
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+                velocity -= Vector3.yAxis
+            end
+            
+            local tweenInfo = TweenInfo.new(0.5)
+            TweenService:Create(bodyVelocity, tweenInfo, { Velocity = velocity * 50 * 4.5 }):Play()
+            bodyVelocity.Parent = primaryPart
+            TweenService:Create(bodyGyro, tweenInfo, { CFrame = rotation }):Play()
+            bodyGyro.Parent = primaryPart
+        end
+    end)
+end
+
 AirwalkBtn.LayoutOrder = 1
 ESPBtn.LayoutOrder = 2
 LampBtn.LayoutOrder = 3
@@ -2974,13 +3265,15 @@ FlyV2Btn.LayoutOrder = 18.5
 ClickTPBtn.LayoutOrder = 19
 FreeCamBtn.LayoutOrder = 21
 TPBox.LayoutOrder = 20
+SWPBtn.LayoutOrder = 22
+SWPBox.LayoutOrder = 23
 
 -- A->Z sort all action buttons and place input boxes under their buttons
 do
     local btns = {
         AirwalkBtn, ESPBtn, ESPTeamBtn, LampBtn, JumpBtn, SpeedBtn, NoclipBtn, FlingBtn, FlyBtn,
         UnanchorBtn, BringPartBtn, AntiLagBtn, RecBtn, TeleBtn, SpectatorBtn,
-        AnimasiBtn, AvatarBtn, FishBtn, FlyV2Btn, ClickTPBtn, FreeCamBtn
+        AnimasiBtn, AvatarBtn, FishBtn, FlyV2Btn, FlyV3Btn, ClickTPBtn, FreeCamBtn, ServerHopBtn, SWPBtn
     }
     local list = {}
     for _,b in ipairs(btns) do
@@ -3007,6 +3300,10 @@ do
         end
         if btn == FreeCamBtn and FCBox then
             FCBox.LayoutOrder = order
+            order = order + 1
+        end
+        if btn == SWPBtn and SWPBox then
+            SWPBox.LayoutOrder = order
             order = order + 1
         end
     end
