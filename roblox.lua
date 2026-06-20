@@ -927,10 +927,21 @@ do
     refreshCustomWaypointButtons()
 end
 
+
 CloseBtn.MouseButton1Click:Connect(function()
     local tween = TweenService:Create(MainFrame, TweenInfo.new(0.2), {Size = UDim2.new(0, 0, 0, 0)})
     tween:Play()
     tween.Completed:Wait()
+    pcall(function()
+        local targetParent = (typeof(gethui) == "function" and gethui())
+            or (typeof(get_hidden_gui) == "function" and get_hidden_gui())
+            or game:GetService("CoreGui")
+            or PlayerGui
+        if targetParent then
+            local bar = targetParent:FindFirstChild("CHCmdBarGUI")
+            if bar then bar:Destroy() end
+        end
+    end)
     ScreenGui:Destroy()
 end)
 
@@ -2561,6 +2572,16 @@ FishBtn = createButton("", "Fish it")
 FlyV2Btn = createButton("", "Fly V2")
 FlyV3Btn = createButton("", "Fly V3")
 ServerHopBtn = createButton("", "Server Hop")
+DexBtn = createButton("", "Dex Explorer")
+
+DexBtn.MouseButton1Click:Connect(function()
+    local ok, err = pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/bochilascript/ROBLOX/refs/heads/main/dex.lua"))()
+    end)
+    if not ok then
+        notifyPlayer("Dex Explorer", "Failed to load: " .. tostring(err))
+    end
+end)
 
 SpectatorBtn.MouseButton1Click:Connect(function()
     local success, response = pcall(function()
@@ -3021,40 +3042,50 @@ local function launchFlyV2()
 
 	end)
 
-	local tis
-
-	up.MouseButton1Down:connect(function()
-		tis = up.MouseEnter:connect(function()
-			while tis do
-				wait()
-				game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0,1,0)
-			end
-		end)
-	end)
-
-	up.MouseLeave:connect(function()
-		if tis then
-			tis:Disconnect()
-			tis = nil
+	local movingUp = false
+	up.MouseButton1Down:Connect(function()
+		movingUp = true
+		while movingUp do
+			task.wait()
+			pcall(function()
+				local char = game.Players.LocalPlayer.Character
+				local hrp = char and char:FindFirstChild("HumanoidRootPart")
+				if hrp then
+					hrp.CFrame = hrp.CFrame * CFrame.new(0, 1, 0)
+				end
+			end)
 		end
 	end)
 
-	local dis
-
-	down.MouseButton1Down:connect(function()
-		dis = down.MouseEnter:connect(function()
-			while dis do
-				wait()
-				game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0,-1,0)
-			end
-		end)
+	up.MouseButton1Up:Connect(function()
+		movingUp = false
 	end)
 
-	down.MouseLeave:connect(function()
-		if dis then
-			dis:Disconnect()
-			dis = nil
+	up.MouseLeave:Connect(function()
+		movingUp = false
+	end)
+
+	local movingDown = false
+	down.MouseButton1Down:Connect(function()
+		movingDown = true
+		while movingDown do
+			task.wait()
+			pcall(function()
+				local char = game.Players.LocalPlayer.Character
+				local hrp = char and char:FindFirstChild("HumanoidRootPart")
+				if hrp then
+					hrp.CFrame = hrp.CFrame * CFrame.new(0, -1, 0)
+				end
+			end)
 		end
+	end)
+
+	down.MouseButton1Up:Connect(function()
+		movingDown = false
+	end)
+
+	down.MouseLeave:Connect(function()
+		movingDown = false
 	end)
 
 
@@ -3216,7 +3247,7 @@ do
             if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
                 velocity += Vector3.yAxis
             end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
                 velocity -= Vector3.yAxis
             end
             
@@ -3261,7 +3292,7 @@ do
     local btns = {
         AirwalkBtn, ESPBtn, ESPTeamBtn, LampBtn, JumpBtn, SpeedBtn, NoclipBtn, FlingBtn, FlyBtn,
         UnanchorBtn, BringPartBtn, AntiLagBtn, RecBtn, TeleBtn, SpectatorBtn,
-        AnimasiBtn, AvatarBtn, FishBtn, FlyV2Btn, FlyV3Btn, ClickTPBtn, FreeCamBtn, ServerHopBtn, SWPBtn
+        AnimasiBtn, AvatarBtn, FishBtn, FlyV2Btn, FlyV3Btn, ClickTPBtn, FreeCamBtn, ServerHopBtn, SWPBtn, DexBtn
     }
     local list = {}
     for _,b in ipairs(btns) do
@@ -3295,4 +3326,586 @@ do
             order = order + 1
         end
     end
+end
+
+-- Hook chat commands & Command Bar (e.g. swp <name>) like Infinite Yield
+local success, err = pcall(function()
+    local lastSavedWaypointName = nil
+    local lastSavedWaypointTime = 0
+
+    local function notifyPlayer(title, text)
+        pcall(function()
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = title,
+                Text = text,
+                Duration = 5
+            })
+        end)
+    end
+
+    local commandsList = {
+        { name = "cmds", aliases = {"commands"}, desc = "Shows this commands list window.", usage = "" },
+        { name = "swp", aliases = {"savewp", "savewaypoint"}, desc = "Saves your current position as a waypoint.", usage = " [name]" },
+        { name = "speed", aliases = {"spd", "ws"}, desc = "Sets walkspeed (16-300) or toggles speed.", usage = " [number]" },
+        { name = "fly", aliases = {}, desc = "Enables flying mode.", usage = "" },
+        { name = "unfly", aliases = {"nofly"}, desc = "Disables flying mode.", usage = "" },
+        { name = "freecam", aliases = {"fc"}, desc = "Toggles freecam camera mode.", usage = "" },
+        { name = "nofreecam", aliases = {"nofc"}, desc = "Disables freecam camera mode.", usage = "" },
+        { name = "clicktp", aliases = {"ctp"}, desc = "Toggles click-to-teleport mode (Ctrl + click).", usage = "" },
+        { name = "unanchor", aliases = {}, desc = "Toggles the unanchor parts feature.", usage = "" },
+        { name = "fling", aliases = {"tendang"}, desc = "Toggles the administrative fling/kick mode.", usage = "" },
+        { name = "explorer", aliases = {"dex"}, desc = "Opens DEX Explorer by Moon.", usage = "" }
+    }
+
+    local CmdListFrame = nil
+    local showCommandsWindow
+
+    local function makeDraggable(frame, parentFrame)
+        parentFrame = parentFrame or frame
+        local dragging = false
+        local dragInput, dragStart, startPos
+
+        local function update(input)
+            local delta = input.Position - dragStart
+            parentFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+
+        frame.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = true
+                dragStart = input.Position
+                startPos = parentFrame.Position
+
+                input.Changed:Connect(function()
+                    if input.UserInputState == Enum.UserInputState.End then
+                        dragging = false
+                    end
+                end)
+            end
+        end)
+
+        frame.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+                dragInput = input
+            end
+        end)
+
+        UserInputService.InputChanged:Connect(function(input)
+            if input == dragInput and dragging then
+                update(input)
+            end
+        end)
+    end
+
+    local function createCommandsWindow()
+        local listGui = Instance.new("ScreenGui")
+        listGui.Name = "CHCmdListGUI"
+        listGui.ResetOnSpawn = false
+        listGui.DisplayOrder = 2147483646
+        
+        local pSuccess, pErr = pcall(function()
+            if typeof(gethui) == "function" then
+                listGui.Parent = gethui()
+            elseif typeof(get_hidden_gui) == "function" then
+                listGui.Parent = get_hidden_gui()
+            elseif game:GetService("CoreGui") then
+                listGui.Parent = game:GetService("CoreGui")
+            else
+                listGui.Parent = Player:WaitForChild("PlayerGui")
+            end
+        end)
+        if not pSuccess or not listGui.Parent then
+            listGui.Parent = Player:WaitForChild("PlayerGui")
+        end
+
+        CmdListFrame = Instance.new("Frame")
+        CmdListFrame.Name = "CmdListFrame"
+        CmdListFrame.Size = UDim2.new(0, 360, 0, 420)
+        CmdListFrame.Position = UDim2.new(0.5, -180, 0.5, -210)
+        CmdListFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+        CmdListFrame.BackgroundTransparency = 0.15
+        CmdListFrame.Visible = false
+        CmdListFrame.Parent = listGui
+
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 12)
+        corner.Parent = CmdListFrame
+
+        local stroke = Instance.new("UIStroke")
+        stroke.Color = Color3.fromRGB(50, 50, 60)
+        stroke.Thickness = 1.5
+        stroke.Parent = CmdListFrame
+
+        -- Top Header Bar
+        local header = Instance.new("Frame")
+        header.Name = "Header"
+        header.Size = UDim2.new(1, 0, 0, 40)
+        header.BackgroundTransparency = 1
+        header.Parent = CmdListFrame
+
+        local titleIcon = Instance.new("TextLabel")
+        titleIcon.Name = "Icon"
+        titleIcon.Size = UDim2.new(0, 30, 1, 0)
+        titleIcon.Position = UDim2.new(0, 12, 0, 0)
+        titleIcon.BackgroundTransparency = 1
+        titleIcon.Font = Enum.Font.GothamBold
+        titleIcon.Text = "P|"
+        titleIcon.TextColor3 = Color3.fromRGB(0, 220, 130)
+        titleIcon.TextSize = 18
+        titleIcon.TextXAlignment = Enum.TextXAlignment.Left
+        titleIcon.Parent = header
+
+        local titleLabel = Instance.new("TextLabel")
+        titleLabel.Name = "Title"
+        titleLabel.Size = UDim2.new(1, -80, 1, 0)
+        titleLabel.Position = UDim2.new(0, 40, 0, 0)
+        titleLabel.BackgroundTransparency = 1
+        titleLabel.Font = Enum.Font.GothamBold
+        titleLabel.Text = "Commands"
+        titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        titleLabel.TextSize = 18
+        titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+        titleLabel.Parent = header
+
+        local closeBtn = Instance.new("TextButton")
+        closeBtn.Name = "Close"
+        closeBtn.Size = UDim2.new(0, 24, 0, 24)
+        closeBtn.Position = UDim2.new(1, -34, 0.5, -12)
+        closeBtn.BackgroundTransparency = 1
+        closeBtn.Font = Enum.Font.GothamBold
+        closeBtn.Text = "X"
+        closeBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+        closeBtn.TextSize = 16
+        closeBtn.Parent = header
+        closeBtn.MouseButton1Click:Connect(function()
+            CmdListFrame.Visible = false
+        end)
+
+        makeDraggable(header, CmdListFrame)
+
+        -- Search Bar Container
+        local searchFrame = Instance.new("Frame")
+        searchFrame.Name = "SearchFrame"
+        searchFrame.Size = UDim2.new(1, -24, 0, 32)
+        searchFrame.Position = UDim2.new(0, 12, 0, 42)
+        searchFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+        searchFrame.Parent = CmdListFrame
+
+        local searchCorner = Instance.new("UICorner")
+        searchCorner.CornerRadius = UDim.new(0, 6)
+        searchCorner.Parent = searchFrame
+
+        local searchStroke = Instance.new("UIStroke")
+        searchStroke.Color = Color3.fromRGB(40, 40, 45)
+        searchStroke.Thickness = 1
+        searchStroke.Parent = searchFrame
+
+        local searchIcon = Instance.new("TextLabel")
+        searchIcon.Name = "Icon"
+        searchIcon.Size = UDim2.new(0, 20, 1, 0)
+        searchIcon.Position = UDim2.new(0, 8, 0, 0)
+        searchIcon.BackgroundTransparency = 1
+        searchIcon.Font = Enum.Font.Gotham
+        searchIcon.Text = "🔍"
+        searchIcon.TextColor3 = Color3.fromRGB(150, 150, 150)
+        searchIcon.TextSize = 14
+        searchIcon.Parent = searchFrame
+
+        local searchBox = Instance.new("TextBox")
+        searchBox.Name = "SearchBox"
+        searchBox.Size = UDim2.new(1, -38, 1, 0)
+        searchBox.Position = UDim2.new(0, 30, 0, 0)
+        searchBox.BackgroundTransparency = 1
+        searchBox.Font = Enum.Font.Gotham
+        searchBox.Text = ""
+        searchBox.PlaceholderText = "Search"
+        searchBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
+        searchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+        searchBox.TextSize = 14
+        searchBox.TextXAlignment = Enum.TextXAlignment.Left
+        searchBox.ClearTextOnFocus = false
+        searchBox.Parent = searchFrame
+
+        -- Scrolling Frame for commands
+        local scrollFrame = Instance.new("ScrollingFrame")
+        scrollFrame.Name = "ListScroll"
+        scrollFrame.Size = UDim2.new(1, -24, 0, 320)
+        scrollFrame.Position = UDim2.new(0, 12, 0, 85)
+        scrollFrame.BackgroundTransparency = 1
+        scrollFrame.ScrollBarThickness = 4
+        scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(200, 200, 200)
+        scrollFrame.AutomaticCanvasSize = Enum.AutomaticCanvasSize.None
+        scrollFrame.CanvasSize = UDim2.new(0, 0, 0, #commandsList * 56 + 15)
+        scrollFrame.Visible = true
+        scrollFrame.Parent = CmdListFrame
+
+        local listLayout = Instance.new("UIListLayout")
+        listLayout.Padding = UDim.new(0, 8)
+        listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        listLayout.Parent = scrollFrame
+
+        -- Render Command Items
+        for idx, cmdData in ipairs(commandsList) do
+            local itemFrame = Instance.new("Frame")
+            itemFrame.Name = "CmdItem"
+            itemFrame.Size = UDim2.new(1, 0, 0, 48)
+            itemFrame.BackgroundTransparency = 1
+            itemFrame.LayoutOrder = idx
+            itemFrame.Visible = true
+            itemFrame.Parent = scrollFrame
+
+            -- Store command name/description in StringValues (much more compatible than SetAttribute across executors)
+            local cmdNameVal = Instance.new("StringValue")
+            cmdNameVal.Name = "CmdNameValue"
+            cmdNameVal.Value = cmdData.name
+            cmdNameVal.Parent = itemFrame
+
+            local cmdDescVal = Instance.new("StringValue")
+            cmdDescVal.Name = "CmdDescValue"
+            cmdDescVal.Value = cmdData.desc
+            cmdDescVal.Parent = itemFrame
+
+            -- Dot Indicator
+            local dot = Instance.new("Frame")
+            dot.Name = "Dot"
+            dot.Size = UDim2.new(0, 6, 0, 6)
+            dot.Position = UDim2.new(0, 4, 0, 12)
+            dot.BackgroundColor3 = Color3.fromRGB(150, 150, 150)
+            dot.BorderSizePixel = 0
+            dot.Parent = itemFrame
+            local dotCorner = Instance.new("UICorner")
+            dotCorner.CornerRadius = UDim.new(1, 0)
+            dotCorner.Parent = dot
+
+            -- Title and Aliases
+            local aliasesStr = ""
+            if #cmdData.aliases > 0 then
+                aliasesStr = "  (" .. table.concat(cmdData.aliases, ", ") .. ")"
+            end
+
+            local nameLabel = Instance.new("TextLabel")
+            nameLabel.Name = "CmdTitle"
+            nameLabel.Size = UDim2.new(1, -20, 0, 20)
+            nameLabel.Position = UDim2.new(0, 18, 0, 4)
+            nameLabel.BackgroundTransparency = 1
+            nameLabel.Font = Enum.Font.SourceSansBold
+            nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+            nameLabel.TextSize = 14
+            nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            nameLabel.Text = "'" .. cmdData.name .. cmdData.usage .. aliasesStr
+            nameLabel.Parent = itemFrame
+
+            -- Description
+            local descLabel = Instance.new("TextLabel")
+            descLabel.Name = "CmdDesc"
+            descLabel.Size = UDim2.new(1, -20, 0, 18)
+            descLabel.Position = UDim2.new(0, 18, 0, 24)
+            descLabel.BackgroundTransparency = 1
+            descLabel.Font = Enum.Font.SourceSans
+            descLabel.TextXAlignment = Enum.TextXAlignment.Left
+            descLabel.TextSize = 12
+            descLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+            descLabel.Text = cmdData.desc
+            descLabel.Parent = itemFrame
+        end
+
+        -- Search Filtering Connection
+        searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+            local query = string.lower(searchBox.Text)
+            local visibleCount = 0
+            for _, item in ipairs(scrollFrame:GetChildren()) do
+                if item:IsA("Frame") and item.Name == "CmdItem" then
+                    local cNameVal = item:FindFirstChild("CmdNameValue")
+                    local cDescVal = item:FindFirstChild("CmdDescValue")
+                    local cName = cNameVal and string.lower(cNameVal.Value) or ""
+                    local cDesc = cDescVal and string.lower(cDescVal.Value) or ""
+                    local visible = false
+                    if string.find(cName, query, 1, true) or string.find(cDesc, query, 1, true) then
+                        visible = true
+                        visibleCount = visibleCount + 1
+                    end
+                    item.Visible = visible
+                end
+            end
+            scrollFrame.CanvasSize = UDim2.new(0, 0, 0, visibleCount * 56 + 15)
+        end)
+    end
+
+    showCommandsWindow = function()
+        if not CmdListFrame then
+            local ok, err = pcall(createCommandsWindow)
+            if not ok then
+                warn("Failed to create commands list GUI: " .. tostring(err))
+                return
+            end
+        end
+        if CmdListFrame then
+            CmdListFrame.Visible = not CmdListFrame.Visible
+        end
+    end
+
+    local function handleChatCommand(message)
+        if typeof(message) ~= "string" then return end
+        
+        local cleanMsg = message:gsub("^%s+", ""):gsub("%s+$", "")
+        if cleanMsg == "" then return end
+        
+        -- Remove leading prefix if present (like ; or ' or \ or / or /e)
+        local commandText = cleanMsg
+        for _, prefix in ipairs({";", "'", "\\", "/", "/e "}) do
+            if string.sub(string.lower(cleanMsg), 1, #prefix) == prefix then
+                commandText = string.sub(cleanMsg, #prefix + 1):gsub("^%s+", "")
+                break
+            end
+        end
+        
+        -- Split into command and arguments
+        local args = {}
+        for word in string.gmatch(commandText, "%S+") do
+            table.insert(args, word)
+        end
+        
+        if #args == 0 then return end
+        
+        local cmd = string.lower(args[1])
+        table.remove(args, 1)
+        local fullArgString = table.concat(args, " ")
+        
+        -- Command Handlers
+        if cmd == "swp" or cmd == "savewp" or cmd == "savewaypoint" then
+            local name = fullArgString
+            if name and name ~= "" then
+                local now = os.clock()
+                if lastSavedWaypointName == name and (now - lastSavedWaypointTime) < 0.5 then
+                    return
+                end
+                lastSavedWaypointName = name
+                lastSavedWaypointTime = now
+                
+                local saveFunc = saveCurrentPositionAsWaypoint or (typeof(_G.saveCurrentPositionAsWaypoint) == "function" and _G.saveCurrentPositionAsWaypoint)
+                if typeof(saveFunc) == "function" then
+                    saveFunc(name)
+                    pcall(function()
+                        game:GetService("StarterGui"):SetCore("SendNotification", {
+                            Title = "Waypoint Saved",
+                            Text = "Saved waypoint: " .. name,
+                            Duration = 3
+                        })
+                    end)
+                end
+            end
+            
+        elseif cmd == "speed" or cmd == "spd" or cmd == "ws" then
+            local num = tonumber(fullArgString)
+            if num then
+                num = math.clamp(num, 16, 300)
+                desiredSpeed = num
+                if SpeedBox then SpeedBox.Text = tostring(desiredSpeed) end
+                if speedOn then
+                    local char = Player.Character
+                    local hum = char and char:FindFirstChild("Humanoid")
+                    if hum then hum.WalkSpeed = desiredSpeed end
+                end
+            else
+                toggleSpeed()
+            end
+            
+        elseif cmd == "fly" then
+            if not flying then
+                enableFly()
+            end
+            
+        elseif cmd == "unfly" or cmd == "nofly" then
+            if flying then
+                disableFly()
+            end
+            
+        elseif cmd == "freecam" or cmd == "fc" then
+            setFreecam(not freecamOn)
+            
+        elseif cmd == "nofreecam" or cmd == "nofc" then
+            if freecamOn then
+                setFreecam(false)
+            end
+            
+        elseif cmd == "clicktp" or cmd == "ctp" then
+            clickTpOn = not clickTpOn
+            setButtonActive(ClickTPBtn, clickTpOn)
+            
+        elseif cmd == "unanchor" then
+            aktif = not aktif
+            if aktif then
+                setButtonActive(UnanchorBtn, true)
+                mulaiUnanchor()
+            else
+                setButtonActive(UnanchorBtn, false)
+                stopUnanchor()
+            end
+            
+        elseif cmd == "cmds" or cmd == "commands" then
+            showCommandsWindow()
+
+        elseif cmd == "fling" or cmd == "tendang" then
+            hiddenfling = not hiddenfling
+            if hiddenfling then
+                setButtonActive(FlingBtn, true)
+                flingThread = coroutine.create(fling)
+                coroutine.resume(flingThread)
+            else
+                setButtonActive(FlingBtn, false)
+            end
+            
+        elseif cmd == "explorer" or cmd == "dex" then
+            local ok, err = pcall(function()
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/bochilascript/ROBLOX/refs/heads/main/dex.lua"))()
+            end)
+            if not ok then
+                notifyPlayer("Dex Explorer", "Failed to load: " .. tostring(err))
+            end
+        end
+    end
+
+    -- Create Command Bar GUI (tiru cara dari Infinite Yield)
+    local CmdBarGuiParent = nil
+    local successParent, errParent = pcall(function()
+        if typeof(gethui) == "function" then
+            CmdBarGuiParent = gethui()
+        elseif typeof(get_hidden_gui) == "function" then
+            CmdBarGuiParent = get_hidden_gui()
+        elseif game:GetService("CoreGui") then
+            CmdBarGuiParent = game:GetService("CoreGui")
+        else
+            CmdBarGuiParent = PlayerGui
+        end
+    end)
+    if not successParent or not CmdBarGuiParent then
+        CmdBarGuiParent = PlayerGui
+    end
+
+    local CmdBarGui = Instance.new("ScreenGui")
+    CmdBarGui.Name = "CHCmdBarGUI"
+    CmdBarGui.ResetOnSpawn = false
+    CmdBarGui.DisplayOrder = 2147483647
+    CmdBarGui.IgnoreGuiInset = true
+    CmdBarGui.Parent = CmdBarGuiParent
+
+    -- Create Command Bar UI
+    local CmdBarFrame = Instance.new("Frame")
+    CmdBarFrame.Name = "CmdBarFrame"
+    CmdBarFrame.Size = UDim2.new(0, 400, 0, 40)
+    CmdBarFrame.Position = UDim2.new(0.5, -200, 0.5, -20)
+    CmdBarFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 30)
+    CmdBarFrame.BackgroundTransparency = 0.15
+    CmdBarFrame.Visible = false
+    CmdBarFrame.ZIndex = 99999
+    CmdBarFrame.Parent = CmdBarGui
+
+    local cmdCorner = Instance.new("UICorner")
+    cmdCorner.CornerRadius = UDim.new(0, 8)
+    cmdCorner.Parent = CmdBarFrame
+
+    local cmdStroke = Instance.new("UIStroke")
+    cmdStroke.Color = Color3.fromRGB(0, 220, 130)
+    cmdStroke.Thickness = 1.5
+    cmdStroke.Transparency = 0
+    cmdStroke.Parent = CmdBarFrame
+
+    local CmdBarInput = Instance.new("TextBox")
+    CmdBarInput.Name = "CmdBarInput"
+    CmdBarInput.Size = UDim2.new(1, -20, 1, -10)
+    CmdBarInput.Position = UDim2.new(0, 10, 0, 5)
+    CmdBarInput.BackgroundTransparency = 1
+    CmdBarInput.Font = Enum.Font.GothamBold
+    CmdBarInput.TextSize = 15
+    CmdBarInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CmdBarInput.TextTransparency = 0
+    CmdBarInput.PlaceholderText = "Command Bar (e.g. swp name)"
+    CmdBarInput.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+    CmdBarInput.TextXAlignment = Enum.TextXAlignment.Left
+    CmdBarInput.Text = ""
+    CmdBarInput.ClearTextOnFocus = true
+    CmdBarInput.ZIndex = 100000
+    CmdBarInput.Parent = CmdBarFrame
+
+    -- Prevent Quote/Semicolon trigger key from showing up inside the textbox when focused
+    CmdBarInput:GetPropertyChangedSignal("Text"):Connect(function()
+        if CmdBarInput.Text == "'" or CmdBarInput.Text == ";" then
+            CmdBarInput.Text = ""
+        end
+    end)
+
+    local function showCmdBar()
+        CmdBarFrame.Visible = true
+        CmdBarFrame.Position = UDim2.new(0.5, -200, 0.5, -60)
+        TweenService:Create(CmdBarFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+            Position = UDim2.new(0.5, -200, 0.5, -20)
+        }):Play()
+        
+        -- Wait for rendering step to finish processing the key press so it's not written into the textbox
+        pcall(function()
+            RunService.RenderStepped:Wait()
+        end)
+        CmdBarInput:CaptureFocus()
+        CmdBarInput.Text = ""
+    end
+
+    local function hideCmdBar()
+        local t1 = TweenService:Create(CmdBarFrame, TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {
+            Position = UDim2.new(0.5, -200, 0.5, -60)
+        })
+        t1:Play()
+        t1.Completed:Connect(function()
+            if CmdBarFrame.Position.Y.Offset == -60 then
+                CmdBarFrame.Visible = false
+                CmdBarInput.Text = ""
+            end
+        end)
+    end
+
+    CmdBarInput.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            local text = CmdBarInput.Text
+            if text and text ~= "" then
+                local ok, err = pcall(handleChatCommand, text)
+                if not ok then
+                    warn("Command Bar Error: " .. tostring(err))
+                end
+            end
+        end
+        hideCmdBar()
+    end)
+
+    -- Keybind to open Command Bar (Quote), using Mouse.KeyDown for 100% detection rate (matching Infinite Yield)
+    pcall(function()
+        local Mouse = Player:GetMouse()
+        Mouse.KeyDown:Connect(function(key)
+            if key == "'" then
+                showCmdBar()
+            end
+        end)
+    end)
+
+    -- Connect legacy chat event
+    pcall(function()
+        if Player then
+            Player.Chatted:Connect(function(msg)
+                pcall(handleChatCommand, msg)
+            end)
+        end
+    end)
+
+    -- Connect modern TextChatService event if applicable
+    pcall(function()
+        local TextChatService = game:GetService("TextChatService")
+        if TextChatService and TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
+            TextChatService.MessageReceived:Connect(function(textChatMessage)
+                if Player and textChatMessage.TextSource and textChatMessage.TextSource.UserId == Player.UserId then
+                    pcall(handleChatCommand, textChatMessage.Text)
+                end
+            end)
+        end
+    end)
+end)
+if not success then
+    warn("Failed to initialize command bar: " .. tostring(err))
 end
