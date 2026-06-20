@@ -70,6 +70,11 @@ function loadCustomWaypoints()
     end
 end
 
+local existingGui = PlayerGui:FindFirstChild("CHCheatGUI")
+if existingGui then
+    pcall(function() existingGui:Destroy() end)
+end
+
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = PlayerGui
 ScreenGui.Enabled = true
@@ -942,7 +947,7 @@ MiniFrame.MouseButton1Click:Connect(function()
     MiniFrame.Visible = false
     MainFrame.Visible = true
     MainFrame.Size = UDim2.new(0, 0, 0, 0)
-    local tween = TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 500, 0, 280)})
+    local tween = TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 560, 0, 320)})
     tween:Play()
 end)
 
