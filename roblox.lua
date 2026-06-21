@@ -103,6 +103,14 @@ MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
+
+local ModalFix = Instance.new("TextButton")
+ModalFix.Name = "ModalFix"
+ModalFix.Size = UDim2.new(0, 0, 0, 0)
+ModalFix.BackgroundTransparency = 1
+ModalFix.Text = ""
+ModalFix.Modal = true
+ModalFix.Parent = MainFrame
 -- Hotkey toggle (left bracket) untuk show/hide GUI
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if UserInputService:GetFocusedTextBox() then return end
@@ -366,7 +374,7 @@ do
 
     -- filtering helpers
     local rusuhKeywords = {"bringpart","spectator","noclip","tendang","unanchor","fly","esp","esp team"}
-    local utilityKeywords = {"free cam","freecam","click tp","clicktp","speed","save wp","savewp","swp", "btools"}
+    local utilityKeywords = {"free cam","freecam","click tp","clicktp","speed","save wp","savewp","swp", "btools", "tween tp", "tweentp", "jump power", "jumppower", "jp", "tp tool", "tptool"}
     local function matchesAny(text, keywords)
         local lower = string.lower(text)
         for _, k in ipairs(keywords) do
@@ -500,6 +508,11 @@ do
             end
             local swpBtn   = UtilityScroll:FindFirstChild("SWPBtn")   or ScrollFrame:FindFirstChild("SWPBtn") or findBtn("Save WP")
             local swpBox   = UtilityScroll:FindFirstChild("SWPBox")   or ScrollFrame:FindFirstChild("SWPBox")
+            local tweenBtn = UtilityScroll:FindFirstChild("TweenTPBtn") or ScrollFrame:FindFirstChild("TweenTPBtn") or findBtn("Tween TP")
+            local btoolsBtn = UtilityScroll:FindFirstChild("BToolsBtn") or ScrollFrame:FindFirstChild("BToolsBtn") or findBtn("BTools")
+            local jumpBtn  = UtilityScroll:FindFirstChild("JumpPowerBtn") or ScrollFrame:FindFirstChild("JumpPowerBtn") or findBtn("Jump Power")
+            local jumpBox  = UtilityScroll:FindFirstChild("JumpPowerBox") or ScrollFrame:FindFirstChild("JumpPowerBox")
+            local tptoolBtn = UtilityScroll:FindFirstChild("TPToolBtn") or ScrollFrame:FindFirstChild("TPToolBtn") or findBtn("TP Tool")
 
             local function moveToUtil(child, order)
                 if child then child.Parent = UtilityScroll child.Visible = true child.LayoutOrder = order end
@@ -508,6 +521,10 @@ do
             moveToUtil(freeBtn, 3);  moveToUtil(fcBox, 4)
             moveToUtil(spdBtn, 5);   moveToUtil(spdBox, 6)
             moveToUtil(swpBtn, 7);   moveToUtil(swpBox, 8)
+            moveToUtil(tweenBtn, 9)
+            moveToUtil(btoolsBtn, 10)
+            moveToUtil(jumpBtn, 11); moveToUtil(jumpBox, 12)
+            moveToUtil(tptoolBtn, 13)
             -- juga pindahkan tombol waypoint tetap (urut A->Z)
             -- jangan tampilkan tombol waypoint tetap di Utility
             for _, ch in ipairs(UtilityScroll:GetChildren()) do
@@ -648,7 +665,12 @@ do
             end
             local swpBtn  = findButtonByText("Save WP")
             local swpBox  = ScrollFrame:FindFirstChild("SWPBox")
-            local ordered = {clickBtn, tpBox, freeBtn, fcBox, spdBtn, spdBox, swpBtn, swpBox}
+            local tweenBtn = findButtonByText("Tween TP")
+            local btoolsBtn = findButtonByText("BTools")
+            local jumpBtn = findButtonByText("Jump Power")
+            local jumpBox = ScrollFrame:FindFirstChild("JumpPowerBox")
+            local tptoolBtn = findButtonByText("TP Tool")
+            local ordered = {clickBtn, tpBox, freeBtn, fcBox, spdBtn, spdBox, swpBtn, swpBox, tweenBtn, btoolsBtn, jumpBtn, jumpBox, tptoolBtn}
             local keep = {}
             local order = 1
             for _, inst in ipairs(ordered) do
@@ -670,6 +692,9 @@ do
         -- also toggle SpeedBox (in case it's not parented directly to ScrollFrame yet in some executors)
         if typeof(SpeedBox) == "Instance" then
             SpeedBox.Visible = (cat == "Utility")
+        end
+        if typeof(JumpPowerBox) == "Instance" then
+            JumpPowerBox.Visible = (cat == "Utility")
         end
         -- ensure layout recalculates
         task.defer(function()
@@ -1112,9 +1137,13 @@ do
         btn.MouseButton1Click:Connect(function()
             local ok, cf = pcall(function() return CFrame.new(table.unpack(comps)) end)
             if ok and typeof(cf)=="CFrame" then
-                local lplr = game:GetService("Players").LocalPlayer
-                local char = lplr.Character or lplr.CharacterAdded:Wait()
-                if char then char:PivotTo(cf) end
+                if typeof(safeTeleportToCFrame) == "function" then
+                    safeTeleportToCFrame(cf)
+                else
+                    local lplr = game:GetService("Players").LocalPlayer
+                    local char = lplr.Character or lplr.CharacterAdded:Wait()
+                    if char then char:PivotTo(cf) end
+                end
             end
         end)
         
@@ -2264,6 +2293,14 @@ function safeTeleportToPlayer(targetPlayer)
         return
     end
 
+    local targetCFrame = targetHrp.CFrame * CFrame.new(0, 3, 0)
+    if tweenTpEnabled then
+        if typeof(safeTeleportToCFrame) == "function" then
+            safeTeleportToCFrame(targetCFrame)
+            return
+        end
+    end
+
     local startPos = hrp.Position
     local targetPos = targetHrp.Position
     local distance = (targetPos - startPos).Magnitude
@@ -2899,6 +2936,13 @@ function createPlayerListWindow()
     mainFrame.Parent = sgui
     PlayerListFrame = mainFrame
 
+    local modal = Instance.new("TextButton")
+    modal.Size = UDim2.new(0, 0, 0, 0)
+    modal.BackgroundTransparency = 1
+    modal.Text = ""
+    modal.Modal = true
+    modal.Parent = mainFrame
+
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 12)
     corner.Parent = mainFrame
@@ -3160,6 +3204,13 @@ function createFriendListWindow()
     mainFrame.ClipsDescendants = true
     mainFrame.Parent = sgui
     FriendListFrame = mainFrame
+
+    local modal = Instance.new("TextButton")
+    modal.Size = UDim2.new(0, 0, 0, 0)
+    modal.BackgroundTransparency = 1
+    modal.Text = ""
+    modal.Modal = true
+    modal.Parent = mainFrame
 
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 12)
@@ -3514,16 +3565,63 @@ toggleFriendListWindow = function()
     if not FriendListFrame then
         createFriendListWindow()
     end
-    FriendListFrame.Visible = not FriendListFrame.Visible
+FriendListFrame.Visible = not FriendListFrame.Visible
     if FriendListFrame.Visible and refreshFriendList then
         refreshFriendList()
     end
 end
-
 WaypointListFrame = nil
 WaypointListScroll = nil
 refreshWaypointList = nil
 toggleWaypointListWindow = nil
+tweenTpEnabled = false
+
+function safeTeleportToCFrame(cf)
+    local lplr = game:GetService("Players").LocalPlayer
+    local char = lplr.Character or lplr.CharacterAdded:Wait()
+    local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso"))
+    if not root then return end
+
+    if tweenTpEnabled then
+        local currentPos = root.Position
+        local targetPos = cf.Position
+        local dist = (targetPos - currentPos).Magnitude
+        
+        -- Speed: 150 studs per second
+        local speed = 150
+        local duration = dist / speed
+        
+        root.Anchored = true
+        pcall(function()
+            lplr:RequestStreamAroundAsync(targetPos)
+        end)
+
+        local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+        local tween = TweenService:Create(root, tweenInfo, {CFrame = cf})
+        tween:Play()
+        
+        tween.Completed:Connect(function()
+            pcall(function()
+                lplr:RequestStreamAroundAsync(targetPos)
+            end)
+            task.wait(0.2)
+            root.Anchored = false
+        end)
+    else
+        root.Anchored = true
+        char:PivotTo(cf)
+        
+        task.spawn(function()
+            pcall(function()
+                lplr:RequestStreamAroundAsync(cf.Position)
+            end)
+            task.wait(0.5) -- wait for map/collisions to load
+            if root and root.Parent then
+                root.Anchored = false
+            end
+        end)
+    end
+end
 
 function createWaypointListWindow()
     if WaypointListFrame then return end
@@ -3541,6 +3639,13 @@ function createWaypointListWindow()
     mainFrame.ClipsDescendants = true
     mainFrame.Parent = sgui
     WaypointListFrame = mainFrame
+
+    local modal = Instance.new("TextButton")
+    modal.Size = UDim2.new(0, 0, 0, 0)
+    modal.BackgroundTransparency = 1
+    modal.Text = ""
+    modal.Modal = true
+    modal.Parent = mainFrame
 
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 12)
@@ -3625,7 +3730,7 @@ function createWaypointListWindow()
     local normalSize = UDim2.new(0, 340, 0, 360)
     local minimizedSize = UDim2.new(0, 340, 0, 30)
 
-    -- Search/Save Area (equivalent of SearchFrame in PlayerList)
+    -- Save Frame
     local saveFrame = Instance.new("Frame")
     saveFrame.Name = "SaveFrame"
     saveFrame.Size = UDim2.new(1, -20, 0, 32)
@@ -3682,9 +3787,42 @@ function createWaypointListWindow()
         end
     end)
 
+    -- Search Frame
+    local searchFrame = Instance.new("Frame")
+    searchFrame.Name = "SearchFrame"
+    searchFrame.Size = UDim2.new(1, -20, 0, 32)
+    searchFrame.Position = UDim2.new(0, 10, 0, 74)
+    searchFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    searchFrame.BackgroundTransparency = 0.2
+    searchFrame.Parent = mainFrame
+
+    local searchCorner = Instance.new("UICorner")
+    searchCorner.CornerRadius = UDim.new(0, 8)
+    searchCorner.Parent = searchFrame
+
+    local searchStroke = Instance.new("UIStroke")
+    searchStroke.Color = Color3.fromRGB(0, 130, 80)
+    searchStroke.Thickness = 1.5
+    searchStroke.Parent = searchFrame
+
+    local searchBox = Instance.new("TextBox")
+    searchBox.Name = "SearchBox"
+    searchBox.Size = UDim2.new(1, -20, 1, 0)
+    searchBox.Position = UDim2.new(0, 10, 0, 0)
+    searchBox.BackgroundTransparency = 1
+    searchBox.Font = Enum.Font.GothamBold
+    searchBox.Text = ""
+    searchBox.PlaceholderText = "Cari Waypoint..."
+    searchBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+    searchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    searchBox.TextSize = 14
+    searchBox.TextXAlignment = Enum.TextXAlignment.Left
+    searchBox.ClearTextOnFocus = false
+    searchBox.Parent = searchFrame
+
     local scroll = Instance.new("ScrollingFrame")
-    scroll.Size = UDim2.new(1, -20, 1, -85)
-    scroll.Position = UDim2.new(0, 10, 0, 78)
+    scroll.Size = UDim2.new(1, -20, 1, -145)
+    scroll.Position = UDim2.new(0, 10, 0, 110)
     scroll.BackgroundTransparency = 1
     scroll.ScrollBarThickness = 4
     scroll.ScrollBarImageColor3 = Color3.fromRGB(0, 220, 130)
@@ -3700,6 +3838,33 @@ function createWaypointListWindow()
         scroll.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 10)
     end)
 
+    -- Bottom Bar: Coordinates Visualizer
+    local coordsLabel = Instance.new("TextLabel")
+    coordsLabel.Size = UDim2.new(1, -20, 0, 20)
+    coordsLabel.Position = UDim2.new(0, 10, 1, -25)
+    coordsLabel.BackgroundTransparency = 1
+    coordsLabel.Font = Enum.Font.SourceSansSemibold
+    coordsLabel.TextSize = 13
+    coordsLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+    coordsLabel.TextXAlignment = Enum.TextXAlignment.Left
+    coordsLabel.Text = "X: 0 | Y: 0 | Z: 0"
+    coordsLabel.Parent = mainFrame
+
+    -- Live Coordinates Updater
+    RunService.RenderStepped:Connect(function()
+        if mainFrame.Visible and not isMinimized then
+            local lp = game.Players.LocalPlayer
+            local char = lp.Character
+            local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso"))
+            if root then
+                local pos = root.Position
+                coordsLabel.Text = string.format("X: %.1f | Y: %.1f | Z: %.1f", pos.X, pos.Y, pos.Z)
+            else
+                coordsLabel.Text = "X: -- | Y: -- | Z: --"
+            end
+        end
+    end)
+
     minBtn.MouseButton1Click:Connect(function()
         isMinimized = not isMinimized
         if isMinimized then
@@ -3707,7 +3872,9 @@ function createWaypointListWindow()
             local tween = TweenService:Create(mainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = minimizedSize})
             tween:Play()
             saveFrame.Visible = false
+            searchFrame.Visible = false
             scroll.Visible = false
+            coordsLabel.Visible = false
         else
             minBtn.Text = "-"
             local tween = TweenService:Create(mainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = normalSize})
@@ -3715,7 +3882,9 @@ function createWaypointListWindow()
             task.delay(0.1, function()
                 if not isMinimized then
                     saveFrame.Visible = true
+                    searchFrame.Visible = true
                     scroll.Visible = true
+                    coordsLabel.Visible = true
                     if refreshWaypointList then
                         refreshWaypointList()
                     end
@@ -3731,7 +3900,9 @@ function createWaypointListWindow()
             minBtn.Text = "-"
             mainFrame.Size = normalSize
             saveFrame.Visible = true
+            searchFrame.Visible = true
             scroll.Visible = true
+            coordsLabel.Visible = true
         end
     end)
 
@@ -3758,6 +3929,13 @@ function createWaypointListWindow()
         if input == dragInput and dragging then
             local delta = input.Position - dragStart
             mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+
+    -- Search Box Connection
+    searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+        if refreshWaypointList then
+            refreshWaypointList()
         end
     end)
 
@@ -3807,9 +3985,12 @@ function createWaypointListWindow()
             end
         end
 
+        local query = string.lower(searchBox.Text)
         local wps = {}
         for name, comps in pairs(customWaypoints) do
-            table.insert(wps, {name = name, comps = comps})
+            if query == "" or string.find(string.lower(name), query, 1, true) then
+                table.insert(wps, {name = name, comps = comps})
+            end
         end
         table.sort(wps, function(a, b)
             return naturalCompare(a.name, b.name)
@@ -3859,9 +4040,7 @@ function createWaypointListWindow()
             tpBtn.MouseButton1Click:Connect(function()
                 local ok, cf = pcall(function() return CFrame.new(table.unpack(comps)) end)
                 if ok and typeof(cf) == "CFrame" then
-                    local lplr = game:GetService("Players").LocalPlayer
-                    local char = lplr.Character or lplr.CharacterAdded:Wait()
-                    if char then char:PivotTo(cf) end
+                    safeTeleportToCFrame(cf)
                 end
             end)
 
@@ -4124,6 +4303,14 @@ ClickTPBtn.LayoutOrder = 1
 FreeCamBtn = createButton("", "Free Cam")
 FreeCamBtn.Name = "FreeCamBtn"
 FreeCamBtn.LayoutOrder = 3
+TweenTPBtn = createButton("", "Tween TP")
+TweenTPBtn.Name = "TweenTPBtn"
+TweenTPBtn.LayoutOrder = 4
+
+TweenTPBtn.MouseButton1Click:Connect(function()
+    tweenTpEnabled = not tweenTpEnabled
+    setButtonActive(TweenTPBtn, tweenTpEnabled)
+end)
 
 local TPBox
 local findPlayerByQuery
@@ -4152,7 +4339,11 @@ function toggleClickTP(state)
                     local char = Player.Character
                     local hrp = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso"))
                     if hrp then
-                        char:PivotTo(CFrame.new(targetPos))
+                        if typeof(safeTeleportToCFrame) == "function" then
+                            safeTeleportToCFrame(CFrame.new(targetPos))
+                        else
+                            char:PivotTo(CFrame.new(targetPos))
+                        end
                     end
                 end
             end)
@@ -4171,7 +4362,11 @@ function handleClickTPClick()
         local target = findPlayerByQuery(query)
         if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and player.Character then
             local targetPos = target.Character.HumanoidRootPart.Position + Vector3.new(0, 3, 0)
-            player.Character:PivotTo(CFrame.new(targetPos))
+            if typeof(safeTeleportToCFrame) == "function" then
+                safeTeleportToCFrame(CFrame.new(targetPos))
+            else
+                player.Character:PivotTo(CFrame.new(targetPos))
+            end
         else
             setButtonActive(ClickTPBtn, true)
             task.delay(0.1, function() setButtonActive(ClickTPBtn, false) end)
@@ -5057,6 +5252,7 @@ AntiLagBtn.MouseButton1Click:Connect(function()
 end)
 
 BToolsBtn = createButton("", "BTools")
+BToolsBtn.Name = "BToolsBtn"
 BToolsActive = false
 
 function toggleBTools()
@@ -5106,6 +5302,171 @@ function toggleBTools()
 end
 
 BToolsBtn.MouseButton1Click:Connect(toggleBTools)
+
+JumpPowerBtn = createButton("", "Jump Power")
+JumpPowerBtn.Name = "JumpPowerBtn"
+local desiredJumpPower = 50
+local jumpPowerOn = false
+
+do
+    JumpPowerBox = Instance.new("TextBox")
+    JumpPowerBox.Name = "JumpPowerBox"
+    JumpPowerBox.Text = tostring(desiredJumpPower)
+    JumpPowerBox.PlaceholderText = "Jump (50-500)"
+    JumpPowerBox.Size = UDim2.new(0, 150, 0, 35)
+    JumpPowerBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    JumpPowerBox.BackgroundTransparency = 0.1
+    JumpPowerBox.TextSize = 15
+    JumpPowerBox.Font = Enum.Font.GothamBold
+    JumpPowerBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    JumpPowerBox.ClearTextOnFocus = false
+    JumpPowerBox.Parent = ScrollFrame
+
+    local c_jp = Instance.new("UICorner")
+    c_jp.CornerRadius = UDim.new(0, 8)
+    c_jp.Parent = JumpPowerBox
+
+    local s_jp = Instance.new("UIStroke")
+    s_jp.Color = Color3.fromRGB(0, 130, 80)
+    s_jp.Thickness = 1.5
+    s_jp.Parent = JumpPowerBox
+
+    local p_jp = Instance.new("UIPadding")
+    p_jp.PaddingLeft = UDim.new(0, 12)
+    p_jp.Parent = JumpPowerBox
+
+    JumpPowerBox.FocusLost:Connect(function()
+        local n = tonumber(JumpPowerBox.Text)
+        if n then
+            n = math.clamp(n, 50, 500)
+            desiredJumpPower = n
+            if jumpPowerOn then
+                local char = Player.Character
+                local hum = char and char:FindFirstChildOfClass("Humanoid")
+                if hum then
+                    hum.UseJumpPower = true
+                    hum.JumpPower = desiredJumpPower
+                end
+            end
+        end
+        JumpPowerBox.Text = tostring(desiredJumpPower)
+    end)
+end
+
+function toggleJumpPower(state)
+    if state == nil then
+        jumpPowerOn = not jumpPowerOn
+    else
+        jumpPowerOn = state
+    end
+    local char = Player.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+
+    if jumpPowerOn then
+        if hum then
+            hum.UseJumpPower = true
+            hum.JumpPower = desiredJumpPower
+        end
+        setButtonActive(JumpPowerBtn, true)
+    else
+        if hum then
+            hum.UseJumpPower = true
+            hum.JumpPower = 50
+        end
+        setButtonActive(JumpPowerBtn, false)
+    end
+end
+
+JumpPowerBtn.MouseButton1Click:Connect(function()
+    toggleJumpPower()
+end)
+
+Player.CharacterAdded:Connect(function(char)
+    local hum = char:WaitForChild("Humanoid", 5)
+    if hum and jumpPowerOn then
+        task.wait(0.5)
+        if jumpPowerOn then
+            hum.UseJumpPower = true
+            hum.JumpPower = desiredJumpPower
+        end
+    end
+end)
+
+TPToolBtn = createButton("", "TP Tool")
+TPToolBtn.Name = "TPToolBtn"
+local tpToolActive = false
+
+local function giveTPTool(char)
+    local backpack = Player:FindFirstChildOfClass("Backpack")
+    if not backpack then return end
+    
+    -- Check if already exists
+    if backpack:FindFirstChild("TP Tool") or (char and char:FindFirstChild("TP Tool")) then
+        return
+    end
+    
+    local tool = Instance.new("Tool")
+    tool.Name = "TP Tool"
+    tool.RequiresHandle = false
+    
+    tool.Activated:Connect(function()
+        local mouse = Player:GetMouse()
+        if mouse then
+            local targetPos = mouse.Hit.Position + Vector3.new(0, 3, 0)
+            local character = Player.Character
+            local hrp = character and (character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso"))
+            if hrp then
+                if typeof(safeTeleportToCFrame) == "function" then
+                    safeTeleportToCFrame(CFrame.new(targetPos))
+                else
+                    character:PivotTo(CFrame.new(targetPos))
+                end
+            end
+        end
+    end)
+    
+    tool.Parent = backpack
+end
+
+local function removeTPTool()
+    local backpack = Player:FindFirstChildOfClass("Backpack")
+    if backpack then
+        local t = backpack:FindFirstChild("TP Tool")
+        if t then pcall(function() t:Destroy() end) end
+    end
+    local char = Player.Character
+    if char then
+        local t = char:FindFirstChild("TP Tool")
+        if t then pcall(function() t:Destroy() end) end
+    end
+end
+
+function toggleTPTool(state)
+    if state == nil then
+        tpToolActive = not tpToolActive
+    else
+        tpToolActive = state
+    end
+    
+    if tpToolActive then
+        giveTPTool(Player.Character)
+        setButtonActive(TPToolBtn, true)
+    else
+        removeTPTool()
+        setButtonActive(TPToolBtn, false)
+    end
+end
+
+TPToolBtn.MouseButton1Click:Connect(function()
+    toggleTPTool()
+end)
+
+Player.CharacterAdded:Connect(function(char)
+    task.wait(0.5)
+    if tpToolActive then
+        giveTPTool(char)
+    end
+end)
 
 ShiftLockBtn = createButton("", "Shift Lock")
 shiftLockActive = false
@@ -5888,8 +6249,8 @@ SWPBox.LayoutOrder = 23
     local btns = {
         AirwalkBtn, ESPBtn, ESPTeamBtn, LampBtn, JumpBtn, SpeedBtn, NoclipBtn, FlingBtn, FlyBtn,
         UnanchorBtn, BringPartBtn, AntiLagBtn, SpectatorBtn,
-        AnimasiBtn, FlyV2Btn, FlyV3Btn, ClickTPBtn, FreeCamBtn, ServerHopBtn, SWPBtn, DexBtn, CmdBarBtn,
-        BToolsBtn, ShiftLockBtn
+        AnimasiBtn, FlyV2Btn, FlyV3Btn, ClickTPBtn, FreeCamBtn, TweenTPBtn, ServerHopBtn, SWPBtn, DexBtn, CmdBarBtn,
+        BToolsBtn, ShiftLockBtn, JumpPowerBtn, TPToolBtn
     }
     local list = {}
     for _,b in ipairs(btns) do
@@ -5922,6 +6283,10 @@ SWPBox.LayoutOrder = 23
             SWPBox.LayoutOrder = order
             order = order + 1
         end
+        if btn == JumpPowerBtn and JumpPowerBox then
+            JumpPowerBox.LayoutOrder = order
+            order = order + 1
+        end
     end
 end)()
 
@@ -5952,6 +6317,7 @@ local success, err = pcall(function()
         { name = "nofreecam", aliases = {"nofc"}, desc = "Nonaktifkan mode kamera bebas.", usage = "" },
         { name = "clicktp", aliases = {"ctp"}, desc = "Aktifkan/nonaktifkan teleport dengan klik (Ctrl + klik).", usage = "" },
         { name = "tp", aliases = {"teleport"}, desc = "Teleportasi ke pemain lain.", usage = " [nama]" },
+        { name = "tptool", aliases = {"tooltp"}, desc = "Aktifkan/nonaktifkan TP Tool di inventory.", usage = "" },
         { name = "unanchor", aliases = {}, desc = "Aktifkan/nonaktifkan fitur unanchor parts.", usage = "" },
         { name = "fling", aliases = {"tendang"}, desc = "Aktifkan/nonaktifkan mode fling untuk lempar pemain.", usage = "" },
         { name = "explorer", aliases = {"dex"}, desc = "Buka DEX Explorer.", usage = "" },
@@ -5960,6 +6326,7 @@ local success, err = pcall(function()
         { name = "espteam", aliases = {}, desc = "Aktifkan/nonaktifkan ESP Team.", usage = "" },
         { name = "lampu", aliases = {"light", "lamp"}, desc = "Aktifkan/nonaktifkan lampu kepala.", usage = "" },
         { name = "infjump", aliases = {"infinitejump"}, desc = "Aktifkan/nonaktifkan loncat tanpa batas.", usage = "" },
+        { name = "jumppower", aliases = {"jp", "jump"}, desc = "Atur tinggi lompatan (50-500) atau aktifkan/nonaktifkan jump power.", usage = " [angka]" },
         { name = "rejoin", aliases = {"rj"}, desc = "Masuk kembali ke server ini.", usage = "" },
         { name = "refresh", aliases = {"re", "respawn"}, desc = "Muat ulang karakter Anda.", usage = "" },
         { name = "antiafk", aliases = {}, desc = "Aktifkan/nonaktifkan anti AFK.", usage = "" },
@@ -6279,9 +6646,13 @@ local success, err = pcall(function()
                 if comps then
                     local ok, cf = pcall(function() return CFrame.new(table.unpack(comps)) end)
                     if ok and typeof(cf) == "CFrame" then
-                        local lplr = game:GetService("Players").LocalPlayer
-                        local char = lplr.Character or lplr.CharacterAdded:Wait()
-                        if char then char:PivotTo(cf) end
+                        if typeof(safeTeleportToCFrame) == "function" then
+                            safeTeleportToCFrame(cf)
+                        else
+                            local lplr = game:GetService("Players").LocalPlayer
+                            local char = lplr.Character or lplr.CharacterAdded:Wait()
+                            if char then char:PivotTo(cf) end
+                        end
                         notifyPlayer("Waypoint", "Teleported to: " .. name)
                     end
                 else
@@ -6303,6 +6674,27 @@ local success, err = pcall(function()
             else
                 toggleSpeed()
             end
+            
+        elseif cmd == "jumppower" or cmd == "jp" or cmd == "jump" then
+            local num = tonumber(fullArgString)
+            if num then
+                num = math.clamp(num, 50, 500)
+                desiredJumpPower = num
+                if JumpPowerBox then JumpPowerBox.Text = tostring(desiredJumpPower) end
+                if jumpPowerOn then
+                    local char = Player.Character
+                    local hum = char and char:FindFirstChildOfClass("Humanoid")
+                    if hum then
+                        hum.UseJumpPower = true
+                        hum.JumpPower = desiredJumpPower
+                    end
+                end
+            else
+                toggleJumpPower()
+            end
+            
+        elseif cmd == "tptool" or cmd == "tooltp" then
+            toggleTPTool()
             
         elseif cmd == "fly" then
             if not flying then
