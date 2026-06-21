@@ -1388,48 +1388,7 @@ end)
 ESPBtn = createButton("", "ESP")
 ESPTeamBtn = createButton("", "ESP Team")
 
-ESPChamsEnabled = false
-ESPNamesEnabled = false
-ESPTracersEnabled = false
-
-ESPChamsBtn = createButton("", "ESP Chams")
-ESPNamesBtn = createButton("", "ESP Name")
-ESPTracersBtn = createButton("", "ESP Tracer")
-
-setButtonActive(ESPChamsBtn, ESPChamsEnabled)
-setButtonActive(ESPNamesBtn, ESPNamesEnabled)
-setButtonActive(ESPTracersBtn, ESPTracersEnabled)
-
-function toggleESPChams()
-    ESPChamsEnabled = not ESPChamsEnabled
-    setButtonActive(ESPChamsBtn, ESPChamsEnabled)
-    if ESPenabled then
-        stopESP()
-        startESP()
-    end
-end
-
-function toggleESPNames()
-    ESPNamesEnabled = not ESPNamesEnabled
-    setButtonActive(ESPNamesBtn, ESPNamesEnabled)
-    if ESPenabled then
-        stopESP()
-        startESP()
-    end
-end
-
-function toggleESPTracers()
-    ESPTracersEnabled = not ESPTracersEnabled
-    setButtonActive(ESPTracersBtn, ESPTracersEnabled)
-    if ESPenabled then
-        stopESP()
-        startESP()
-    end
-end
-
-ESPChamsBtn.MouseButton1Click:Connect(toggleESPChams)
-ESPNamesBtn.MouseButton1Click:Connect(toggleESPNames)
-ESPTracersBtn.MouseButton1Click:Connect(toggleESPTracers)
+ESPNamesEnabled = true
 
 -- [Optimized out duplicate] local Players = game:GetService("Players")
 -- [Optimized out duplicate] local RunService = game:GetService("RunService")
@@ -1452,33 +1411,6 @@ function destroyPlayerESP(name)
             end
         end
     end)
-    pcall(function()
-        local targetPlr = Players:FindFirstChild(name)
-        local char = targetPlr and targetPlr.Character[]
-        if char then
-            local beam = char:FindFirstChild(name .. "_Tracer")
-            if beam then beam:Destroy() end
-            local a = char:FindFirstChild("ESPTracerAttachment")
-            if a then a:Destroy() end
-        end
-    end)
-    pcall(function()
-        local char = LocalPlayer.Character
-        local root = char and getRoot(char)
-        if root then
-            local stillHasTracers = false
-            for _, otherPlr in pairs(Players:GetPlayers()) do
-                if otherPlr ~= LocalPlayer and otherPlr.Character and otherPlr.Character:FindFirstChild(otherPlr.Name .. "_Tracer") then
-                    stillHasTracers = true
-                    break
-                end
-            end
-            if not stillHasTracers then
-                local myAttachment = root:FindFirstChild("ESPTracerAttachment")
-                if myAttachment then myAttachment:Destroy() end
-            end
-        end
-    end)
 end
 
 function CreateESP(plr)
@@ -1489,27 +1421,6 @@ function CreateESP(plr)
     local holder = Instance.new("Folder")
     holder.Name = plr.Name .. "_ESP"
     holder.Parent = COREGUI
-
-    -- 1. Chams
-    if ESPChamsEnabled then
-        for _, part in pairs(plr.Character:GetChildren()) do
-            if part:IsA("BasePart") then
-                local box = Instance.new("BoxHandleAdornment")
-                box.Name = plr.Name
-                box.Parent = holder
-                box.Adornee = part
-                box.AlwaysOnTop = true
-                box.ZIndex = 10
-                box.Size = part.Size
-                box.Transparency = espTransparency
-                if ESPTeamMode then
-                    box.Color = BrickColor.new(plr.TeamColor == LocalPlayer.TeamColor and "Bright green" or "Bright red")
-                else
-                    box.Color = plr.TeamColor
-                end
-            end
-        end
-    end
 
     -- 2. Name
     local head = plr.Character:FindFirstChild("Head")
@@ -1547,45 +1458,6 @@ function CreateESP(plr)
         end
 
         RunService.RenderStepped:Connect(updateLabel)
-    end
-
-    -- 3. Tracer
-    if ESPTracersEnabled then
-        local targetRoot = getRoot(plr.Character)
-        local myChar = LocalPlayer.Character
-        local myRoot = getRoot(myChar)
-        if targetRoot and myRoot then
-            local tAttachment = targetRoot:FindFirstChild("ESPTracerAttachment")
-            if not tAttachment then
-                tAttachment = Instance.new("Attachment")
-                tAttachment.Name = "ESPTracerAttachment"
-                tAttachment.Parent = targetRoot
-            end
-
-            local myAttachment = myRoot:FindFirstChild("ESPTracerAttachment")
-            if not myAttachment then
-                myAttachment = Instance.new("Attachment")
-                myAttachment.Name = "ESPTracerAttachment"
-                myAttachment.Parent = myRoot
-                myAttachment.Position = Vector3.new(0, -2.5, 0)
-            end
-
-            local beam = Instance.new("Beam")
-            beam.Name = plr.Name .. "_Tracer"
-            beam.Attachment0 = myAttachment
-            beam.Attachment1 = tAttachment
-            beam.Width0 = 0.1
-            beam.Width1 = 0.1
-            beam.FaceCamera = true
-            beam.AlwaysOnTop = true
-            beam.ZOffset = 0
-            if ESPTeamMode then
-                beam.Color = ColorSequence.new(plr.TeamColor == LocalPlayer.TeamColor and Color3.new(0, 1, 0) or Color3.new(1, 0, 0))
-            else
-                beam.Color = ColorSequence.new(plr.TeamColor.Color)
-            end
-            beam.Parent = plr.Character
-        end
     end
 
     plr.CharacterAdded:Connect(function()
@@ -1642,21 +1514,9 @@ function stopESP()
         pcall(function()
             local char = plr.Character
             if char then
-                local b = char:FindFirstChild(plr.Name .. "_Tracer")
-                if b then b:Destroy() end
-                local a = char:FindFirstChild("ESPTracerAttachment")
-                if a then a:Destroy() end
             end
         end)
     end
-    pcall(function()
-        local myChar = LocalPlayer.Character
-        local myRoot = myChar and getRoot(myChar)
-        if myRoot then
-            local a = myRoot:FindFirstChild("ESPTracerAttachment")
-            if a then a:Destroy() end
-        end
-    end)
     if playerAddedConnection then
         playerAddedConnection:Disconnect()
         playerAddedConnection = nil
@@ -1673,12 +1533,6 @@ function toggleESP(state)
         ESPTeamMode = false
         setButtonActive(ESPBtn, true)
         setButtonActive(ESPTeamBtn, false)
-        if not ESPChamsEnabled and not ESPNamesEnabled and not ESPTracersEnabled then
-            ESPChamsEnabled = true
-            ESPNamesEnabled = true
-            setButtonActive(ESPChamsBtn, true)
-            setButtonActive(ESPNamesBtn, true)
-        end
         startESP()
     else
         setButtonActive(ESPBtn, false)
@@ -1702,12 +1556,6 @@ function toggleESPTeam(state)
         end
         setButtonActive(ESPTeamBtn, true)
         setButtonActive(ESPBtn, false)
-        if not ESPChamsEnabled and not ESPNamesEnabled and not ESPTracersEnabled then
-            ESPChamsEnabled = true
-            ESPNamesEnabled = true
-            setButtonActive(ESPChamsBtn, true)
-            setButtonActive(ESPNamesBtn, true)
-        end
         startESP()
     else
         setButtonActive(ESPTeamBtn, false)
@@ -5608,7 +5456,7 @@ SWPBox.LayoutOrder = 23
         AirwalkBtn, ESPBtn, ESPTeamBtn, LampBtn, JumpBtn, SpeedBtn, NoclipBtn, FlingBtn, FlyBtn,
         UnanchorBtn, BringPartBtn, AntiLagBtn, SpectatorBtn,
         AnimasiBtn, FlyV2Btn, FlyV3Btn, ClickTPBtn, FreeCamBtn, ServerHopBtn, SWPBtn, DexBtn, CmdBarBtn,
-        ESPChamsBtn, ESPNamesBtn, ESPTracersBtn, BToolsBtn, ShiftLockBtn
+        BToolsBtn, ShiftLockBtn
     }
     local list = {}
     for _,b in ipairs(btns) do
@@ -5687,9 +5535,6 @@ local success, err = pcall(function()
         { name = "antilag", aliases = {"boost"}, desc = "Aktifkan/nonaktifkan pengurang lag (Anti Lag).", usage = "" },
         { name = "btools", aliases = {"bt"}, desc = "Dapatkan Building Tools (BTools).", usage = "" },
         { name = "shiftlock", aliases = {"sl"}, desc = "Aktifkan/nonaktifkan Shift Lock.", usage = "" },
-        { name = "espchams", aliases = {}, desc = "Aktifkan/nonaktifkan ESP Chams.", usage = "" },
-        { name = "espname", aliases = {"espnames"}, desc = "Aktifkan/nonaktifkan ESP Name.", usage = "" },
-        { name = "esptracer", aliases = {"esptracers"}, desc = "Aktifkan/nonaktifkan ESP Tracer.", usage = "" },
         { name = "noclip", aliases = {}, desc = "Aktifkan/nonaktifkan noclip ghost.", usage = "" },
         { name = "spectate", aliases = {"spectator", "view"}, desc = "Buka menu Spectator.", usage = "" },
         { name = "animasi", aliases = {"anims"}, desc = "Buka menu Animasi.", usage = "" },
@@ -6120,15 +5965,6 @@ local success, err = pcall(function()
 
         elseif cmd == "shiftlock" or cmd == "sl" then
             toggleShiftLock()
-
-        elseif cmd == "espchams" then
-            toggleESPChams()
-
-        elseif cmd == "espname" or cmd == "espnames" then
-            toggleESPNames()
-
-        elseif cmd == "esptracer" or cmd == "esptracers" then
-            toggleESPTracers()
 
         elseif cmd == "noclip" then
             toggleNoclip()
