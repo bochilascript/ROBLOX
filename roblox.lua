@@ -6,6 +6,7 @@ local UserInputService = game:GetService("UserInputService")
 local showCommandsWindow
 local showCmdBar
 local CmdsFrame
+local togglePlayerListWindow
 
 currentCategory = "Menu"
 customWaypoints = {}
@@ -766,6 +767,13 @@ do
             showCommandsWindow()
         else
             setCategory("Commands")
+        end
+    end)
+
+    local btnPlayers = makeSmallBtn("Players", 5.5)
+    btnPlayers.MouseButton1Click:Connect(function()
+        if togglePlayerListWindow then
+            togglePlayerListWindow()
         end
     end)
 
@@ -1927,6 +1935,930 @@ end
 local function serverhop()
     createServerHopWindow()
 end
+
+-- ==========================================
+-- PLAYER LIST GUI & FUNCTIONS (BY ANTIGRAVITY)
+-- ==========================================
+local PlayerListFrame = nil
+local PlayerListScroll = nil
+local PlayerListSearchBox = nil
+local currentSpectateTarget = nil
+local playerConnections = {}
+local refreshPlayerList
+local updateCanvasSize
+
+updateCanvasSize = function()
+    if not PlayerListScroll then return end
+    local height = 10
+    for _, item in ipairs(PlayerListScroll:GetChildren()) do
+        if item:IsA("Frame") and item.Name == "PlayerItem" then
+            height = height + item.Size.Y.Offset + 5
+        end
+    end
+    PlayerListScroll.CanvasSize = UDim2.new(0, 0, 0, height)
+end
+
+local function getPlayerThumbnail(targetUserId)
+    local success, result = pcall(function()
+        return game:GetService("Players"):GetUserThumbnailAsync(targetUserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size48x48)
+    end)
+    if success and result then
+        return result
+    end
+    return "rbxasset://textures/ui/avatar_placeholder.png"
+end
+
+local function createPlayerRow(targetPlayer, index)
+    local row = Instance.new("Frame")
+    row.Name = "PlayerItem"
+    row.Size = UDim2.new(1, -8, 0, 50)
+    row.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    row.BorderSizePixel = 0
+    row.ClipsDescendants = true
+    row.LayoutOrder = index
+    row.Parent = PlayerListScroll
+
+    local rowCorner = Instance.new("UICorner")
+    rowCorner.CornerRadius = UDim.new(0, 6)
+    rowCorner.Parent = row
+
+    local rowStroke = Instance.new("UIStroke")
+    rowStroke.Color = Color3.fromRGB(40, 40, 45)
+    rowStroke.Thickness = 1
+    rowStroke.Parent = row
+
+    -- Avatar Thumbnail
+    local avatar = Instance.new("ImageLabel")
+    avatar.Name = "Avatar"
+    avatar.Size = UDim2.new(0, 36, 0, 36)
+    avatar.Position = UDim2.new(0, 8, 0, 7)
+    avatar.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    avatar.BorderSizePixel = 0
+    avatar.Image = "rbxasset://textures/ui/avatar_placeholder.png"
+    avatar.Parent = row
+
+    local avatarCorner = Instance.new("UICorner")
+    avatarCorner.CornerRadius = UDim.new(1, 0)
+    avatarCorner.Parent = avatar
+
+    task.spawn(function()
+        local img = getPlayerThumbnail(targetPlayer.UserId)
+        if avatar and avatar.Parent then
+            avatar.Image = img
+        end
+    end)
+
+    -- Player Labels Container
+    local info = Instance.new("Frame")
+    info.Name = "Info"
+    info.Size = UDim2.new(1, -178, 0, 42)
+    info.Position = UDim2.new(0, 52, 0, 4)
+    info.BackgroundTransparency = 1
+    info.Parent = row
+
+    local dispLabel = Instance.new("TextLabel")
+    dispLabel.Size = UDim2.new(1, 0, 0.5, 0)
+    dispLabel.BackgroundTransparency = 1
+    dispLabel.Font = Enum.Font.GothamBold
+    dispLabel.TextSize = 12
+    dispLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    dispLabel.TextXAlignment = Enum.TextXAlignment.Left
+    dispLabel.Text = targetPlayer.DisplayName
+    dispLabel.Parent = info
+
+    local userLabel = Instance.new("TextLabel")
+    userLabel.Size = UDim2.new(1, 0, 0.5, 0)
+    userLabel.Position = UDim2.new(0, 0, 0.5, 0)
+    userLabel.BackgroundTransparency = 1
+    userLabel.Font = Enum.Font.Gotham
+    userLabel.TextSize = 10
+    userLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+    userLabel.TextXAlignment = Enum.TextXAlignment.Left
+    userLabel.Text = "@" .. targetPlayer.Name
+    userLabel.Parent = info
+
+    -- Action Buttons Container
+    local btns = Instance.new("Frame")
+    btns.Name = "Buttons"
+    btns.Size = UDim2.new(0, 120, 0, 26)
+    btns.Position = UDim2.new(1, -126, 0, 12)
+    btns.BackgroundTransparency = 1
+    btns.Parent = row
+
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.FillDirection = Enum.FillDirection.Horizontal
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    listLayout.Padding = UDim.new(0, 4)
+    listLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+    listLayout.Parent = btns
+
+    -- Helper to create action buttons
+    local function makeActBtn(text, color, strokeColor, order, sizeX)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(0, sizeX, 1, 0)
+        btn.BackgroundColor3 = color
+        btn.Text = text
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 10
+        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        btn.LayoutOrder = order
+        btn.Parent = btns
+
+        local c = Instance.new("UICorner")
+        c.CornerRadius = UDim.new(0, 4)
+        c.Parent = btn
+
+        local s = Instance.new("UIStroke")
+        s.Color = strokeColor
+        s.Thickness = 1
+        s.Parent = btn
+
+        btn.MouseEnter:Connect(function()
+            TweenService:Create(s, TweenInfo.new(0.15), {Color = Color3.fromRGB(255, 255, 255)}):Play()
+        end)
+        btn.MouseLeave:Connect(function()
+            TweenService:Create(s, TweenInfo.new(0.15), {Color = strokeColor}):Play()
+        end)
+
+        return btn
+    end
+
+    -- TP Button
+    local tpBtn = makeActBtn("TP", Color3.fromRGB(0, 130, 80), Color3.fromRGB(0, 200, 120), 1, 30)
+    tpBtn.MouseButton1Click:Connect(function()
+        local lplr = game.Players.LocalPlayer
+        local char = lplr.Character
+        local hrp = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso"))
+        if not hrp then return end
+
+        local targetChar = targetPlayer.Character
+        local targetHrp = targetChar and (targetChar:FindFirstChild("HumanoidRootPart") or targetChar:FindFirstChild("Torso") or targetChar:FindFirstChild("UpperTorso"))
+        
+        if not targetHrp and targetChar then
+            targetHrp = targetChar:FindFirstChildWhichIsA("BasePart", true)
+        end
+
+        if not targetHrp then
+            pcall(function()
+                game:GetService("StarterGui"):SetCore("SendNotification", {
+                    Title = "Teleport Gagal",
+                    Text = "Karakter player target belum memuat di device Anda (terlalu jauh).",
+                    Duration = 4
+                })
+            end)
+            return
+        end
+
+        local startPos = hrp.Position
+        local targetPos = targetHrp.Position
+        local distance = (targetPos - startPos).Magnitude
+
+        -- Jika jarak dekat (< 500 studs), langsung instant TP secara aman
+        if distance < 500 then
+            local previousAnchored = hrp.Anchored
+            hrp.Anchored = true
+            
+            pcall(function()
+                game:GetService("StarterGui"):SetCore("SendNotification", {
+                    Title = "Teleporting...",
+                    Text = "Menyiapkan map untuk " .. targetPlayer.DisplayName,
+                    Duration = 2
+                })
+            end)
+
+            char:PivotTo(targetHrp.CFrame * CFrame.new(0, 3, 0))
+            
+            -- Request streaming agar map termuat
+            pcall(function()
+                game.Players.LocalPlayer:RequestStreamAroundAsync(targetPos)
+            end)
+            
+            task.wait(0.3)
+            hrp.Anchored = previousAnchored
+
+            pcall(function()
+                game:GetService("StarterGui"):SetCore("SendNotification", {
+                    Title = "Teleport Sukses",
+                    Text = "Teleport ke " .. targetPlayer.DisplayName .. " selesai.",
+                    Duration = 3
+                })
+            end)
+        else
+            -- Jika jarak jauh (>= 500 studs), lakukan TpWalk (teleportasi bertahap) agar tidak dibatalkan server/anti-cheat
+            pcall(function()
+                game:GetService("StarterGui"):SetCore("SendNotification", {
+                    Title = "Safe Teleport",
+                    Text = string.format("Teleport bertahap berjalan... Jarak: %.0f studs", distance),
+                    Duration = 4
+                })
+            end)
+
+            -- Matikan sementara gravity dan velocity agar tidak terpengaruh fisika
+            local oldGravity = workspace.Gravity
+            workspace.Gravity = 0
+            hrp.AssemblyLinearVelocity = Vector3.zero
+
+            local speed = 300 -- studs per detik (aman dari kick/rubberband anti-cheat di kebanyakan game)
+            local reached = false
+            local connection
+            
+            connection = RunService.Heartbeat:Connect(function(dt)
+                local myChar = lplr.Character
+                local myHrp = myChar and (myChar:FindFirstChild("HumanoidRootPart") or myChar:FindFirstChild("Torso") or myChar:FindFirstChild("UpperTorso"))
+                local tChar = targetPlayer.Character
+                local tHrp = tChar and (tChar:FindFirstChild("HumanoidRootPart") or tChar:FindFirstChild("Torso") or tChar:FindFirstChild("UpperTorso"))
+                
+                if not tHrp and tChar then
+                    tHrp = tChar:FindFirstChildWhichIsA("BasePart", true)
+                end
+
+                if not myHrp or not tHrp then
+                    reached = true
+                    connection:Disconnect()
+                    workspace.Gravity = oldGravity
+                    return
+                end
+
+                local curPos = myHrp.Position
+                local destPos = tHrp.Position
+                local dist = (destPos - curPos).Magnitude
+                local dir = (destPos - curPos).Unit
+                local step = speed * dt
+
+                if dist <= step then
+                    myHrp.CFrame = tHrp.CFrame * CFrame.new(0, 3, 0)
+                    reached = true
+                    connection:Disconnect()
+                    workspace.Gravity = oldGravity
+                    pcall(function()
+                        game:GetService("StarterGui"):SetCore("SendNotification", {
+                            Title = "Teleport Sukses",
+                            Text = "Sampai di target secara aman.",
+                            Duration = 3
+                        })
+                    end)
+                else
+                    myHrp.CFrame = CFrame.new(curPos + dir * step, destPos)
+                    myHrp.AssemblyLinearVelocity = Vector3.zero
+                end
+            end)
+
+            -- Safety timeout (jika macet)
+            task.delay(15, function()
+                if connection and connection.Connected then
+                    connection:Disconnect()
+                    workspace.Gravity = oldGravity
+                    pcall(function()
+                        game:GetService("StarterGui"):SetCore("SendNotification", {
+                            Title = "Teleport Timeout",
+                            Text = "Proses teleport dibatalkan karena waktu habis.",
+                            Duration = 3
+                        })
+                    end)
+                end
+            end)
+        end
+    end)
+
+    -- View (Spectate) Button
+    local isViewing = (currentSpectateTarget == targetPlayer)
+    local viewBtnText = isViewing and "Stop" or "View"
+    local viewBtnColor = isViewing and Color3.fromRGB(200, 80, 50) or Color3.fromRGB(0, 100, 150)
+    local viewBtnStroke = isViewing and Color3.fromRGB(255, 120, 100) or Color3.fromRGB(0, 160, 220)
+    
+    local viewBtn = makeActBtn(viewBtnText, viewBtnColor, viewBtnStroke, 2, 38)
+    viewBtn.MouseButton1Click:Connect(function()
+        local camera = workspace.CurrentCamera
+        if currentSpectateTarget == targetPlayer then
+            currentSpectateTarget = nil
+            local char = game.Players.LocalPlayer.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                camera.CameraSubject = hum
+            end
+            pcall(function()
+                game:GetService("StarterGui"):SetCore("SendNotification", {
+                    Title = "Spectate",
+                    Text = "Stopped spectating",
+                    Duration = 3
+                })
+            end)
+        else
+            currentSpectateTarget = targetPlayer
+            local char = targetPlayer.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                camera.CameraSubject = hum
+                pcall(function()
+                    game:GetService("StarterGui"):SetCore("SendNotification", {
+                        Title = "Spectate",
+                        Text = "Viewing: " .. targetPlayer.DisplayName,
+                        Duration = 3
+                    })
+                end)
+            else
+                pcall(function()
+                    game:GetService("StarterGui"):SetCore("SendNotification", {
+                        Title = "Spectate Error",
+                        Text = "Player character not found",
+                        Duration = 3
+                    })
+                end)
+            end
+        end
+        refreshPlayerList()
+    end)
+
+    -- Add Friend Button
+    local isFriend = false
+    pcall(function()
+        isFriend = game.Players.LocalPlayer:IsFriendsWith(targetPlayer.UserId)
+    end)
+
+    local addBtn
+    if isFriend then
+        addBtn = makeActBtn("Teman", Color3.fromRGB(20, 20, 25), Color3.fromRGB(40, 40, 45), 3, 44)
+        addBtn.TextColor3 = Color3.fromRGB(120, 120, 120)
+        addBtn.Active = false
+    else
+        addBtn = makeActBtn("Tambah", Color3.fromRGB(40, 40, 45), Color3.fromRGB(60, 60, 65), 3, 44)
+        addBtn.MouseButton1Click:Connect(function()
+            pcall(function()
+                game:GetService("StarterGui"):SetCore("PromptSendFriendRequest", targetPlayer)
+            end)
+            addBtn.Text = "Proses"
+            addBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+            addBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
+            task.delay(3, function()
+                if addBtn and addBtn.Parent then
+                    local stillFriend = false
+                    pcall(function()
+                        stillFriend = game.Players.LocalPlayer:IsFriendsWith(targetPlayer.UserId)
+                    end)
+                    if stillFriend then
+                        addBtn.Text = "Teman"
+                        addBtn.TextColor3 = Color3.fromRGB(120, 120, 120)
+                        addBtn.Active = false
+                        addBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+                        local stroke = addBtn:FindFirstChildOfClass("UIStroke")
+                        if stroke then stroke.Color = Color3.fromRGB(40, 40, 45) end
+                    else
+                        addBtn.Text = "Tambah"
+                        addBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+                        addBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                    end
+                end
+            end)
+        end)
+    end
+
+    -- Expanded Detail Area Frame
+    local expandedFrame = Instance.new("Frame")
+    expandedFrame.Name = "ExpandedArea"
+    expandedFrame.Size = UDim2.new(1, -16, 0, 60)
+    expandedFrame.Position = UDim2.new(0, 8, 0, 52)
+    expandedFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+    expandedFrame.BorderSizePixel = 0
+    expandedFrame.Visible = false
+    expandedFrame.Parent = row
+
+    local exCorner = Instance.new("UICorner")
+    exCorner.CornerRadius = UDim.new(0, 6)
+    exCorner.Parent = expandedFrame
+
+    local exStroke = Instance.new("UIStroke")
+    exStroke.Color = Color3.fromRGB(30, 30, 35)
+    exStroke.Thickness = 1
+    exStroke.Parent = expandedFrame
+
+    -- Left Details (Umur Akun & Tim)
+    local detailInfo = Instance.new("Frame")
+    detailInfo.Name = "DetailInfo"
+    detailInfo.Size = UDim2.new(0, 100, 1, 0)
+    detailInfo.Position = UDim2.new(0, 8, 0, 0)
+    detailInfo.BackgroundTransparency = 1
+    detailInfo.Parent = expandedFrame
+
+    local ageLabel = Instance.new("TextLabel")
+    ageLabel.Size = UDim2.new(1, 0, 0.5, 0)
+    ageLabel.BackgroundTransparency = 1
+    ageLabel.Font = Enum.Font.Gotham
+    ageLabel.TextSize = 11
+    ageLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+    ageLabel.TextXAlignment = Enum.TextXAlignment.Left
+    local days = targetPlayer.AccountAge
+    local ageText = ""
+    if days < 30 then
+        ageText = days .. " hari"
+    elseif days < 365 then
+        ageText = math.floor(days / 30) .. " bulan"
+    else
+        ageText = math.floor(days / 365.25) .. " tahun"
+    end
+    ageLabel.Text = "Umur: " .. ageText
+    ageLabel.Parent = detailInfo
+
+    local teamLabel = Instance.new("TextLabel")
+    teamLabel.Size = UDim2.new(1, 0, 0.5, 0)
+    teamLabel.Position = UDim2.new(0, 0, 0.5, 0)
+    teamLabel.BackgroundTransparency = 1
+    teamLabel.Font = Enum.Font.Gotham
+    teamLabel.TextSize = 11
+    teamLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+    teamLabel.TextXAlignment = Enum.TextXAlignment.Left
+    teamLabel.Text = "Tim: " .. (targetPlayer.Team and targetPlayer.Team.Name or "Tidak ada")
+    teamLabel.Parent = detailInfo
+
+    -- Right Action Buttons (Fling, ESP, Copy)
+    local exBtns = Instance.new("Frame")
+    exBtns.Name = "ExtraButtons"
+    exBtns.Size = UDim2.new(0, 180, 1, 0)
+    exBtns.Position = UDim2.new(0, 110, 0, 0)
+    exBtns.BackgroundTransparency = 1
+    exBtns.Parent = expandedFrame
+
+    local exListLayout = Instance.new("UIListLayout")
+    exListLayout.FillDirection = Enum.FillDirection.Horizontal
+    exListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    exListLayout.Padding = UDim.new(0, 4)
+    exListLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+    exListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+    exListLayout.Parent = exBtns
+
+    local function makeExActBtn(text, color, strokeColor, order, sizeX)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(0, sizeX, 0, 26)
+        btn.BackgroundColor3 = color
+        btn.Text = text
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 10
+        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        btn.LayoutOrder = order
+        btn.Parent = exBtns
+
+        local c = Instance.new("UICorner")
+        c.CornerRadius = UDim.new(0, 4)
+        c.Parent = btn
+
+        local s = Instance.new("UIStroke")
+        s.Color = strokeColor
+        s.Thickness = 1
+        s.Parent = btn
+
+        btn.MouseEnter:Connect(function()
+            TweenService:Create(s, TweenInfo.new(0.15), {Color = Color3.fromRGB(255, 255, 255)}):Play()
+        end)
+        btn.MouseLeave:Connect(function()
+            TweenService:Create(s, TweenInfo.new(0.15), {Color = strokeColor}):Play()
+        end)
+
+        return btn
+    end
+
+    -- Copy ID Button
+    local copyBtn = makeExActBtn("Salin ID", Color3.fromRGB(40, 40, 45), Color3.fromRGB(60, 60, 65), 1, 46)
+    copyBtn.MouseButton1Click:Connect(function()
+        if setclipboard then
+            setclipboard(tostring(targetPlayer.UserId))
+            pcall(function()
+                game:GetService("StarterGui"):SetCore("SendNotification", {
+                    Title = "Salin ID",
+                    Text = "User ID player berhasil disalin!",
+                    Duration = 2
+                })
+            end)
+        end
+    end)
+
+    -- Copy User Button
+    local copyUserBtn = makeExActBtn("Salin User", Color3.fromRGB(40, 40, 45), Color3.fromRGB(60, 60, 65), 2, 54)
+    copyUserBtn.MouseButton1Click:Connect(function()
+        if setclipboard then
+            setclipboard(targetPlayer.Name)
+            pcall(function()
+                game:GetService("StarterGui"):SetCore("SendNotification", {
+                    Title = "Salin Username",
+                    Text = "Username player berhasil disalin!",
+                    Duration = 2
+                })
+            end)
+        end
+    end)
+
+    -- Toggle ESP Button
+    local COREGUI = game:GetService("CoreGui")
+    local espBtn = makeExActBtn("ESP", Color3.fromRGB(0, 100, 150), Color3.fromRGB(0, 160, 220), 3, 32)
+    if COREGUI:FindFirstChild(targetPlayer.Name .. "_ESP") then
+        espBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 120)
+        espBtn.FindFirstChildOfClass("UIStroke").Color = Color3.fromRGB(0, 240, 150)
+    end
+    espBtn.MouseButton1Click:Connect(function()
+        if COREGUI:FindFirstChild(targetPlayer.Name .. "_ESP") then
+            destroyPlayerESP(targetPlayer.Name)
+            espBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 150)
+            espBtn.FindFirstChildOfClass("UIStroke").Color = Color3.fromRGB(0, 160, 220)
+        else
+            CreateESP(targetPlayer)
+            espBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 120)
+            espBtn.FindFirstChildOfClass("UIStroke").Color = Color3.fromRGB(0, 240, 150)
+        end
+    end)
+
+    -- Fling Button
+    local flingActive = false
+    local flingBtn = makeExActBtn("Fling", Color3.fromRGB(150, 50, 50), Color3.fromRGB(200, 100, 100), 4, 36)
+    flingBtn.MouseButton1Click:Connect(function()
+        local lplr = game.Players.LocalPlayer
+        local char = lplr.Character
+        local hrp = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso"))
+        if not hrp then return end
+
+        flingActive = not flingActive
+        if flingActive then
+            flingBtn.Text = "Stop"
+            flingBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
+            flingBtn.FindFirstChildOfClass("UIStroke").Color = Color3.fromRGB(255, 150, 50)
+            
+            task.spawn(function()
+                local oldGravity = workspace.Gravity
+                workspace.Gravity = 0
+                
+                local originalCFrame = hrp.CFrame
+                
+                pcall(function()
+                    game:GetService("StarterGui"):SetCore("SendNotification", {
+                        Title = "Flinging...",
+                        Text = "Menyerang " .. targetPlayer.DisplayName .. ". Klik Stop untuk kembali.",
+                        Duration = 3
+                    })
+                end)
+
+                while flingActive and targetPlayer and targetPlayer.Parent do
+                    RunService.Heartbeat:Wait()
+                    local myChar = lplr.Character
+                    local myHrp = myChar and (myChar:FindFirstChild("HumanoidRootPart") or myChar:FindFirstChild("Torso") or myChar:FindFirstChild("UpperTorso"))
+                    local tChar = targetPlayer.Character
+                    local tHrp = tChar and (tChar:FindFirstChild("HumanoidRootPart") or tChar:FindFirstChild("Torso") or tChar:FindFirstChild("UpperTorso"))
+                    
+                    if not myHrp then break end
+                    if not tHrp then
+                        tHrp = tChar and tChar:FindFirstChildWhichIsA("BasePart", true)
+                    end
+
+                    if tHrp then
+                        myHrp.AssemblyLinearVelocity = Vector3.new(0, 99999, 0)
+                        myHrp.AssemblyAngularVelocity = Vector3.new(0, 99999, 0)
+                        myHrp.CFrame = tHrp.CFrame * CFrame.new(math.random(-1,1)*0.4, 0, math.random(-1,1)*0.4)
+                    else
+                        myHrp.AssemblyLinearVelocity = Vector3.zero
+                        myHrp.AssemblyAngularVelocity = Vector3.zero
+                    end
+                end
+                
+                flingActive = false
+                workspace.Gravity = oldGravity
+                
+                -- Restore original state if loop finished naturally
+                if flingBtn and flingBtn.Parent then
+                    flingBtn.Text = "Fling"
+                    flingBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+                    local stroke = flingBtn:FindFirstChildOfClass("UIStroke")
+                    if stroke then stroke.Color = Color3.fromRGB(200, 100, 100) end
+                end
+                
+                local myChar = lplr.Character
+                local myHrp = myChar and (myChar:FindFirstChild("HumanoidRootPart") or myChar:FindFirstChild("Torso") or myChar:FindFirstChild("UpperTorso"))
+                if myHrp and originalCFrame then
+                    -- Temporarily anchor character for 0.1s to fully stop momentum
+                    local prevAnchored = myHrp.Anchored
+                    myHrp.Anchored = true
+                    myHrp.AssemblyLinearVelocity = Vector3.zero
+                    myHrp.AssemblyAngularVelocity = Vector3.zero
+                    myHrp.CFrame = originalCFrame
+                    task.wait(0.1)
+                    myHrp.Anchored = prevAnchored
+                end
+            end)
+        else
+            flingActive = false
+            -- Instantly update UI states on click
+            flingBtn.Text = "Fling"
+            flingBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+            local stroke = flingBtn:FindFirstChildOfClass("UIStroke")
+            if stroke then stroke.Color = Color3.fromRGB(200, 100, 100) end
+        end
+    end)
+
+    -- Expand/Collapse Interaction (Clicking info or left part)
+    local isExpanded = false
+    local toggleExpand
+    toggleExpand = function()
+        isExpanded = not isExpanded
+        if isExpanded then
+            row.Size = UDim2.new(1, -8, 0, 120)
+            expandedFrame.Visible = true
+        else
+            row.Size = UDim2.new(1, -8, 0, 50)
+            expandedFrame.Visible = false
+            flingActive = false
+        end
+        updateCanvasSize()
+    end
+
+    local clickDetector = Instance.new("TextButton")
+    clickDetector.Name = "ClickDetector"
+    clickDetector.Size = UDim2.new(1, -135, 0, 48)
+    clickDetector.BackgroundTransparency = 1
+    clickDetector.Text = ""
+    clickDetector.Parent = row
+
+    clickDetector.MouseButton1Click:Connect(toggleExpand)
+end
+
+
+refreshPlayerList = function()
+    if not PlayerListFrame or not PlayerListFrame.Visible then return end
+    
+    for _, child in ipairs(PlayerListScroll:GetChildren()) do
+        if child:IsA("Frame") and child.Name == "PlayerItem" then
+            child:Destroy()
+        end
+    end
+
+    local query = string.lower(PlayerListSearchBox.Text)
+    local count = 0
+
+    local sortedPlayers = game:GetService("Players"):GetPlayers()
+    table.sort(sortedPlayers, function(a, b)
+        return string.lower(a.DisplayName) < string.lower(b.DisplayName)
+    end)
+
+    for _, plr in ipairs(sortedPlayers) do
+        if plr ~= game.Players.LocalPlayer then
+            local nameMatch = string.find(string.lower(plr.Name), query, 1, true)
+            local dispMatch = string.find(string.lower(plr.DisplayName), query, 1, true)
+            if query == "" or nameMatch or dispMatch then
+                count = count + 1
+                createPlayerRow(plr, count)
+            end
+        end
+    end
+    updateCanvasSize()
+end
+
+local function createPlayerListWindow()
+    if PlayerListFrame then return end
+
+    local sgui = ScreenGui
+
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "PlayerListFrame"
+    mainFrame.Size = UDim2.new(0, 340, 0, 360)
+    mainFrame.Position = UDim2.new(0.5, 120, 0.5, -180)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 30)
+    mainFrame.BackgroundTransparency = 0.1
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Visible = false
+    mainFrame.ClipsDescendants = true
+    mainFrame.Parent = sgui
+    PlayerListFrame = mainFrame
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 12)
+    corner.Parent = mainFrame
+
+    local mainStroke = Instance.new("UIStroke")
+    mainStroke.Color = Color3.fromRGB(0, 220, 130)
+    mainStroke.Thickness = 2
+    mainStroke.Transparency = 0
+    mainStroke.Parent = mainFrame
+
+    local topBar = Instance.new("Frame")
+    topBar.Name = "TopBar"
+    topBar.Size = UDim2.new(1, 0, 0, 30)
+    topBar.BackgroundColor3 = Color3.fromRGB(0, 0, 20)
+    topBar.BorderSizePixel = 0
+    topBar.Parent = mainFrame
+    
+    local topCorner = Instance.new("UICorner")
+    topCorner.CornerRadius = UDim.new(0, 12)
+    topCorner.Parent = topBar
+
+    local topCover = Instance.new("Frame")
+    topCover.Size = UDim2.new(1, 0, 0, 10)
+    topCover.Position = UDim2.new(0, 0, 1, -10)
+    topCover.BackgroundColor3 = Color3.fromRGB(0, 0, 20)
+    topCover.BorderSizePixel = 0
+    topCover.Parent = topBar
+
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, -90, 1, 0)
+    title.Position = UDim2.new(0, 12, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Text = "Player List"
+    title.TextColor3 = Color3.fromRGB(0, 200, 120)
+    title.TextSize = 14
+    title.Font = Enum.Font.GothamBold
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Parent = topBar
+
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Size = UDim2.new(0, 22, 0, 22)
+    closeBtn.Position = UDim2.new(1, -28, 0.5, -11)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+    closeBtn.BackgroundTransparency = 0.1
+    closeBtn.Text = "X"
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 13
+    closeBtn.Parent = topBar
+    
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 6)
+    closeCorner.Parent = closeBtn
+
+    local closeStroke = Instance.new("UIStroke")
+    closeStroke.Color = Color3.fromRGB(200, 100, 100)
+    closeStroke.Thickness = 1
+    closeStroke.Parent = closeBtn
+
+    local minBtn = Instance.new("TextButton")
+    minBtn.Size = UDim2.new(0, 22, 0, 22)
+    minBtn.Position = UDim2.new(1, -54, 0.5, -11)
+    minBtn.BackgroundColor3 = Color3.fromRGB(0, 130, 80)
+    minBtn.BackgroundTransparency = 0.1
+    minBtn.Text = "-"
+    minBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    minBtn.Font = Enum.Font.GothamBold
+    minBtn.TextSize = 13
+    minBtn.Parent = topBar
+    
+    local minCorner = Instance.new("UICorner")
+    minCorner.CornerRadius = UDim.new(0, 6)
+    minCorner.Parent = minBtn
+
+    local minStroke = Instance.new("UIStroke")
+    minStroke.Color = Color3.fromRGB(0, 200, 120)
+    minStroke.Thickness = 1
+    minStroke.Parent = minBtn
+
+    local isMinimized = false
+    local normalSize = UDim2.new(0, 340, 0, 360)
+    local minimizedSize = UDim2.new(0, 340, 0, 30)
+
+    minBtn.MouseButton1Click:Connect(function()
+        isMinimized = not isMinimized
+        if isMinimized then
+            minBtn.Text = "+"
+            local tween = TweenService:Create(mainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = minimizedSize})
+            tween:Play()
+            searchFrame.Visible = false
+            scroll.Visible = false
+        else
+            minBtn.Text = "-"
+            local tween = TweenService:Create(mainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = normalSize})
+            tween:Play()
+            task.delay(0.1, function()
+                if not isMinimized then
+                    searchFrame.Visible = true
+                    scroll.Visible = true
+                    refreshPlayerList()
+                end
+            end)
+        end
+    end)
+
+    closeBtn.MouseButton1Click:Connect(function()
+        mainFrame.Visible = false
+        if isMinimized then
+            isMinimized = false
+            minBtn.Text = "-"
+            mainFrame.Size = normalSize
+            searchFrame.Visible = true
+            scroll.Visible = true
+        end
+    end)
+
+    local searchFrame = Instance.new("Frame")
+    searchFrame.Name = "SearchFrame"
+    searchFrame.Size = UDim2.new(1, -20, 0, 32)
+    searchFrame.Position = UDim2.new(0, 10, 0, 38)
+    searchFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    searchFrame.BackgroundTransparency = 0.2
+    searchFrame.Parent = mainFrame
+
+    local searchCorner = Instance.new("UICorner")
+    searchCorner.CornerRadius = UDim.new(0, 8)
+    searchCorner.Parent = searchFrame
+
+    local searchStroke = Instance.new("UIStroke")
+    searchStroke.Color = Color3.fromRGB(0, 130, 80)
+    searchStroke.Thickness = 1.5
+    searchStroke.Parent = searchFrame
+
+    local searchBox = Instance.new("TextBox")
+    searchBox.Name = "SearchBox"
+    searchBox.Size = UDim2.new(1, -20, 1, 0)
+    searchBox.Position = UDim2.new(0, 10, 0, 0)
+    searchBox.BackgroundTransparency = 1
+    searchBox.Font = Enum.Font.GothamBold
+    searchBox.Text = ""
+    searchBox.PlaceholderText = "Cari pemain..."
+    searchBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+    searchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    searchBox.TextSize = 14
+    searchBox.TextXAlignment = Enum.TextXAlignment.Left
+    searchBox.ClearTextOnFocus = false
+    searchBox.Parent = searchFrame
+    PlayerListSearchBox = searchBox
+
+    searchBox:GetPropertyChangedSignal("Text"):Connect(refreshPlayerList)
+
+    local scroll = Instance.new("ScrollingFrame")
+    scroll.Size = UDim2.new(1, -20, 1, -85)
+    scroll.Position = UDim2.new(0, 10, 0, 78)
+    scroll.BackgroundTransparency = 1
+    scroll.ScrollBarThickness = 4
+    scroll.ScrollBarImageColor3 = Color3.fromRGB(0, 220, 130)
+    scroll.Parent = mainFrame
+    PlayerListScroll = scroll
+
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.Padding = UDim.new(0, 5)
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    listLayout.Parent = scroll
+
+    -- Drag logic
+    local dragging, dragInput, dragStart, startPos
+    topBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = mainFrame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    topBar.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+
+    -- Dynamic Connections
+    table.insert(playerConnections, game:GetService("Players").PlayerAdded:Connect(refreshPlayerList))
+    table.insert(playerConnections, game:GetService("Players").PlayerRemoving:Connect(function(leavingPlr)
+        if leavingPlr == currentSpectateTarget then
+            currentSpectateTarget = nil
+            local char = game.Players.LocalPlayer.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                workspace.CurrentCamera.CameraSubject = hum
+            end
+        end
+        refreshPlayerList()
+    end))
+
+    -- Clean up connections on frame destroy
+    mainFrame.Destroying:Connect(function()
+        for _, conn in ipairs(playerConnections) do
+            if conn then conn:Disconnect() end
+        end
+        playerConnections = {}
+        currentSpectateTarget = nil
+    end)
+end
+
+togglePlayerListWindow = function()
+    if not PlayerListFrame then
+        createPlayerListWindow()
+    end
+    PlayerListFrame.Visible = not PlayerListFrame.Visible
+    if PlayerListFrame.Visible then
+        refreshPlayerList()
+    end
+end
+
+-- Hook camera update for spectating loop safely
+RunService.RenderStepped:Connect(function()
+    if currentSpectateTarget then
+        local camera = workspace.CurrentCamera
+        local char = currentSpectateTarget.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum and camera.CameraSubject ~= hum then
+            camera.CameraSubject = hum
+        end
+    end
+end)
 
 local Player = game.Players.LocalPlayer
 SpeedBtn = createButton("", "Speed")
