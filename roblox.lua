@@ -874,7 +874,11 @@ do
     end)
     local btnWaypoints = makeSmallBtn("Waypoints", 4)
     btnWaypoints.MouseButton1Click:Connect(function()
-        setCategory("Waypoints")
+        if toggleWaypointListWindow then
+            toggleWaypointListWindow()
+        else
+            setCategory("Waypoints")
+        end
     end)
 
     local btnCommands = makeSmallBtn("Commands", 5)
@@ -1177,6 +1181,10 @@ do
         saveCustomWaypoints()
         
         makeCustomWPBtn(name, components)
+        
+        if refreshWaypointList then
+            refreshWaypointList()
+        end
         
         task.defer(function()
             if currentCategory == "Waypoints" then
@@ -3509,6 +3517,388 @@ toggleFriendListWindow = function()
     FriendListFrame.Visible = not FriendListFrame.Visible
     if FriendListFrame.Visible and refreshFriendList then
         refreshFriendList()
+    end
+end
+
+WaypointListFrame = nil
+WaypointListScroll = nil
+refreshWaypointList = nil
+toggleWaypointListWindow = nil
+
+function createWaypointListWindow()
+    if WaypointListFrame then return end
+
+    local sgui = ScreenGui
+
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "WaypointListFrame"
+    mainFrame.Size = UDim2.new(0, 340, 0, 360)
+    mainFrame.Position = UDim2.new(0.5, -470, 0.5, -180) -- Left side of MainFrame
+    mainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 30)
+    mainFrame.BackgroundTransparency = 0.1
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Visible = false
+    mainFrame.ClipsDescendants = true
+    mainFrame.Parent = sgui
+    WaypointListFrame = mainFrame
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 12)
+    corner.Parent = mainFrame
+
+    local mainStroke = Instance.new("UIStroke")
+    mainStroke.Color = Color3.fromRGB(0, 220, 130)
+    mainStroke.Thickness = 2
+    mainStroke.Transparency = 0
+    mainStroke.Parent = mainFrame
+
+    local topBar = Instance.new("Frame")
+    topBar.Name = "TopBar"
+    topBar.Size = UDim2.new(1, 0, 0, 30)
+    topBar.BackgroundColor3 = Color3.fromRGB(0, 0, 20)
+    topBar.BorderSizePixel = 0
+    topBar.Parent = mainFrame
+    
+    local topCorner = Instance.new("UICorner")
+    topCorner.CornerRadius = UDim.new(0, 12)
+    topCorner.Parent = topBar
+
+    local topCover = Instance.new("Frame")
+    topCover.Size = UDim2.new(1, 0, 0, 10)
+    topCover.Position = UDim2.new(0, 0, 1, -10)
+    topCover.BackgroundColor3 = Color3.fromRGB(0, 0, 20)
+    topCover.BorderSizePixel = 0
+    topCover.Parent = topBar
+
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, -90, 1, 0)
+    title.Position = UDim2.new(0, 12, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Text = "Waypoints"
+    title.TextColor3 = Color3.fromRGB(0, 200, 120)
+    title.TextSize = 14
+    title.Font = Enum.Font.GothamBold
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Parent = topBar
+
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Size = UDim2.new(0, 22, 0, 22)
+    closeBtn.Position = UDim2.new(1, -28, 0.5, -11)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+    closeBtn.BackgroundTransparency = 0.1
+    closeBtn.Text = "X"
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 13
+    closeBtn.Parent = topBar
+    
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 6)
+    closeCorner.Parent = closeBtn
+
+    local closeStroke = Instance.new("UIStroke")
+    closeStroke.Color = Color3.fromRGB(200, 100, 100)
+    closeStroke.Thickness = 1
+    closeStroke.Parent = closeBtn
+
+    local minBtn = Instance.new("TextButton")
+    minBtn.Size = UDim2.new(0, 22, 0, 22)
+    minBtn.Position = UDim2.new(1, -54, 0.5, -11)
+    minBtn.BackgroundColor3 = Color3.fromRGB(0, 130, 80)
+    minBtn.BackgroundTransparency = 0.1
+    minBtn.Text = "-"
+    minBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    minBtn.Font = Enum.Font.GothamBold
+    minBtn.TextSize = 13
+    minBtn.Parent = topBar
+    
+    local minCorner = Instance.new("UICorner")
+    minCorner.CornerRadius = UDim.new(0, 6)
+    minCorner.Parent = minBtn
+
+    local minStroke = Instance.new("UIStroke")
+    minStroke.Color = Color3.fromRGB(0, 200, 120)
+    minStroke.Thickness = 1
+    minStroke.Parent = minBtn
+
+    local isMinimized = false
+    local normalSize = UDim2.new(0, 340, 0, 360)
+    local minimizedSize = UDim2.new(0, 340, 0, 30)
+
+    -- Search/Save Area (equivalent of SearchFrame in PlayerList)
+    local saveFrame = Instance.new("Frame")
+    saveFrame.Name = "SaveFrame"
+    saveFrame.Size = UDim2.new(1, -20, 0, 32)
+    saveFrame.Position = UDim2.new(0, 10, 0, 38)
+    saveFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    saveFrame.BackgroundTransparency = 0.2
+    saveFrame.Parent = mainFrame
+
+    local saveCorner = Instance.new("UICorner")
+    saveCorner.CornerRadius = UDim.new(0, 8)
+    saveCorner.Parent = saveFrame
+
+    local saveStroke = Instance.new("UIStroke")
+    saveStroke.Color = Color3.fromRGB(0, 130, 80)
+    saveStroke.Thickness = 1.5
+    saveStroke.Parent = saveFrame
+
+    local saveBox = Instance.new("TextBox")
+    saveBox.Name = "SaveBox"
+    saveBox.Size = UDim2.new(1, -75, 1, 0)
+    saveBox.Position = UDim2.new(0, 10, 0, 0)
+    saveBox.BackgroundTransparency = 1
+    saveBox.Font = Enum.Font.GothamBold
+    saveBox.Text = ""
+    saveBox.PlaceholderText = "Nama Waypoint..."
+    saveBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+    saveBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    saveBox.TextSize = 14
+    saveBox.TextXAlignment = Enum.TextXAlignment.Left
+    saveBox.ClearTextOnFocus = false
+    saveBox.Parent = saveFrame
+
+    local addBtn = Instance.new("TextButton")
+    addBtn.Size = UDim2.new(0, 55, 0, 24)
+    addBtn.Position = UDim2.new(1, -60, 0.5, -12)
+    addBtn.BackgroundColor3 = Color3.fromRGB(0, 130, 80)
+    addBtn.Text = "Save"
+    addBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    addBtn.Font = Enum.Font.GothamBold
+    addBtn.TextSize = 11
+    addBtn.Parent = saveFrame
+
+    local addCorner = Instance.new("UICorner")
+    addCorner.CornerRadius = UDim.new(0, 6)
+    addCorner.Parent = addBtn
+
+    addBtn.MouseButton1Click:Connect(function()
+        local name = saveBox.Text
+        if name and name ~= "" then
+            if typeof(saveCurrentPositionAsWaypoint) == "function" then
+                saveCurrentPositionAsWaypoint(name)
+            end
+            saveBox.Text = ""
+        end
+    end)
+
+    local scroll = Instance.new("ScrollingFrame")
+    scroll.Size = UDim2.new(1, -20, 1, -85)
+    scroll.Position = UDim2.new(0, 10, 0, 78)
+    scroll.BackgroundTransparency = 1
+    scroll.ScrollBarThickness = 4
+    scroll.ScrollBarImageColor3 = Color3.fromRGB(0, 220, 130)
+    scroll.Parent = mainFrame
+    WaypointListScroll = scroll
+
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.Padding = UDim.new(0, 5)
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    listLayout.Parent = scroll
+
+    listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        scroll.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 10)
+    end)
+
+    minBtn.MouseButton1Click:Connect(function()
+        isMinimized = not isMinimized
+        if isMinimized then
+            minBtn.Text = "+"
+            local tween = TweenService:Create(mainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = minimizedSize})
+            tween:Play()
+            saveFrame.Visible = false
+            scroll.Visible = false
+        else
+            minBtn.Text = "-"
+            local tween = TweenService:Create(mainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = normalSize})
+            tween:Play()
+            task.delay(0.1, function()
+                if not isMinimized then
+                    saveFrame.Visible = true
+                    scroll.Visible = true
+                    if refreshWaypointList then
+                        refreshWaypointList()
+                    end
+                end
+            end)
+        end
+    end)
+
+    closeBtn.MouseButton1Click:Connect(function()
+        mainFrame.Visible = false
+        if isMinimized then
+            isMinimized = false
+            minBtn.Text = "-"
+            mainFrame.Size = normalSize
+            saveFrame.Visible = true
+            scroll.Visible = true
+        end
+    end)
+
+    -- Drag logic
+    local dragging, dragInput, dragStart, startPos
+    topBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = mainFrame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    topBar.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+
+    -- naturalCompare helper nested inside
+    local function getChunks(s)
+        local chunks = {}
+        local pos = 1
+        while pos <= #s do
+            local startD, endD = string.find(s, "^%d+", pos)
+            if startD then
+                table.insert(chunks, tonumber(string.sub(s, startD, endD)) or 0)
+                pos = endD + 1
+            else
+                local startND, endND = string.find(s, "^[^%d]+", pos)
+                if startND then
+                    table.insert(chunks, string.sub(s, startND, endND))
+                    pos = endND + 1
+                else
+                    break
+                end
+            end
+        end
+        return chunks
+    end
+
+    local function naturalCompare(aStr, bStr)
+        local aName, bName = tostring(aStr):lower(), tostring(bStr):lower()
+        if aName == bName then return tostring(aStr) < tostring(bStr) end
+        local aChunks = getChunks(aName)
+        local bChunks = getChunks(bName)
+        for i = 1, math.min(#aChunks, #bChunks) do
+            local ac, bc = aChunks[i], bChunks[i]
+            if typeof(ac) ~= typeof(bc) then
+                return typeof(ac) == "number"
+            elseif ac ~= bc then
+                return ac < bc
+            end
+        end
+        return #aChunks < #bChunks
+    end
+
+    refreshWaypointList = function()
+        if not WaypointListScroll then return end
+        for _, child in ipairs(WaypointListScroll:GetChildren()) do
+            if child:IsA("Frame") then
+                child:Destroy()
+            end
+        end
+
+        local wps = {}
+        for name, comps in pairs(customWaypoints) do
+            table.insert(wps, {name = name, comps = comps})
+        end
+        table.sort(wps, function(a, b)
+            return naturalCompare(a.name, b.name)
+        end)
+
+        for idx, item in ipairs(wps) do
+            local name = item.name
+            local comps = item.comps
+
+            local row = Instance.new("Frame")
+            row.Name = "WaypointRow"
+            row.Size = UDim2.new(1, -5, 0, 38)
+            row.BackgroundColor3 = Color3.fromRGB(20, 20, 40)
+            row.BackgroundTransparency = 0.2
+            row.LayoutOrder = idx
+            row.Parent = WaypointListScroll
+
+            local rowCorner = Instance.new("UICorner")
+            rowCorner.CornerRadius = UDim.new(0, 8)
+            rowCorner.Parent = row
+
+            local nameLabel = Instance.new("TextLabel")
+            nameLabel.Size = UDim2.new(1, -85, 1, 0)
+            nameLabel.Position = UDim2.new(0, 8, 0, 0)
+            nameLabel.BackgroundTransparency = 1
+            nameLabel.Text = name
+            nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            nameLabel.Font = Enum.Font.GothamBold
+            nameLabel.TextSize = 11
+            nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+            nameLabel.Parent = row
+
+            local tpBtn = Instance.new("TextButton")
+            tpBtn.Size = UDim2.new(0, 32, 0, 26)
+            tpBtn.Position = UDim2.new(1, -68, 0.5, -13)
+            tpBtn.BackgroundColor3 = Color3.fromRGB(0, 130, 80)
+            tpBtn.Text = "TP"
+            tpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            tpBtn.Font = Enum.Font.GothamBold
+            tpBtn.TextSize = 10
+            tpBtn.Parent = row
+
+            local tpCorner = Instance.new("UICorner")
+            tpCorner.CornerRadius = UDim.new(0, 6)
+            tpCorner.Parent = tpBtn
+
+            tpBtn.MouseButton1Click:Connect(function()
+                local ok, cf = pcall(function() return CFrame.new(table.unpack(comps)) end)
+                if ok and typeof(cf) == "CFrame" then
+                    local lplr = game:GetService("Players").LocalPlayer
+                    local char = lplr.Character or lplr.CharacterAdded:Wait()
+                    if char then char:PivotTo(cf) end
+                end
+            end)
+
+            local delBtn = Instance.new("TextButton")
+            delBtn.Size = UDim2.new(0, 26, 0, 26)
+            delBtn.Position = UDim2.new(1, -32, 0.5, -13)
+            delBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+            delBtn.Text = "X"
+            delBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            delBtn.Font = Enum.Font.GothamBold
+            delBtn.TextSize = 10
+            delBtn.Parent = row
+
+            local delCorner = Instance.new("UICorner")
+            delCorner.CornerRadius = UDim.new(0, 6)
+            delCorner.Parent = delBtn
+
+            delBtn.MouseButton1Click:Connect(function()
+                customWaypoints[name] = nil
+                saveCustomWaypoints()
+                row:Destroy()
+                if refreshWaypointList then
+                    refreshWaypointList()
+                end
+                pcall(refreshCustomWaypointButtons)
+            end)
+        end
+    end
+end
+
+toggleWaypointListWindow = function()
+    if not WaypointListFrame then
+        createWaypointListWindow()
+    end
+    WaypointListFrame.Visible = not WaypointListFrame.Visible
+    if WaypointListFrame.Visible and refreshWaypointList then
+        refreshWaypointList()
     end
 end
 
