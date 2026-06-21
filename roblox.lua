@@ -267,6 +267,13 @@ CmdsFrame.Visible = false
 CmdsFrame.BackgroundTransparency = 1
 CmdsFrame.Parent = ButtonsFrame
 
+local CreditsFrame = Instance.new("Frame")
+CreditsFrame.Name = "CreditsFrame"
+CreditsFrame.Size = UDim2.new(1, 0, 1, 0)
+CreditsFrame.Visible = false
+CreditsFrame.BackgroundTransparency = 1
+CreditsFrame.Parent = ButtonsFrame
+
 -- Left quick panel under profile picture
 do
     local QuickPanel = Instance.new("ScrollingFrame")
@@ -389,25 +396,16 @@ do
             if child:IsA("TextButton") then
                 if cat == "Menu" then
                     -- show only items that are NOT in Rusuh or Utility
-                     child.Visible = (not matchesAny(child.Text, rusuhKeywords))
+                    child.Visible = (not matchesAny(child.Text, rusuhKeywords))
                     and (not matchesAny(child.Text, utilityKeywords))
                     and (child:GetAttribute("IsFixedWP") ~= true)
                 elseif cat == "Rusuh" then
                     child.Visible = matchesAny(child.Text, rusuhKeywords)
-                elseif cat == "Utility" then
-                    child.Visible = false
-                elseif cat == "Waypoints" then
-                    child.Visible = false
-end
-            elseif child:IsA("TextBox") then
-                -- Hide all textboxes in Menu dan Rusuh; Utility: tampilkan tiga textbox pasangan
-                if cat == "Utility" then
-                    child.Visible = false
-                elseif cat == "Waypoints" then
-                    child.Visible = false
                 else
                     child.Visible = false
                 end
+            elseif child:IsA("TextBox") then
+                child.Visible = false
             end
         end
 
@@ -578,8 +576,14 @@ end
             if cat == "Commands" then
                 ScrollFrame.Visible = false
                 CmdsFrame.Visible = true
+                CreditsFrame.Visible = false
+            elseif cat == "Credits" then
+                ScrollFrame.Visible = false
+                CmdsFrame.Visible = false
+                CreditsFrame.Visible = true
             else
                 CmdsFrame.Visible = false
+                CreditsFrame.Visible = false
                 ScrollFrame.Visible = true
             end
         end
@@ -641,6 +645,102 @@ end
         end)
     end
 
+    createCreditsWindow = function()
+        if CreditsFrame:FindFirstChild("CreditsScroll") then return end
+        
+        local scrollFrame = Instance.new("ScrollingFrame")
+        scrollFrame.Name = "CreditsScroll"
+        scrollFrame.Size = UDim2.new(1, -10, 1, -10)
+        scrollFrame.Position = UDim2.new(0, 5, 0, 5)
+        scrollFrame.BackgroundTransparency = 1
+        scrollFrame.ScrollBarThickness = 4
+        scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 220, 130)
+        scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 150)
+        scrollFrame.Parent = CreditsFrame
+
+        local listLayout = Instance.new("UIListLayout")
+        listLayout.Padding = UDim.new(0, 8)
+        listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        listLayout.Parent = scrollFrame
+
+        local creditsList = {
+            { title = "Github", value = "Github: https://github.com/bochilascript", url = "https://github.com/bochilascript" },
+            { title = "Telegram Channel", value = "Telegram: https://t.me/pocketedition09", url = "https://t.me/pocketedition09" }
+        }
+
+        for idx, cred in ipairs(creditsList) do
+            local itemFrame = Instance.new("Frame")
+            itemFrame.Name = "CredItem"
+            itemFrame.Size = UDim2.new(1, -8, 0, 48)
+            itemFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+            itemFrame.LayoutOrder = idx
+            itemFrame.Parent = scrollFrame
+
+            local itemCorner = Instance.new("UICorner")
+            itemCorner.CornerRadius = UDim.new(0, 6)
+            itemCorner.Parent = itemFrame
+
+            local dot = Instance.new("Frame")
+            dot.Name = "Dot"
+            dot.Size = UDim2.new(0, 6, 0, 6)
+            dot.Position = UDim2.new(0, 8, 0, 12)
+            dot.BackgroundColor3 = Color3.fromRGB(0, 220, 130)
+            dot.BorderSizePixel = 0
+            dot.Parent = itemFrame
+            local dotCorner = Instance.new("UICorner")
+            dotCorner.CornerRadius = UDim.new(1, 0)
+            dotCorner.Parent = dot
+
+            local titleLabel = Instance.new("TextLabel")
+            titleLabel.Size = UDim2.new(1, -70, 0, 20)
+            titleLabel.Position = UDim2.new(0, 22, 0, 4)
+            titleLabel.BackgroundTransparency = 1
+            titleLabel.Font = Enum.Font.GothamBold
+            titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+            titleLabel.TextSize = 12
+            titleLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+            titleLabel.Text = cred.title
+            titleLabel.Parent = itemFrame
+
+            local valueLabel = Instance.new("TextLabel")
+            valueLabel.Size = UDim2.new(1, -70, 0, 18)
+            valueLabel.Position = UDim2.new(0, 22, 0, 24)
+            valueLabel.BackgroundTransparency = 1
+            valueLabel.Font = Enum.Font.Gotham
+            valueLabel.TextXAlignment = Enum.TextXAlignment.Left
+            valueLabel.TextSize = 10
+            valueLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+            valueLabel.Text = cred.value
+            valueLabel.Parent = itemFrame
+
+            local copyBtn = Instance.new("TextButton")
+            copyBtn.Size = UDim2.new(0, 50, 0, 28)
+            copyBtn.Position = UDim2.new(1, -58, 0.5, -14)
+            copyBtn.BackgroundColor3 = Color3.fromRGB(0, 130, 80)
+            copyBtn.Text = "Copy"
+            copyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            copyBtn.Font = Enum.Font.GothamBold
+            copyBtn.TextSize = 11
+            copyBtn.Parent = itemFrame
+
+            local copyCorner = Instance.new("UICorner")
+            copyCorner.CornerRadius = UDim.new(0, 4)
+            copyCorner.Parent = copyBtn
+
+            copyBtn.MouseButton1Click:Connect(function()
+                if setclipboard then
+                    setclipboard(cred.url)
+                    copyBtn.Text = "Copied!"
+                    copyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 120)
+                    task.delay(1.5, function()
+                        copyBtn.Text = "Copy"
+                        copyBtn.BackgroundColor3 = Color3.fromRGB(0, 130, 80)
+                    end)
+                end
+            end)
+        end
+    end
+
     local btnMenu = makeSmallBtn("Menu", 1)
     btnMenu.MouseButton1Click:Connect(function()
         setCategory("Menu")
@@ -660,32 +760,19 @@ end
         setCategory("Waypoints")
     end)
 
-    local btnCredits = makeSmallBtn("Credits", 5)
-    btnCredits.MouseButton1Click:Connect(function()
-        local credText = "Github: https://github.com/bochilascript\nTelegram: https://t.me/pocketedition09"
-        if setclipboard then
-            setclipboard(credText)
-            game:GetService("StarterGui"):SetCore("SendNotification", {
-                Title = "Credits Copied!";
-                Text = "Link Github & Telegram telah disalin!";
-                Duration = 5;
-            })
-        else
-            game:GetService("StarterGui"):SetCore("SendNotification", {
-                Title = "Credits";
-                Text = credText;
-                Duration = 10;
-            })
-        end
-    end)
-
-    local btnCommands = makeSmallBtn("Commands", 6)
+    local btnCommands = makeSmallBtn("Commands", 5)
     btnCommands.MouseButton1Click:Connect(function()
         if showCommandsWindow then
             showCommandsWindow()
         else
             setCategory("Commands")
         end
+    end)
+
+    local btnCredits = makeSmallBtn("Credits", 6)
+    btnCredits.MouseButton1Click:Connect(function()
+        createCreditsWindow()
+        setCategory("Credits")
     end)
 
 -- default to Menu
@@ -1085,7 +1172,7 @@ local AirwalkActive = false
 local AirWPart = nil
 local baseY = nil
 
-local AirwalkBtn = createButton("", "Jalan di udara")
+AirwalkBtn = createButton("", "Jalan di udara")
 
 local function StartAirwalk()
     if AirWPart then return end
@@ -1128,8 +1215,12 @@ local function StopAirwalk()
     end
 end
 
-AirwalkBtn.MouseButton1Click:Connect(function()
-    AirwalkActive = not AirwalkActive
+function toggleAirwalk(state)
+    if state == nil then
+        AirwalkActive = not AirwalkActive
+    else
+        AirwalkActive = state
+    end
     if AirwalkActive then
         StartAirwalk()
         setButtonActive(AirwalkBtn, true)
@@ -1137,6 +1228,10 @@ AirwalkBtn.MouseButton1Click:Connect(function()
         StopAirwalk()
         setButtonActive(AirwalkBtn, false)
     end
+end
+
+AirwalkBtn.MouseButton1Click:Connect(function()
+    toggleAirwalk()
 end)
 
 LocalPlayer.CharacterAdded:Connect(function()
@@ -1144,8 +1239,8 @@ LocalPlayer.CharacterAdded:Connect(function()
     setButtonActive(AirwalkBtn, false)
 end)
 
-local ESPBtn = createButton("", "ESP")
-local ESPTeamBtn = createButton("", "ESP Team")
+ESPBtn = createButton("", "ESP")
+ESPTeamBtn = createButton("", "ESP Team")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local COREGUI = game:GetService("CoreGui")
@@ -1265,8 +1360,12 @@ local function stopESP()
     end
 end
 
-ESPBtn.MouseButton1Click:Connect(function()
-    ESPenabled = not ESPenabled
+function toggleESP(state)
+    if state == nil then
+        ESPenabled = not ESPenabled
+    else
+        ESPenabled = state
+    end
     if ESPenabled then
         ESPTeamMode = false
         setButtonActive(ESPBtn, true)
@@ -1276,34 +1375,44 @@ ESPBtn.MouseButton1Click:Connect(function()
         setButtonActive(ESPBtn, false)
         stopESP()
     end
-end)
+end
 
-ESPTeamBtn.MouseButton1Click:Connect(function()
-    local newState = not (ESPenabled and ESPTeamMode)
+function toggleESPTeam(state)
+    local newState
+    if state == nil then
+        newState = not (ESPenabled and ESPTeamMode)
+    else
+        newState = state
+    end
     if newState then
-        -- enable team mode
         ESPTeamMode = true
         if not ESPenabled then
             ESPenabled = true
         else
-            -- refresh current ESP to apply team colors
             stopESP()
         end
         setButtonActive(ESPTeamBtn, true)
         setButtonActive(ESPBtn, false)
         startESP()
     else
-        -- disable ESP entirely when toggling off team mode
         setButtonActive(ESPTeamBtn, false)
         ESPenabled = false
         ESPTeamMode = false
         stopESP()
     end
+end
+
+ESPBtn.MouseButton1Click:Connect(function()
+    toggleESP()
+end)
+
+ESPTeamBtn.MouseButton1Click:Connect(function()
+    toggleESPTeam()
 end)
 
 local Player = game.Players.LocalPlayer
 
-local LampBtn = createButton("", "Lampu")
+LampBtn = createButton("", "Lampu")
 local lampOn = false
 local headLamp = nil
 
@@ -1342,8 +1451,12 @@ local function removeHeadLamp()
     headLamp = nil
 end
 
-LampBtn.MouseButton1Click:Connect(function()
-    lampOn = not lampOn
+function toggleLampu(state)
+    if state == nil then
+        lampOn = not lampOn
+    else
+        lampOn = state
+    end
     local char = Player.Character or Player.CharacterAdded:Wait()
     if lampOn then
         addHeadLamp(char)
@@ -1352,6 +1465,10 @@ LampBtn.MouseButton1Click:Connect(function()
         removeHeadLamp()
         setButtonActive(LampBtn, false)
     end
+end
+
+LampBtn.MouseButton1Click:Connect(function()
+    toggleLampu()
 end)
 
 Player.CharacterAdded:Connect(function(char)
@@ -1376,7 +1493,7 @@ local infiniteJumpEnabled = false
 local jumpPowerBoost = 25
 local slowFallSpeed = -50
 
-local JumpBtn = createButton("", "Infinite Jump")
+JumpBtn = createButton("", "Infinite Jump")
 
 local function updateCharacterRefs(char)
     character = char
@@ -1404,9 +1521,17 @@ RunService.Stepped:Connect(function()
     end
 end)
 
-JumpBtn.MouseButton1Click:Connect(function()
-    infiniteJumpEnabled = not infiniteJumpEnabled
+function toggleInfiniteJump(state)
+    if state == nil then
+        infiniteJumpEnabled = not infiniteJumpEnabled
+    else
+        infiniteJumpEnabled = state
+    end
     setButtonActive(JumpBtn, infiniteJumpEnabled)
+end
+
+JumpBtn.MouseButton1Click:Connect(function()
+    toggleInfiniteJump()
 end)
 
 -- Helper to auto re-execute script on teleport / rejoin
@@ -1420,9 +1545,9 @@ local function queueTeleport()
 end
 
 -- Rejoin button (Menu): rejoin same server if possible, else rejoin place
-local RejoinBtn = createButton("", "Rejoin")
+RejoinBtn = createButton("", "Rejoin")
 RejoinBtn.LayoutOrder = 1
-RejoinBtn.MouseButton1Click:Connect(function()
+function rejoinServer()
     local player = game:GetService("Players").LocalPlayer
     local ts = game:GetService("TeleportService")
     local currentPlaceId = game.PlaceId
@@ -1436,12 +1561,19 @@ RejoinBtn.MouseButton1Click:Connect(function()
             ts:Teleport(currentPlaceId, player)
         end)
     end
-end)
+end
+RejoinBtn.MouseButton1Click:Connect(rejoinServer)
 
 -- Refresh button (Menu): respawn the character quickly
-local RefreshBtn = createButton("", "Refresh")
+RefreshBtn = createButton("", "Refresh")
 RefreshBtn.LayoutOrder = 2
-RefreshBtn.MouseButton1Click:Connect(function()
+
+-- Anti AFK (Menu)
+AntiAFKBtn = createButton("", "Anti AFK")
+AntiAFKBtn.LayoutOrder = 3
+local antiAFKConnection = nil
+
+function refreshCharacter()
     local Players = game:GetService("Players")
     local plr = Players.LocalPlayer
     if not plr then return end
@@ -1466,31 +1598,41 @@ RefreshBtn.MouseButton1Click:Connect(function()
             end)
         end)
     end
-end)
+end
+RefreshBtn.MouseButton1Click:Connect(refreshCharacter)
 
--- Anti AFK (Menu)
-local AntiAFKBtn = createButton("", "Anti AFK")
-AntiAFKBtn.LayoutOrder = 3
-local antiAFKConnection = nil
-AntiAFKBtn.MouseButton1Click:Connect(function()
-    if antiAFKConnection then
-        antiAFKConnection:Disconnect()
-        antiAFKConnection = nil
+function toggleAntiAFK(state)
+    local targetState
+    if state == nil then
+        targetState = not antiAFKConnection
+    else
+        targetState = state
+    end
+    if not targetState then
+        if antiAFKConnection then
+            antiAFKConnection:Disconnect()
+            antiAFKConnection = nil
+        end
         setButtonActive(AntiAFKBtn, false)
         pcall(function()
             game:GetService("StarterGui"):SetCore("SendNotification", {Title="Anti AFK", Text="Dinonaktifkan", Duration=3})
         end)
     else
-        local VirtualUser = game:GetService("VirtualUser")
-        antiAFKConnection = game.Players.LocalPlayer.Idled:Connect(function()
-            VirtualUser:CaptureController()
-            VirtualUser:ClickButton2(Vector2.new())
-        end)
+        if not antiAFKConnection then
+            local VirtualUser = game:GetService("VirtualUser")
+            antiAFKConnection = game.Players.LocalPlayer.Idled:Connect(function()
+                VirtualUser:CaptureController()
+                VirtualUser:ClickButton2(Vector2.new())
+            end)
+        end
         setButtonActive(AntiAFKBtn, true)
         pcall(function()
             game:GetService("StarterGui"):SetCore("SendNotification", {Title="Anti AFK", Text="Aktif", Duration=3})
         end)
     end
+end
+AntiAFKBtn.MouseButton1Click:Connect(function()
+    toggleAntiAFK()
 end)
 
 local httpService = game:GetService("HttpService")
@@ -1787,7 +1929,7 @@ local function serverhop()
 end
 
 local Player = game.Players.LocalPlayer
-local SpeedBtn = createButton("", "Speed")
+SpeedBtn = createButton("", "Speed")
 SpeedBtn.Name = "SpeedBtn"
 SpeedBtn.LayoutOrder = 5
 local desiredSpeed = 50
@@ -1960,7 +2102,7 @@ Player.CharacterAdded:Connect(function(char)
 	end
 end)
 
-local FlingBtn = createButton("", "Tendang")
+FlingBtn = createButton("", "Tendang")
 local hiddenfling = false
 local flingThread
 
@@ -1990,10 +2132,10 @@ FlingBtn.MouseButton1Click:Connect(function()
 end)
 
 -- Click TP and Free Cam integrations
-local ClickTPBtn = createButton("", "Click TP")
+ClickTPBtn = createButton("", "Click TP")
 ClickTPBtn.Name = "ClickTPBtn"
 ClickTPBtn.LayoutOrder = 1
-local FreeCamBtn = createButton("", "Free Cam")
+FreeCamBtn = createButton("", "Free Cam")
 FreeCamBtn.Name = "FreeCamBtn"
 FreeCamBtn.LayoutOrder = 3
 
@@ -2003,10 +2145,54 @@ local freecamYaw, freecamPitch = 0, 0
 local freecamPos
 local freecamSpeed = 2
 
-ClickTPBtn.MouseButton1Click:Connect(function()
-    clickTpOn = not clickTpOn
+local clickTpConnection = nil
+function toggleClickTP(state)
+    if state == nil then
+        clickTpOn = not clickTpOn
+    else
+        clickTpOn = state
+    end
     setButtonActive(ClickTPBtn, clickTpOn)
-end)
+    
+    if clickTpOn then
+        if not clickTpConnection then
+            local Mouse = Player:GetMouse()
+            clickTpConnection = Mouse.Button1Down:Connect(function()
+                if clickTpOn and (UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or UserInputService:IsKeyDown(Enum.KeyCode.RightControl)) then
+                    local targetPos = Mouse.Hit.Position + Vector3.new(0, 3, 0)
+                    local char = Player.Character
+                    local hrp = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso"))
+                    if hrp then
+                        char:PivotTo(CFrame.new(targetPos))
+                    end
+                end
+            end)
+        end
+    else
+        if clickTpConnection then
+            clickTpConnection:Disconnect()
+            clickTpConnection = nil
+        end
+    end
+end
+
+function handleClickTPClick()
+    local query = TPBox.Text
+    if query and query ~= "" then
+        local target = findPlayerByQuery(query)
+        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and player.Character then
+            local targetPos = target.Character.HumanoidRootPart.Position + Vector3.new(0, 3, 0)
+            player.Character:PivotTo(CFrame.new(targetPos))
+        else
+            setButtonActive(ClickTPBtn, true)
+            task.delay(0.1, function() setButtonActive(ClickTPBtn, false) end)
+        end
+    else
+        toggleClickTP()
+    end
+end
+
+ClickTPBtn.MouseButton1Click:Connect(handleClickTPClick)
 
 local function setFreecam(state)
     freecamOn = state
@@ -2188,18 +2374,6 @@ local function findPlayerByQuery(q)
     return nil
 end
 
-ClickTPBtn.MouseButton1Click:Connect(function()
-    local query = TPBox.Text
-    local target = findPlayerByQuery(query)
-    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and player.Character and player.Character.PrimaryPart then
-        local targetPos = target.Character.HumanoidRootPart.Position + Vector3.new(0, 3, 0)
-        player.Character:SetPrimaryPartCFrame(CFrame.new(targetPos))
-    else
-        -- keep button visual feedback
-        setButtonActive(ClickTPBtn, true)
-        task.delay(0.1, function() setButtonActive(ClickTPBtn, false) end)
-    end
-end)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -2406,7 +2580,7 @@ end)
 
 setButtonActive(FlyBtn, false)
 
-local UnanchorBtn = createButton("", "Unanchor")
+UnanchorBtn = createButton("", "Unanchor")
 local player = game.Players.LocalPlayer
 local aktif = false
 local folder, attachment1, koneksi1
@@ -2511,8 +2685,12 @@ local function stopUnanchor()
     folder, attachment1 = nil, nil
 end
 
-UnanchorBtn.MouseButton1Click:Connect(function()
-    aktif = not aktif
+function toggleUnanchor(state)
+    if state == nil then
+        aktif = not aktif
+    else
+        aktif = state
+    end
     if aktif then
         setButtonActive(UnanchorBtn, true)
         mulaiUnanchor()
@@ -2520,9 +2698,13 @@ UnanchorBtn.MouseButton1Click:Connect(function()
         setButtonActive(UnanchorBtn, false)
         stopUnanchor()
     end
+end
+
+UnanchorBtn.MouseButton1Click:Connect(function()
+    toggleUnanchor()
 end)
 
-local BringPartBtn = createButton("", "BringPart")
+BringPartBtn = createButton("", "BringPart")
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -2653,8 +2835,12 @@ local function GetAllPartsRecursive(parent)
 	return parts
 end
 
-BringPartBtn.MouseButton1Click:Connect(function()
-	blackHoleActive = not blackHoleActive
+function toggleBringPart(state)
+	if state == nil then
+		blackHoleActive = not blackHoleActive
+	else
+		blackHoleActive = state
+	end
 
 	if blackHoleActive then
 		setButtonActive(BringPartBtn, true)
@@ -2670,6 +2856,7 @@ BringPartBtn.MouseButton1Click:Connect(function()
 			ForcePart(v)
 		end
 
+		if DescendantAddedConnection then DescendantAddedConnection:Disconnect() end
 		DescendantAddedConnection = Workspace.DescendantAdded:Connect(function(v)
 			if blackHoleActive and v:IsA("BasePart") then
 				ForcePart(v)
@@ -2693,6 +2880,10 @@ BringPartBtn.MouseButton1Click:Connect(function()
 			DescendantAddedConnection = nil
 		end
 	end
+end
+
+BringPartBtn.MouseButton1Click:Connect(function()
+    toggleBringPart()
 end)
 
 AntiLagBtn = createButton("", "Anti Lag")
@@ -2812,8 +3003,12 @@ local function resetAntiLag()
     connections = {}
 end
 
-AntiLagBtn.MouseButton1Click:Connect(function()
-    antiLagActive = not antiLagActive
+local function toggleAntiLag(state)
+    if state == nil then
+        antiLagActive = not antiLagActive
+    else
+        antiLagActive = state
+    end
     if antiLagActive then
         setButtonActive(AntiLagBtn, true)
         applyAntiLag()
@@ -2821,6 +3016,10 @@ AntiLagBtn.MouseButton1Click:Connect(function()
         setButtonActive(AntiLagBtn, false)
         resetAntiLag()
     end
+end
+
+AntiLagBtn.MouseButton1Click:Connect(function()
+    toggleAntiLag()
 end)
 
 NoclipBtn = createButton("", "Noclip Ghost")
@@ -2866,8 +3065,12 @@ local function onCharacterAdded(newCharacter)
     end
 end
 
-NoclipBtn.MouseButton1Click:Connect(function()
-    noclipActive = not noclipActive
+local function toggleNoclip(state)
+    if state == nil then
+        noclipActive = not noclipActive
+    else
+        noclipActive = state
+    end
     
     if noclipActive then
         enableNoclip()
@@ -2876,6 +3079,10 @@ NoclipBtn.MouseButton1Click:Connect(function()
         disableNoclip()
         setButtonActive(NoclipBtn, false)
     end
+end
+
+NoclipBtn.MouseButton1Click:Connect(function()
+    toggleNoclip()
 end)
 
 Player.CharacterAdded:Connect(onCharacterAdded)
@@ -2892,23 +3099,30 @@ FlyV3Btn = createButton("", "Fly V3")
 ServerHopBtn = createButton("", "Server Hop")
 DexBtn = createButton("", "Dex Explorer")
 
-local CmdBarBtn = createButton("", "Command Bar")
+CmdBarBtn = createButton("", "Command Bar")
 CmdBarBtn.MouseButton1Click:Connect(function()
     if showCmdBar then
         showCmdBar()
     end
 end)
 
-DexBtn.MouseButton1Click:Connect(function()
+function launchDex()
     local ok, err = pcall(function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/bochilascript/ROBLOX/refs/heads/main/dex.lua"))()
     end)
     if not ok then
-        notifyPlayer("Dex Explorer", "Failed to load: " .. tostring(err))
+        pcall(function()
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "Dex Explorer",
+                Text = "Failed to load: " .. tostring(err),
+                Duration = 5
+            })
+        end)
     end
-end)
+end
+DexBtn.MouseButton1Click:Connect(launchDex)
 
-SpectatorBtn.MouseButton1Click:Connect(function()
+function launchSpectator()
     local success, response = pcall(function()
         return game:HttpGet("https://pastebin.com/raw/rHy7Y8JG")
     end)
@@ -2922,11 +3136,12 @@ SpectatorBtn.MouseButton1Click:Connect(function()
     else 
         warn("HttpGet failed for Spectator") 
     end
-end)
+end
+SpectatorBtn.MouseButton1Click:Connect(launchSpectator)
 
 ServerHopBtn.MouseButton1Click:Connect(serverhop)
 
-AnimasiBtn.MouseButton1Click:Connect(function()
+function launchAnimasi()
     local success, response = pcall(function()
         return game:HttpGet("https://raw.githubusercontent.com/bochilascript/ROBLOX/refs/heads/main/animasi.lua")
     end)
@@ -2938,9 +3153,10 @@ AnimasiBtn.MouseButton1Click:Connect(function()
             warn("Loadstring error: "..tostring(err)) 
         end
     else 
-        warn("HttpGet failed for Spectator") 
+        warn("HttpGet failed for Animasi") 
     end
-end)
+end
+AnimasiBtn.MouseButton1Click:Connect(launchAnimasi)
 
 local function launchFlyV2()
 	local main = Instance.new("ScreenGui")
@@ -3428,12 +3644,17 @@ FlyV2Btn.MouseButton1Click:Connect(function()
     launchFlyV2()
 end)
 
+-- toggleFlyV3 globalized
 do
     local flyV3Active = false
     local flyV3Movers = {}
 
-    FlyV3Btn.MouseButton1Click:Connect(function()
-        flyV3Active = not flyV3Active
+    toggleFlyV3 = function(state)
+        if state == nil then
+            flyV3Active = not flyV3Active
+        else
+            flyV3Active = state
+        end
         setButtonActive(FlyV3Btn, flyV3Active)
         local char = Player.Character
         local hum = char and char:FindFirstChildOfClass("Humanoid")
@@ -3442,6 +3663,10 @@ do
             flyV3Movers[1].Parent = nil
             flyV3Movers[2].Parent = nil
         end
+    end
+
+    FlyV3Btn.MouseButton1Click:Connect(function()
+        toggleFlyV3()
     end)
 
     RunService.Heartbeat:Connect(function()
@@ -3579,15 +3804,35 @@ local success, err = pcall(function()
     local commandsList = {
         { name = "cmds", aliases = {"commands"}, desc = "Menampilkan daftar perintah ini.", usage = "" },
         { name = "swp", aliases = {"savewp", "savewaypoint"}, desc = "Simpan posisi saat ini sebagai waypoint.", usage = " [nama]" },
+        { name = "tpwp", aliases = {"wp"}, desc = "Teleportasi ke waypoint yang disimpan.", usage = " [nama]" },
         { name = "speed", aliases = {"spd", "ws"}, desc = "Atur kecepatan jalan (16-300) atau aktifkan/nonaktifkan speed.", usage = " [angka]" },
         { name = "fly", aliases = {}, desc = "Aktifkan mode terbang.", usage = "" },
         { name = "unfly", aliases = {"nofly"}, desc = "Nonaktifkan mode terbang.", usage = "" },
+        { name = "flyv2", aliases = {}, desc = "Buka menu Fly V2.", usage = "" },
+        { name = "flyv3", aliases = {}, desc = "Aktifkan/nonaktifkan Fly V3.", usage = "" },
         { name = "freecam", aliases = {"fc"}, desc = "Aktifkan/nonaktifkan mode kamera bebas.", usage = "" },
         { name = "nofreecam", aliases = {"nofc"}, desc = "Nonaktifkan mode kamera bebas.", usage = "" },
         { name = "clicktp", aliases = {"ctp"}, desc = "Aktifkan/nonaktifkan teleport dengan klik (Ctrl + klik).", usage = "" },
+        { name = "tp", aliases = {"teleport"}, desc = "Teleportasi ke pemain lain.", usage = " [nama]" },
         { name = "unanchor", aliases = {}, desc = "Aktifkan/nonaktifkan fitur unanchor parts.", usage = "" },
         { name = "fling", aliases = {"tendang"}, desc = "Aktifkan/nonaktifkan mode fling untuk lempar pemain.", usage = "" },
-        { name = "explorer", aliases = {"dex"}, desc = "Buka DEX Explorer untuk menjelajahi instance game.", usage = "" }
+        { name = "explorer", aliases = {"dex"}, desc = "Buka DEX Explorer.", usage = "" },
+        { name = "airwalk", aliases = {"walkonair"}, desc = "Aktifkan/nonaktifkan jalan di udara.", usage = "" },
+        { name = "esp", aliases = {}, desc = "Aktifkan/nonaktifkan ESP.", usage = "" },
+        { name = "espteam", aliases = {}, desc = "Aktifkan/nonaktifkan ESP Team.", usage = "" },
+        { name = "lampu", aliases = {"light", "lamp"}, desc = "Aktifkan/nonaktifkan lampu kepala.", usage = "" },
+        { name = "infjump", aliases = {"infinitejump"}, desc = "Aktifkan/nonaktifkan loncat tanpa batas.", usage = "" },
+        { name = "rejoin", aliases = {"rj"}, desc = "Masuk kembali ke server ini.", usage = "" },
+        { name = "refresh", aliases = {"re", "respawn"}, desc = "Muat ulang karakter Anda.", usage = "" },
+        { name = "antiafk", aliases = {}, desc = "Aktifkan/nonaktifkan anti AFK.", usage = "" },
+        { name = "serverhop", aliases = {"shop"}, desc = "Buka menu Server Hop.", usage = "" },
+        { name = "bringpart", aliases = {"bp"}, desc = "Aktifkan/nonaktifkan penarik part (blackhole).", usage = "" },
+        { name = "antilag", aliases = {"boost"}, desc = "Aktifkan/nonaktifkan pengurang lag (Anti Lag).", usage = "" },
+        { name = "noclip", aliases = {}, desc = "Aktifkan/nonaktifkan noclip ghost.", usage = "" },
+        { name = "spectate", aliases = {"spectator", "view"}, desc = "Buka menu Spectator.", usage = "" },
+        { name = "animasi", aliases = {"anims"}, desc = "Buka menu Animasi.", usage = "" },
+        { name = "cmdbar", aliases = {}, desc = "Tampilkan Command Bar.", usage = "" },
+        { name = "credits", aliases = {}, desc = "Tampilkan info Credits.", usage = "" }
     }
 
     local CmdListFrame = nil
@@ -3875,6 +4120,23 @@ local success, err = pcall(function()
                 end
             end
             
+        elseif cmd == "tpwp" or cmd == "wp" then
+            local name = fullArgString
+            if name and name ~= "" then
+                local comps = customWaypoints[name]
+                if comps then
+                    local ok, cf = pcall(function() return CFrame.new(table.unpack(comps)) end)
+                    if ok and typeof(cf) == "CFrame" then
+                        local lplr = game:GetService("Players").LocalPlayer
+                        local char = lplr.Character or lplr.CharacterAdded:Wait()
+                        if char then char:PivotTo(cf) end
+                        notifyPlayer("Waypoint", "Teleported to: " .. name)
+                    end
+                else
+                    notifyPlayer("Waypoint", "Waypoint tidak ditemukan: " .. name)
+                end
+            end
+
         elseif cmd == "speed" or cmd == "spd" or cmd == "ws" then
             local num = tonumber(fullArgString)
             if num then
@@ -3899,6 +4161,14 @@ local success, err = pcall(function()
             if flying then
                 disableFly()
             end
+
+        elseif cmd == "flyv2" then
+            launchFlyV2()
+
+        elseif cmd == "flyv3" then
+            if typeof(toggleFlyV3) == "function" then
+                toggleFlyV3()
+            end
             
         elseif cmd == "freecam" or cmd == "fc" then
             setFreecam(not freecamOn)
@@ -3909,21 +4179,23 @@ local success, err = pcall(function()
             end
             
         elseif cmd == "clicktp" or cmd == "ctp" then
-            clickTpOn = not clickTpOn
-            setButtonActive(ClickTPBtn, clickTpOn)
-            
-        elseif cmd == "unanchor" then
-            aktif = not aktif
-            if aktif then
-                setButtonActive(UnanchorBtn, true)
-                mulaiUnanchor()
-            else
-                setButtonActive(UnanchorBtn, false)
-                stopUnanchor()
+            toggleClickTP()
+
+        elseif cmd == "tp" or cmd == "teleport" then
+            local targetName = fullArgString
+            if targetName and targetName ~= "" then
+                local target = findPlayerByQuery(targetName)
+                if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and player.Character then
+                    local targetPos = target.Character.HumanoidRootPart.Position + Vector3.new(0, 3, 0)
+                    player.Character:PivotTo(CFrame.new(targetPos))
+                    notifyPlayer("Teleport", "Teleported to: " .. target.DisplayName)
+                else
+                    notifyPlayer("Teleport", "Pemain tidak ditemukan: " .. tostring(targetName))
+                end
             end
             
-        elseif cmd == "cmds" or cmd == "commands" then
-            showCommandsWindow()
+        elseif cmd == "unanchor" then
+            toggleUnanchor()
 
         elseif cmd == "fling" or cmd == "tendang" then
             hiddenfling = not hiddenfling
@@ -3936,12 +4208,59 @@ local success, err = pcall(function()
             end
             
         elseif cmd == "explorer" or cmd == "dex" then
-            local ok, err = pcall(function()
-                loadstring(game:HttpGet("https://raw.githubusercontent.com/bochilascript/ROBLOX/refs/heads/main/dex.lua"))()
-            end)
-            if not ok then
-                notifyPlayer("Dex Explorer", "Failed to load: " .. tostring(err))
-            end
+            launchDex()
+
+        elseif cmd == "airwalk" or cmd == "walkonair" then
+            toggleAirwalk()
+
+        elseif cmd == "esp" then
+            toggleESP()
+
+        elseif cmd == "espteam" then
+            toggleESPTeam()
+
+        elseif cmd == "lampu" or cmd == "light" or cmd == "lamp" then
+            toggleLampu()
+
+        elseif cmd == "infjump" or cmd == "infinitejump" then
+            toggleInfiniteJump()
+
+        elseif cmd == "rejoin" or cmd == "rj" then
+            rejoinServer()
+
+        elseif cmd == "refresh" or cmd == "re" or cmd == "respawn" then
+            refreshCharacter()
+
+        elseif cmd == "antiafk" then
+            toggleAntiAFK()
+
+        elseif cmd == "serverhop" or cmd == "shop" then
+            serverhop()
+
+        elseif cmd == "bringpart" or cmd == "bp" then
+            toggleBringPart()
+
+        elseif cmd == "antilag" or cmd == "boost" then
+            toggleAntiLag()
+
+        elseif cmd == "noclip" then
+            toggleNoclip()
+
+        elseif cmd == "spectate" or cmd == "spectator" or cmd == "view" then
+            launchSpectator()
+
+        elseif cmd == "animasi" or cmd == "anims" then
+            launchAnimasi()
+
+        elseif cmd == "cmdbar" then
+            showCmdBar()
+
+        elseif cmd == "credits" then
+            createCreditsWindow()
+            setCategory("Credits")
+
+        elseif cmd == "cmds" or cmd == "commands" then
+            showCommandsWindow()
         end
     end
 
