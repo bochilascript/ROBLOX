@@ -3118,6 +3118,23 @@ end
 FriendListFrame = nil
 FriendListScroll = nil
 refreshFriendList = nil
+activeJoinConn = nil  -- track listener aktif untuk cegah double-fire TeleportInitFailed
+
+-- queueTeleport: re-jalankan script setelah teleport (jika executor support)
+-- Beberapa executor menyebutnya queue_on_teleport atau QueueOnTeleport
+function queueTeleport()
+    pcall(function()
+        local scriptSrc = nil
+        if syn and syn.queue_on_teleport then
+            syn.queue_on_teleport(scriptSrc or "")
+        elseif queue_on_teleport then
+            queue_on_teleport(scriptSrc or "")
+        elseif fluxus and fluxus.queue_on_teleport then
+            fluxus.queue_on_teleport(scriptSrc or "")
+        end
+        -- Jika tidak ada dukungan, diam saja (tidak error)
+    end)
+end
 
 function createFriendListWindow()
     if FriendListFrame then return end
@@ -3423,13 +3440,13 @@ function createFriendListWindow()
             local isPlaying = friend.PlaceId and friend.PlaceId > 0 and friend.LastLocation ~= "Website" and friend.LastLocation ~= "Studio" and friend.LastLocation ~= "Offline"
             if isPlaying then
                 local joinBtn = Instance.new("TextButton")
-                joinBtn.Size = UDim2.new(0, 50, 0, 28)
-                joinBtn.Position = UDim2.new(1, -56, 0.5, -14)
-                joinBtn.BackgroundColor3 = Color3.fromRGB(0, 130, 80)
-                joinBtn.Text = "Join"
+                joinBtn.Size = UDim2.new(0, 65, 0, 28)
+                joinBtn.Position = UDim2.new(1, -71, 0.5, -14)
+                joinBtn.BackgroundColor3 = Color3.fromRGB(0, 80, 180)
+                joinBtn.Text = "Copy Link"
                 joinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
                 joinBtn.Font = Enum.Font.GothamBold
-                joinBtn.TextSize = 11
+                joinBtn.TextSize = 10
                 joinBtn.Parent = row
 
                 local joinCorner = Instance.new("UICorner")
@@ -3437,17 +3454,43 @@ function createFriendListWindow()
                 joinCorner.Parent = joinBtn
 
                 joinBtn.MouseButton1Click:Connect(function()
-                    local TeleportService = game:GetService("TeleportService")
-                    -- Queue current script for execution on teleport
-                    queueTeleport()
-                    -- Join the friend
-                    pcall(function()
-                        if friend.GameId and tostring(friend.GameId) ~= "" then
-                            TeleportService:TeleportToPlaceInstance(friend.PlaceId, friend.GameId, Player)
-                        else
-                            TeleportService:Teleport(friend.PlaceId, Player)
-                        end
-                    end)
+                    -- TeleportService tidak bisa bypass cross-creator restriction (Error 773)
+                    -- Solusi: copy link join ke clipboard, buka di browser/Roblox app
+                    local fPlaceId = tostring(friend.PlaceId)
+                    local fJobId   = (friend.GameId and tostring(friend.GameId) ~= ""
+                                      and tostring(friend.GameId) ~= "0")
+                                     and tostring(friend.GameId) or nil
+
+                    -- Buat link web Roblox (karena roblox:// protocol kadang tidak jalan)
+                    -- URL ini akan membuka halaman game di browser, user tinggal klik Play
+                    local joinUrl
+                    if fJobId then
+                        joinUrl = "https://www.roblox.com/games/" .. fPlaceId .. "?gameInstanceId=" .. fJobId
+                    else
+                        joinUrl = "https://www.roblox.com/games/" .. fPlaceId
+                    end
+
+                    if setclipboard then
+                        pcall(function() setclipboard(joinUrl) end)
+                        joinBtn.Text = "Link ✓"
+                        joinBtn.BackgroundColor3 = Color3.fromRGB(0, 80, 180)
+                        task.delay(2.5, function()
+                            if joinBtn and joinBtn.Parent then
+                                joinBtn.Text  = "Copy Link"
+                                joinBtn.BackgroundColor3 = Color3.fromRGB(0, 80, 180)
+                            end
+                        end)
+                    else
+                        -- Executor tidak support setclipboard
+                        joinBtn.Text = "No CB"
+                        joinBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+                        task.delay(2, function()
+                            if joinBtn and joinBtn.Parent then
+                                joinBtn.Text  = "Copy Link"
+                                joinBtn.BackgroundColor3 = Color3.fromRGB(0, 80, 180)
+                            end
+                        end)
+                    end
                 end)
             end
         end
