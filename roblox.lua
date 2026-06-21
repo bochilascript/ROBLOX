@@ -6225,22 +6225,11 @@ local success, err = pcall(function()
         if enterPressed then
             local text = CmdBarInput.Text
             if text and text ~= "" then
-                local formattedText = text
-                if string.sub(text, 1, 1) ~= ";" and string.sub(text, 1, 1) ~= "/" then
-                    formattedText = ";" .. text
-                end
-                
-                executingFromCmdBar = true
-                sendPublicChat(formattedText)
-                
+                -- Jalankan perintah tanpa mengirim ke chat publik
                 local ok, err = pcall(handleChatCommand, text)
                 if not ok then
                     warn("Command Bar Error: " .. tostring(err))
                 end
-                
-                task.delay(0.5, function()
-                    executingFromCmdBar = false
-                end)
             end
             CmdBarInput.Text = ""
             -- Re-focus so user can keep typing (friendly for mobile)
