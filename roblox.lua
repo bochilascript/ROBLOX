@@ -1306,6 +1306,7 @@ local function CreateESP(plr)
         billboard.Size = UDim2.new(0, 100, 0, 150)
         billboard.StudsOffset = Vector3.new(0, 1, 0)
         billboard.AlwaysOnTop = true
+        billboard.MaxDistance = math.huge
 
         local label = Instance.new("TextLabel")
         label.Parent = billboard
