@@ -2139,6 +2139,9 @@ FreeCamBtn = createButton("", "Free Cam")
 FreeCamBtn.Name = "FreeCamBtn"
 FreeCamBtn.LayoutOrder = 3
 
+local TPBox
+local findPlayerByQuery
+
 local clickTpOn = false
 local freecamOn = false
 local freecamYaw, freecamPitch = 0, 0
@@ -2243,7 +2246,7 @@ FreeCamBtn.MouseButton1Click:Connect(function()
 end)
 
 -- Teleport-by-name UI (like admin2): a TextBox under Click TP
-local TPBox = Instance.new("TextBox")
+TPBox = Instance.new("TextBox")
 TPBox.Name = "TPBox"
 TPBox.LayoutOrder = 2
 TPBox.Size = UDim2.new(0, 150, 0, 35)
@@ -2353,7 +2356,7 @@ SWPBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-local function findPlayerByQuery(q)
+findPlayerByQuery = function(q)
     if not q or q == "" then return nil end
     q = q:gsub("^@", "")
     local lower = string.lower(q)
