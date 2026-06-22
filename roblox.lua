@@ -9,7 +9,109 @@ local LocalPlayer = Player
 local player = Player
 local showCommandsWindow
 local showCmdBar
+local CmdBarFrame
 local CmdsFrame
+
+local currentLanguage = "EN"
+
+local LangDict = {
+    -- Categories
+    ["Menu"] = { EN = "Menu", ID = "Menu" },
+    ["Rusuh"] = { EN = "Combat", ID = "Rusuh" },
+    ["Utility"] = { EN = "Utility", ID = "Utilitas" },
+    ["Waypoints"] = { EN = "Waypoints", ID = "Titik Lokasi" },
+    ["Commands"] = { EN = "Commands", ID = "Perintah" },
+    ["Players"] = { EN = "Players", ID = "Pemain" },
+    ["Friends"] = { EN = "Friends", ID = "Teman" },
+    ["Credits"] = { EN = "Credits", ID = "Kredit" },
+    ["Changelogs"] = { EN = "Changelogs", ID = "Riwayat" },
+    
+    -- Feature Buttons
+    ["Click TP"] = { EN = "Click TP", ID = "Klik TP" },
+    ["TP Tool"] = { EN = "TP Tool", ID = "TP Tool" },
+    ["Free Cam"] = { EN = "Free Cam", ID = "Kamera Bebas" },
+    ["Speed"] = { EN = "Speed", ID = "Kecepatan" },
+    ["Save WP"] = { EN = "Save WP", ID = "Simpan Lokasi" },
+    ["Tween TP"] = { EN = "Tween TP", ID = "Tween TP" },
+    ["BTools"] = { EN = "BTools", ID = "BTools" },
+    ["Jump Power"] = { EN = "Jump Power", ID = "Jump Power" },
+    ["Invisible"] = { EN = "Invisible", ID = "Tak Terlihat" },
+    ["Visible"] = { EN = "Visible", ID = "Terlihat" },
+    ["FPS & Ping"] = { EN = "FPS & Ping", ID = "FPS & Ping" },
+    ["Noclip"] = { EN = "Noclip", ID = "Tembus Tembok" },
+    ["Fly"] = { EN = "Fly", ID = "Terbang" },
+    ["Fling"] = { EN = "Fling", ID = "Putar Badan" },
+    ["Unanchor"] = { EN = "Unanchor", ID = "Lepas Kunci" },
+    ["Spectator"] = { EN = "Spectator", ID = "Penonton" },
+    ["Bring Part"] = { EN = "Bring Part", ID = "Tarik Objek" },
+    ["ESP"] = { EN = "ESP", ID = "ESP" },
+    ["ESP Team"] = { EN = "ESP Team", ID = "ESP Team" },
+    ["Server Hop"] = { EN = "Server Hop", ID = "Pindah Server" },
+    ["Rejoin"] = { EN = "Rejoin", ID = "Masuk Ulang" },
+    ["Respawn"] = { EN = "Respawn", ID = "Lahir Ulang" },
+    ["Anti Lag"] = { EN = "Anti Lag", ID = "Anti Lag" },
+    ["Lampu"] = { EN = "Lampu", ID = "Lampu" },
+    ["Fly V2"] = { EN = "Fly V2", ID = "Fly V2" },
+    ["Fly V3"] = { EN = "Fly V3", ID = "Fly V3" },
+    ["Animasi"] = { EN = "Animasi", ID = "Animasi" },
+    ["Command Bar"] = { EN = "Command Bar", ID = "Command Bar" },
+    ["Player List"] = { EN = "Player List", ID = "Daftar Pemain" },
+    ["Dex Explorer"] = { EN = "Dex Explorer", ID = "Dex Explorer" },
+    ["Infinite Jump"] = { EN = "Infinite Jump", ID = "Infinite Jump" },
+    ["Shift Lock"] = { EN = "Shift Lock", ID = "Shift Lock" },
+    
+    -- Inputs
+    ["SearchCmds"] = { EN = "Search commands...", ID = "Cari perintah..." },
+    ["SearchPlayers"] = { EN = "Search players...", ID = "Cari pemain..." },
+    ["SearchWP"] = { EN = "Search waypoint...", ID = "Cari Waypoint..." },
+    ["CmdBarPH"] = { EN = "Type command... (ex: swp name)", ID = "Ketik perintah... (cth: swp nama)" },
+    ["FriendList"] = { EN = "Friend List", ID = "Daftar Teman" },
+    
+    -- Changelogs
+    ["CL_330"] = { EN = "- Added Dual Language System (English & Indonesian)\n- FE Invisible Rework (Bypasses StreamingEnabled & 100% Server Sync)\n- Fixed notification translations\n- UI scaling & layout adjustments for bilingual support", ID = "- Penambahan Sistem Dua Bahasa (Inggris & Indonesia)\n- Rombak ulang FE Invisible (Anti-bug StreamingEnabled & 100% tersinkron dengan Server)\n- Perbaikan bug terjemahan pada notifikasi\n- Penyesuaian teks & layout UI untuk bahasa" },
+    ["CL_320"] = { EN = "- Custom cursor support in Command Bar\n- Fixed Infinite Jump bug\n- Fixed camera stutter on TP Tool (First Person)\n- Harmonized Server Hop GUI design\n- Fixed hidden Respawn button\n- Fixed camera issues on Invisible feature", ID = "- Dukungan custom cursor pada Command Bar\n- Perbaikan bug Infinite Jump tidak melompat\n- Perbaikan kamera tersendat pada TP Tool (First Person)\n- Menyeragamkan tampilan GUI Server Hop dengan UI lain\n- Perbaikan tombol Respawn yang tersembunyi\n- Perbaikan kamera nyasar pada fitur Invisible" },
+    ["CL_310"] = { EN = "- Integrated BTools automatically to Utility tab\n- Added Premium Jump Power Customizer\n- Enhanced Instant Long-Range Teleport (Segmented Fast-TP & Raycast Ground Check)\n- Improved TP Tool with Auto Cursor Unlock\n- Added ;tweentp and ;jumppower to Command List", ID = "- Integrasi BTools ke tab Utility secara otomatis\n- Penambahan Premium Jump Power Customizer\n- Penyempurnaan Teleport Jarak Jauh Instan (Segmented Fast-TP & Raycast Ground Check)\n- Penyempurnaan TP Tool dengan Auto Cursor Unlock\n- Perintah ;tweentp dan ;jumppower ke Command List" },
+    ["CL_300"] = { EN = "- Reconstructed Anti Lag (0% Idle CPU, event-driven lighting/water lock, 0.1s streaming pause)\n- Added BTools Feature (Hammer, Move, Grab, Clone)\n- Added Mobile Shift Lock (Shoulder view + body movement)\n- Added ESP Customization (Independent Chams, Name, Tracer toggle)\n- Added Changelog & Script Version Tab", ID = "- Rekonstruksi Anti Lag (0% Idle CPU, event-driven pengunci cahaya/air, jeda streaming 0.1s)\n- Penambahan Fitur BTools (Hammer, Move, Grab, Clone)\n- Penambahan Mobile Shift Lock (Sudut pandang bahu + pergerakan tubuh)\n- Penambahan Kustomisasi ESP (Toggle Chams, Name, Tracer independen)\n- Penambahan Tab Changelog & Versi Script" },
+    ["CL_250"] = { EN = "- Added Enter confirmation button to Command Bar\n- Auto alphabetical sorting for Command List on startup\n- Fixed Luau compiler 200 register limit\n- Added Friend List Window (Join & Auto Re-execute)", ID = "- Penambahan tombol Enter konfirmasi di Command Bar\n- Pengurutan abjad Command List otomatis saat startup\n- Perbaikan register limit 200 Luau compiler\n- Penambahan Window Friend List (Join & Auto Re-execute)" },
+    ["CL_200"] = { EN = "- ESP billboard with health bar & distance indicator\n- Fixed unlimited ESP distance bug (math.huge)", ID = "- ESP billboard dengan health bar & indikator jarak\n- Perbaikan bug jarak ESP tidak terbatas (math.huge)" },
+    
+    -- Notifications
+    ["Invisible_On"] = { EN = "Invisible Mode Activated!", ID = "FE Invisible Aktif!" },
+    ["Visible_On"] = { EN = "Visible Mode Activated!", ID = "Karakter terlihat kembali!" },
+    ["Teleporting"] = { EN = "Teleporting...", ID = "Melakukan Teleport..." },
+}
+
+local translatableElements = {}
+
+function tr(key)
+    local entry = LangDict[key]
+    if entry then
+        return entry[currentLanguage] or key
+    end
+    return key
+end
+
+function addTranslatable(guiElement, key, propertyName, prefix)
+    propertyName = propertyName or "Text"
+    prefix = prefix or ""
+    table.insert(translatableElements, {element = guiElement, key = key, prop = propertyName, prefix = prefix})
+    pcall(function() guiElement[propertyName] = prefix .. tr(key) end)
+end
+
+function updateLanguage(lang)
+    currentLanguage = lang
+    for _, item in ipairs(translatableElements) do
+        if item.element then
+            pcall(function()
+                if item.prop == "Text" then
+                    item.element.Text = item.prefix .. tr(item.key)
+                elseif item.prop == "PlaceholderText" then
+                    item.element.PlaceholderText = item.prefix .. tr(item.key)
+                end
+            end)
+        end
+    end
+end
 
 currentCategory = "Menu"
 customWaypoints = {}
@@ -148,7 +250,7 @@ VersionLabel.TextSize = 11
 VersionLabel.TextColor3 = Color3.fromRGB(0, 220, 130)
 VersionLabel.TextXAlignment = Enum.TextXAlignment.Right
 VersionLabel.TextYAlignment = Enum.TextYAlignment.Bottom
-VersionLabel.Text = "v3.1.0"
+VersionLabel.Text = "v3.3.0"
 VersionLabel.ZIndex = 15
 VersionLabel.Parent = MainFrame
 
@@ -330,17 +432,17 @@ do
         QuickPanel.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 10)
     end)
 
-    local function makeSmallBtn(text, order)
+    local function makeSmallBtn(textKey, order)
         local btn = Instance.new("TextButton")
         btn.Size = UDim2.new(1, -6, 0, 28)
         btn.LayoutOrder = order
         btn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
         btn.BackgroundTransparency = 0.1
-        btn.Text = text
         btn.TextSize = 13
         btn.Font = Enum.Font.GothamBold
         btn.TextColor3 = Color3.fromRGB(255, 255, 255)
         btn.Parent = QuickPanel
+        addTranslatable(btn, textKey, "Text")
 
         local c = Instance.new("UICorner")
         c.CornerRadius = UDim.new(0, 8)
@@ -373,12 +475,18 @@ do
     end
 
     -- filtering helpers
-    local rusuhKeywords = {"bringpart","spectator","noclip","tendang","unanchor","fly","esp","esp team"}
-    local utilityKeywords = {"free cam","freecam","click tp","clicktp","speed","save wp","savewp","swp", "btools", "tween tp", "tweentp", "jump power", "jumppower", "jp", "tp tool", "tptool"}
+    local rusuhKeywords = {"bringpart", "tarik objek", "spectator", "penonton", "noclip", "tembus tembok", "tendang", "unanchor", "lepas kunci", "fly", "terbang", "esp", "esp team"}
+    local utilityKeywords = {"free cam", "freecam", "kamera bebas", "click tp", "clicktp", "klik tp", "speed", "kecepatan", "save wp", "savewp", "swp", "simpan lokasi", "btools", "tween tp", "tweentp", "jump power", "jumppower", "jp", "tp tool", "tptool", "invisible", "tak terlihat", "visible", "terlihat", "fps & ping"}
     local function matchesAny(text, keywords)
-        local lower = string.lower(text)
+        local lower = string.lower(text or "")
         for _, k in ipairs(keywords) do
-            if string.find(lower, k, 1, true) then return true end
+            if string.find(lower, k, 1, true) then 
+                if k == "esp" and string.find(lower, "respawn", 1, true) then
+                    -- skip 'esp' matching 'respawn'
+                else
+                    return true 
+                end
+            end
         end
         return false
     end
@@ -513,6 +621,9 @@ do
             local jumpBtn  = UtilityScroll:FindFirstChild("JumpPowerBtn") or ScrollFrame:FindFirstChild("JumpPowerBtn") or findBtn("Jump Power")
             local jumpBox  = UtilityScroll:FindFirstChild("JumpPowerBox") or ScrollFrame:FindFirstChild("JumpPowerBox")
             local tptoolBtn = UtilityScroll:FindFirstChild("TPToolBtn") or ScrollFrame:FindFirstChild("TPToolBtn") or findBtn("TP Tool")
+            local invisBtn = UtilityScroll:FindFirstChild("InvisibleBtn") or ScrollFrame:FindFirstChild("InvisibleBtn") or findBtn("Invisible")
+            local visBtn = UtilityScroll:FindFirstChild("VisibleBtn") or ScrollFrame:FindFirstChild("VisibleBtn") or findBtn("Visible")
+            local fpsBtn = UtilityScroll:FindFirstChild("FPSPingBtn") or ScrollFrame:FindFirstChild("FPSPingBtn") or findBtn("FPS & Ping")
 
             local function moveToUtil(child, order)
                 if child then child.Parent = UtilityScroll child.Visible = true child.LayoutOrder = order end
@@ -525,6 +636,9 @@ do
             moveToUtil(btoolsBtn, 10)
             moveToUtil(jumpBtn, 11); moveToUtil(jumpBox, 12)
             moveToUtil(tptoolBtn, 13)
+            moveToUtil(invisBtn, 14)
+            moveToUtil(visBtn, 15)
+            moveToUtil(fpsBtn, 16)
             -- juga pindahkan tombol waypoint tetap (urut A->Z)
             -- jangan tampilkan tombol waypoint tetap di Utility
             for _, ch in ipairs(UtilityScroll:GetChildren()) do
@@ -817,10 +931,12 @@ do
         listLayout.Parent = scrollFrame
 
         local changelogs = {
-            { title = "v3.1.0 (Premium & TP Update)", value = "- Integrasi BTools ke tab Utility secara otomatis\n- Penambahan Premium Jump Power Customizer\n- Penyempurnaan Teleport Jarak Jauh Instan (Segmented Fast-TP & Raycast Ground Check)\n- Penyempurnaan TP Tool dengan Auto Cursor Unlock\n- Perintah ;tweentp dan ;jumppower ke Command List" },
-            { title = "v3.0.0 (Anti Lag & Features)", value = "- Rekonstruksi Anti Lag (0% Idle CPU, event-driven pengunci cahaya/air, jeda streaming 0.1s)\n- Penambahan Fitur BTools (Hammer, Move, Grab, Clone)\n- Penambahan Mobile Shift Lock (Sudut pandang bahu + pergerakan tubuh)\n- Penambahan Kustomisasi ESP (Toggle Chams, Name, Tracer independen)\n- Penambahan Tab Changelog & Versi Script" },
-            { title = "v2.5.0 (Optimasi & GUI)", value = "- Penambahan tombol Enter konfirmasi di Command Bar\n- Pengurutan abjad Command List otomatis saat startup\n- Perbaikan register limit 200 Luau compiler\n- Penambahan Window Friend List (Join & Auto Re-execute)" },
-            { title = "v2.0.0 (ESP Update)", value = "- ESP billboard dengan health bar & indikator jarak\n- Perbaikan bug jarak ESP tidak terbatas (math.huge)" }
+            { title = "v3.3.0 (Globalisation & Invis Rework)", key = "CL_330" },
+            { title = "v3.2.0 (Bug Fixes & UX)", key = "CL_320" },
+            { title = "v3.1.0 (Premium & TP Update)", key = "CL_310" },
+            { title = "v3.0.0 (Anti Lag & Features)", key = "CL_300" },
+            { title = "v2.5.0 (Optimasi & GUI)", key = "CL_250" },
+            { title = "v2.0.0 (ESP Update)", key = "CL_200" }
         }
 
         for idx, log in ipairs(changelogs) do
@@ -855,7 +971,7 @@ do
             valueLabel.TextYAlignment = Enum.TextYAlignment.Top
             valueLabel.TextSize = 10
             valueLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-            valueLabel.Text = log.value
+            addTranslatable(valueLabel, log.key, "Text")
             valueLabel.TextWrapped = true
             valueLabel.Parent = itemFrame
         end
@@ -994,6 +1110,32 @@ task.spawn(function()
     end
 end)
 
+local LangBtn = Instance.new("TextButton")
+LangBtn.Size = UDim2.new(0, 30, 0, 25)
+LangBtn.Position = UDim2.new(1, -100, 0.5, -12)
+LangBtn.BackgroundColor3 = Color3.fromRGB(0, 80, 180)
+LangBtn.BackgroundTransparency = 0.1
+LangBtn.Text = currentLanguage
+LangBtn.Font = Enum.Font.GothamBold
+LangBtn.TextSize = 13
+LangBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+LangBtn.Parent = Navbar
+
+local langCorner = Instance.new("UICorner")
+langCorner.CornerRadius = UDim.new(0, 6)
+langCorner.Parent = LangBtn
+
+local langStroke = Instance.new("UIStroke")
+langStroke.Color = Color3.fromRGB(0, 120, 255)
+langStroke.Thickness = 1
+langStroke.Parent = LangBtn
+
+LangBtn.MouseButton1Click:Connect(function()
+    local newLang = currentLanguage == "EN" and "ID" or "EN"
+    LangBtn.Text = newLang
+    updateLanguage(newLang)
+end)
+
 local MinimizeBtn = Instance.new("TextButton")
 MinimizeBtn.Size = UDim2.new(0, 25, 0, 25)
 MinimizeBtn.Position = UDim2.new(1, -60, 0.5, -12)
@@ -1079,8 +1221,24 @@ do
     corner.Parent = dot
 end
 
+local isShiftLockActive = false
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then
+        isShiftLockActive = not isShiftLockActive
+        if updateExternalCursorVisibility then
+            updateExternalCursorVisibility()
+        end
+    end
+end)
+
 function updateExternalCursorVisibility()
-    ExternalCursor.Visible = (ScreenGui.Enabled == true) and (MainFrame.Visible == true)
+    if isShiftLockActive then
+        ExternalCursor.Visible = false
+    else
+        local cmdVis = false
+        if typeof(CmdBarFrame) == "Instance" and CmdBarFrame then cmdVis = CmdBarFrame.Visible end
+        ExternalCursor.Visible = (ScreenGui.Enabled == true) and ((MainFrame.Visible == true) or cmdVis)
+    end
 end
 
 ScreenGui:GetPropertyChangedSignal("Enabled"):Connect(updateExternalCursorVisibility)
@@ -1263,15 +1421,15 @@ end)
 
 local buttonStates = {}
 
-function createButton(icon, text)
+function createButton(icon, textKey)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 150, 0, 35)
     btn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     btn.BackgroundTransparency = 0.1
-    btn.Text = icon .. "  " .. text
     btn.TextSize = 15
     btn.Font = Enum.Font.GothamBold
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    addTranslatable(btn, textKey, "Text", icon .. "  ")
     btn.TextXAlignment = Enum.TextXAlignment.Left
     btn.LayoutOrder = 0
     btn.AutoButtonColor = false
@@ -1706,19 +1864,6 @@ player.CharacterAdded:Connect(updateCharacterRefs)
 UserInputService.JumpRequest:Connect(function()
     if infiniteJumpEnabled and humanoid then
         humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-        local goalVelocity = Vector3.new(root.Velocity.X, jumpPowerBoost, root.Velocity.Z)
-        local tween = TweenService:Create(root, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Velocity = goalVelocity})
-        tween:Play()
-    end
-end)
-
-RunService.Stepped:Connect(function()
-    if humanoid and infiniteJumpEnabled then
-        if humanoid:GetState() == Enum.HumanoidStateType.Freefall then
-            if root.Velocity.Y < slowFallSpeed then
-                root.Velocity = Vector3.new(root.Velocity.X, slowFallSpeed, root.Velocity.Z)
-            end
-        end
     end
 end)
 
@@ -1772,40 +1917,51 @@ RejoinBtn.MouseButton1Click:Connect(rejoinServer)
 
 -- Refresh button (Menu): respawn the character quickly
 RefreshBtn = createButton("", "Refresh")
+RefreshBtn.Name = "RefreshBtn"
 RefreshBtn.LayoutOrder = 2
+
+RespawnBtn = createButton("", "Respawn")
+RespawnBtn.Name = "RespawnBtn"
+RespawnBtn.LayoutOrder = 3
 
 -- Anti AFK (Menu)
 AntiAFKBtn = createButton("", "Anti AFK")
-AntiAFKBtn.LayoutOrder = 3
+AntiAFKBtn.Name = "AntiAFKBtn"
+AntiAFKBtn.LayoutOrder = 4
 local antiAFKConnection = nil
 
-function refreshCharacter()
+function refreshCharacter(keepPosition)
+    if keepPosition == nil then keepPosition = true end
     local Players = game:GetService("Players")
     local plr = Players.LocalPlayer
     if not plr then return end
 
     local char = plr.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    local savedCFrame = hrp and hrp.CFrame
-    local savedVel = hrp and hrp.AssemblyLinearVelocity
+    if not char then return end
+    
+    local savedCFrame = nil
+    if keepPosition then
+        pcall(function() savedCFrame = char:GetPivot() end)
+    end
 
-    -- clean respawn
-    pcall(function() plr:LoadCharacter() end)
+    local hum = char:FindFirstChild("Humanoid")
+    if hum then 
+        hum.Health = 0 
+    elseif char:FindFirstChild("HumanoidRootPart") then
+        char.HumanoidRootPart:Destroy()
+    end
 
-    -- wait for new character then restore position
-    local newChar = plr.Character or plr.CharacterAdded:Wait()
-    local newHRP = newChar:WaitForChild("HumanoidRootPart", 5)
-    if newHRP and savedCFrame then
-        -- small delay to let Roblox finish placing the character
-        task.delay(0.2, function()
-            pcall(function()
-                newHRP.CFrame = savedCFrame
-                if savedVel then newHRP.AssemblyLinearVelocity = savedVel end
-            end)
-        end)
+    if keepPosition and savedCFrame then
+        local newChar = plr.CharacterAdded:Wait()
+        local hrp = newChar:WaitForChild("HumanoidRootPart", 5)
+        if hrp then
+            task.wait(0.3) -- wait for roblox to teleport them to spawn first
+            pcall(function() newChar:PivotTo(savedCFrame) end)
+        end
     end
 end
-RefreshBtn.MouseButton1Click:Connect(refreshCharacter)
+RefreshBtn.MouseButton1Click:Connect(function() refreshCharacter(true) end)
+RespawnBtn.MouseButton1Click:Connect(function() refreshCharacter(false) end)
 
 function toggleAntiAFK(state)
     local targetState
@@ -1944,6 +2100,127 @@ AimbotBtn.MouseButton1Click:Connect(function()
     toggleAimbot()
 end)
 
+InvisibleBtn = createButton("", "Invisible")
+InvisibleBtn.Name = "InvisibleBtn"
+VisibleBtn = createButton("", "Visible")
+VisibleBtn.Name = "VisibleBtn"
+FPSPingBtn = createButton("", "FPS & Ping")
+FPSPingBtn.Name = "FPSPingBtn"
+
+local invisRunning = false
+local invisFakeChar = nil
+local invisRealChar = nil
+local invisDiedConn = nil
+
+InvisibleBtn.MouseButton1Click:Connect(function()
+    if invisRunning then return end
+    local plr = game:GetService("Players").LocalPlayer
+    local char = plr.Character
+    if not char then return end
+    
+    invisRunning = true
+    setButtonActive(InvisibleBtn, true)
+    setButtonActive(VisibleBtn, false)
+    
+    char.Archivable = true
+    invisFakeChar = char:Clone()
+    invisRealChar = char
+    
+    local currentCFrame = char:GetPivot()
+    
+    invisFakeChar.Parent = workspace
+    invisFakeChar:PivotTo(currentCFrame)
+    plr.Character = invisFakeChar
+    workspace.CurrentCamera.CameraSubject = invisFakeChar:FindFirstChildOfClass("Humanoid")
+    
+    invisRealChar:PivotTo(currentCFrame + Vector3.new(0, 10000, 0))
+    task.wait(0.05) -- Let server replicate the sky position
+    invisRealChar.Parent = game:GetService("Lighting")
+    
+    local anim = invisFakeChar:FindFirstChild("Animate")
+    if anim then
+        anim.Disabled = true
+        anim.Disabled = false
+    end
+    
+    for _, v in ipairs(invisFakeChar:GetDescendants()) do
+        if v:IsA("BasePart") then
+            if v.Name == "HumanoidRootPart" then
+                v.Transparency = 1
+            else
+                v.Transparency = 0.5
+            end
+        elseif v:IsA("Decal") then
+            v.Transparency = 0.5
+        end
+    end
+    
+    local fakeHum = invisFakeChar:FindFirstChildOfClass("Humanoid")
+    if fakeHum then
+        invisDiedConn = fakeHum.Died:Connect(function()
+            invisRunning = false
+            pcall(function()
+                plr.Character = invisRealChar
+                invisRealChar.Parent = workspace
+                invisRealChar:FindFirstChildOfClass("Humanoid").Health = 0
+                invisFakeChar:Destroy()
+            end)
+            if invisDiedConn then invisDiedConn:Disconnect() end
+        end)
+    end
+    
+    pcall(function()
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = tr("Invisible"),
+            Text = tr("Invisible_On"),
+            Duration = 5
+        })
+    end)
+end)
+
+VisibleBtn.MouseButton1Click:Connect(function()
+    if not invisRunning then return end
+    invisRunning = false
+    
+    local plr = game:GetService("Players").LocalPlayer
+    if invisRealChar and invisFakeChar then
+        pcall(function()
+            local currentCFrame = invisFakeChar:GetPivot()
+            invisRealChar.Parent = workspace
+            invisRealChar:PivotTo(currentCFrame)
+            invisFakeChar:Destroy()
+            plr.Character = invisRealChar
+            workspace.CurrentCamera.CameraSubject = invisRealChar:FindFirstChildOfClass("Humanoid")
+            if invisDiedConn then invisDiedConn:Disconnect() end
+            
+            local anim = invisRealChar:FindFirstChild("Animate")
+            if anim then
+                anim.Disabled = true
+                anim.Disabled = false
+            end
+        end)
+    end
+    invisRealChar = nil
+    invisFakeChar = nil
+    setButtonActive(VisibleBtn, true)
+    setButtonActive(InvisibleBtn, false)
+    task.delay(0.5, function() setButtonActive(VisibleBtn, false) end)
+    
+    pcall(function()
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = tr("Visible"),
+            Text = tr("Visible_On"),
+            Duration = 3
+        })
+    end)
+end)
+
+FPSPingBtn.MouseButton1Click:Connect(function()
+    if typeof(_G.ToggleFPSPingMonitor) == "function" then
+        _G.ToggleFPSPingMonitor()
+    end
+end)
+
 local httpService = game:GetService("HttpService")
 local teleportService = game:GetService("TeleportService")
 local placeId = game.PlaceId
@@ -1975,62 +2252,139 @@ function createServerHopWindow()
     mainFrame.Name = "MainFrame"
     mainFrame.Size = UDim2.new(0, 340, 0, 360)
     mainFrame.Position = UDim2.new(0.5, -170, 0.5, -180)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 30)
+    mainFrame.BackgroundTransparency = 0.1
     mainFrame.BorderSizePixel = 0
+    mainFrame.ClipsDescendants = true
     mainFrame.Parent = sgui
     ServerHopGui = mainFrame
 
+    local modal = Instance.new("TextButton")
+    modal.Size = UDim2.new(0, 0, 0, 0)
+    modal.BackgroundTransparency = 1
+    modal.Text = ""
+    modal.Modal = true
+    modal.Parent = mainFrame
+
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
+    corner.CornerRadius = UDim.new(0, 12)
     corner.Parent = mainFrame
+    
+    local mainStroke = Instance.new("UIStroke")
+    mainStroke.Color = Color3.fromRGB(0, 220, 130)
+    mainStroke.Thickness = 2
+    mainStroke.Transparency = 0
+    mainStroke.Parent = mainFrame
 
     local topBar = Instance.new("Frame")
     topBar.Name = "TopBar"
     topBar.Size = UDim2.new(1, 0, 0, 30)
-    topBar.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    topBar.BackgroundColor3 = Color3.fromRGB(0, 0, 20)
     topBar.BorderSizePixel = 0
     topBar.Parent = mainFrame
+    
     local topCorner = Instance.new("UICorner")
-    topCorner.CornerRadius = UDim.new(0, 8)
+    topCorner.CornerRadius = UDim.new(0, 12)
     topCorner.Parent = topBar
 
+    local topCover = Instance.new("Frame")
+    topCover.Size = UDim2.new(1, 0, 0, 10)
+    topCover.Position = UDim2.new(0, 0, 1, -10)
+    topCover.BackgroundColor3 = Color3.fromRGB(0, 0, 20)
+    topCover.BorderSizePixel = 0
+    topCover.Parent = topBar
+
     local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, -60, 1, 0)
-    title.Position = UDim2.new(0, 10, 0, 0)
+    title.Size = UDim2.new(1, -90, 1, 0)
+    title.Position = UDim2.new(0, 12, 0, 0)
     title.BackgroundTransparency = 1
-    title.Text = "Server List"
-    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    addTranslatable(title, "ServerList", "Text")
+    title.TextColor3 = Color3.fromRGB(0, 200, 120)
     title.TextSize = 14
     title.Font = Enum.Font.GothamBold
     title.TextXAlignment = Enum.TextXAlignment.Left
     title.Parent = topBar
 
     local closeBtn = Instance.new("TextButton")
-    closeBtn.Size = UDim2.new(0, 30, 0, 30)
-    closeBtn.Position = UDim2.new(1, -30, 0, 0)
-    closeBtn.BackgroundTransparency = 1
+    closeBtn.Size = UDim2.new(0, 22, 0, 22)
+    closeBtn.Position = UDim2.new(1, -28, 0.5, -11)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+    closeBtn.BackgroundTransparency = 0.1
     closeBtn.Text = "X"
-    closeBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
-    closeBtn.TextSize = 16
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 13
     closeBtn.Parent = topBar
+    
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 6)
+    closeCorner.Parent = closeBtn
+
+    local closeStroke = Instance.new("UIStroke")
+    closeStroke.Color = Color3.fromRGB(200, 100, 100)
+    closeStroke.Thickness = 1
+    closeStroke.Parent = closeBtn
+
     closeBtn.MouseButton1Click:Connect(function() mainFrame.Visible = false end)
+    
+    local minBtn = Instance.new("TextButton")
+    minBtn.Size = UDim2.new(0, 22, 0, 22)
+    minBtn.Position = UDim2.new(1, -54, 0.5, -11)
+    minBtn.BackgroundColor3 = Color3.fromRGB(0, 130, 80)
+    minBtn.BackgroundTransparency = 0.1
+    minBtn.Text = "-"
+    minBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    minBtn.Font = Enum.Font.GothamBold
+    minBtn.TextSize = 13
+    minBtn.Parent = topBar
+    
+    local minCorner = Instance.new("UICorner")
+    minCorner.CornerRadius = UDim.new(0, 6)
+    minCorner.Parent = minBtn
+
+    local minStroke = Instance.new("UIStroke")
+    minStroke.Color = Color3.fromRGB(0, 220, 130)
+    minStroke.Thickness = 1
+    minStroke.Parent = minBtn
+
+    local isMinimized = false
+    minBtn.MouseButton1Click:Connect(function()
+        isMinimized = not isMinimized
+        if isMinimized then
+            mainFrame:TweenSize(UDim2.new(0, 340, 0, 30), "Out", "Quad", 0.3, true)
+            minBtn.Text = "+"
+        else
+            mainFrame:TweenSize(UDim2.new(0, 340, 0, 360), "Out", "Quad", 0.3, true)
+            minBtn.Text = "-"
+        end
+    end)
 
     local refreshBtn = Instance.new("TextButton")
-    refreshBtn.Size = UDim2.new(0, 30, 0, 30)
-    refreshBtn.Position = UDim2.new(1, -60, 0, 0)
-    refreshBtn.BackgroundTransparency = 1
+    refreshBtn.Size = UDim2.new(0, 22, 0, 22)
+    refreshBtn.Position = UDim2.new(1, -80, 0.5, -11)
+    refreshBtn.BackgroundColor3 = Color3.fromRGB(0, 130, 80)
+    refreshBtn.BackgroundTransparency = 0.1
     refreshBtn.Text = "R"
-    refreshBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
-    refreshBtn.TextSize = 16
+    refreshBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     refreshBtn.Font = Enum.Font.GothamBold
+    refreshBtn.TextSize = 13
     refreshBtn.Parent = topBar
+    
+    local refCorner = Instance.new("UICorner")
+    refCorner.CornerRadius = UDim.new(0, 6)
+    refCorner.Parent = refreshBtn
+
+    local refStroke = Instance.new("UIStroke")
+    refStroke.Color = Color3.fromRGB(0, 220, 130)
+    refStroke.Thickness = 1
+    refStroke.Parent = refreshBtn
 
     local infoFrame = Instance.new("Frame")
     infoFrame.Name = "InfoFrame"
     infoFrame.Size = UDim2.new(1, -20, 0, 40)
     infoFrame.Position = UDim2.new(0, 10, 0, 35)
-    infoFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    infoFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
+    infoFrame.BackgroundTransparency = 0.5
     infoFrame.BorderSizePixel = 0
     infoFrame.Parent = mainFrame
 
@@ -2306,111 +2660,35 @@ function safeTeleportToPlayer(targetPlayer)
     local targetPos = targetHrp.Position
     local distance = (targetPos - startPos).Magnitude
 
-    -- Jika jarak dekat (< 500 studs), langsung instant TP secara aman
-    if distance < 500 then
-        local previousAnchored = hrp.Anchored
-        hrp.Anchored = true
-        
-        pcall(function()
-            game:GetService("StarterGui"):SetCore("SendNotification", {
-                Title = "Teleporting...",
-                Text = "Menyiapkan map untuk " .. targetPlayer.DisplayName,
-                Duration = 2
-            })
-        end)
+    -- Langsung instant TP secara aman (jarak jauh sekalipun)
+    local previousAnchored = hrp.Anchored
+    hrp.Anchored = true
+    
+    pcall(function()
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Teleporting...",
+            Text = "Menyiapkan map untuk " .. targetPlayer.DisplayName,
+            Duration = 2
+        })
+    end)
 
-        char:PivotTo(targetHrp.CFrame * CFrame.new(0, 3, 0))
-        
-        -- Request streaming agar map termuat
-        pcall(function()
-            Player:RequestStreamAroundAsync(targetPos)
-        end)
-        
-        task.wait(0.3)
-        hrp.Anchored = previousAnchored
+    char:PivotTo(targetHrp.CFrame * CFrame.new(0, 3, 0))
+    
+    -- Request streaming agar map termuat
+    pcall(function()
+        Player:RequestStreamAroundAsync(targetPos)
+    end)
+    
+    task.wait(0.3)
+    hrp.Anchored = previousAnchored
 
-        pcall(function()
-            game:GetService("StarterGui"):SetCore("SendNotification", {
-                Title = "Teleport Sukses",
-                Text = "Teleport ke " .. targetPlayer.DisplayName .. " selesai.",
-                Duration = 3
-            })
-        end)
-    else
-        -- Jika jarak jauh (>= 500 studs), lakukan TpWalk (teleportasi bertahap) agar tidak dibatalkan server/anti-cheat
-        pcall(function()
-            game:GetService("StarterGui"):SetCore("SendNotification", {
-                Title = "Safe Teleport",
-                Text = string.format("Teleport bertahap berjalan... Jarak: %.0f studs", distance),
-                Duration = 4
-            })
-        end)
-
-        -- Matikan sementara gravity dan velocity agar tidak terpengaruh fisika
-        local oldGravity = workspace.Gravity
-        workspace.Gravity = 0
-        hrp.AssemblyLinearVelocity = Vector3.zero
-
-        local speed = 300 -- studs per detik
-        local reached = false
-        local connection
-        
-        connection = RunService.Heartbeat:Connect(function(dt)
-            local myChar = Player.Character
-            local myHrp = myChar and (myChar:FindFirstChild("HumanoidRootPart") or myChar:FindFirstChild("Torso") or myChar:FindFirstChild("UpperTorso"))
-            local tChar = targetPlayer.Character
-            local tHrp = tChar and (tChar:FindFirstChild("HumanoidRootPart") or tChar:FindFirstChild("Torso") or tChar:FindFirstChild("UpperTorso"))
-            
-            if not tHrp and tChar then
-                tHrp = tChar:FindFirstChildWhichIsA("BasePart", true)
-            end
-
-            if not myHrp or not tHrp then
-                reached = true
-                connection:Disconnect()
-                workspace.Gravity = oldGravity
-                return
-            end
-
-            local curPos = myHrp.Position
-            local destPos = tHrp.Position
-            local dist = (destPos - curPos).Magnitude
-            local dir = (destPos - curPos).Unit
-            local step = speed * dt
-
-            if dist <= step then
-                myHrp.CFrame = tHrp.CFrame * CFrame.new(0, 3, 0)
-                reached = true
-                connection:Disconnect()
-                workspace.Gravity = oldGravity
-                pcall(function()
-                    game:GetService("StarterGui"):SetCore("SendNotification", {
-                        Title = "Teleport Sukses",
-                        Text = "Sampai di target secara aman.",
-                        Duration = 3
-                    })
-                end)
-            else
-                myHrp.CFrame = CFrame.new(curPos + dir * step, destPos)
-                myHrp.AssemblyLinearVelocity = Vector3.zero
-            end
-        end)
-
-        -- Safety timeout
-        task.delay(15, function()
-            if connection and connection.Connected then
-                connection:Disconnect()
-                workspace.Gravity = oldGravity
-                pcall(function()
-                    game:GetService("StarterGui"):SetCore("SendNotification", {
-                        Title = "Teleport Timeout",
-                        Text = "Proses teleport dibatalkan karena waktu habis.",
-                        Duration = 3
-                    })
-                end)
-            end
-        end)
-    end
+    pcall(function()
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Teleport Sukses",
+            Text = "Teleport ke " .. targetPlayer.DisplayName .. " selesai.",
+            Duration = 3
+        })
+    end)
 end
 
 function createPlayerRow(targetPlayer, index)
@@ -3084,7 +3362,7 @@ function createPlayerListWindow()
     searchBox.BackgroundTransparency = 1
     searchBox.Font = Enum.Font.GothamBold
     searchBox.Text = ""
-    searchBox.PlaceholderText = "Cari pemain..."
+    addTranslatable(searchBox, "SearchPlayers", "PlaceholderText")
     searchBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
     searchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
     searchBox.TextSize = 14
@@ -3610,21 +3888,7 @@ function safeTeleportToCFrame(cf)
     else
         root.Anchored = true
         
-        -- Segmented Fast-TP for massive distances (> 1000 studs)
-        if dist > 1000 then
-            local steps = math.ceil(dist / 800)
-            local direction = (targetPos - startPos).Unit
-            for i = 1, steps - 1 do
-                local nextPos = startPos + direction * (i * 800)
-                root.CFrame = CFrame.new(nextPos)
-                pcall(function()
-                    lplr:RequestStreamAroundAsync(nextPos)
-                end)
-                task.wait(0.01) -- extremely fast delay, feels instant but allows streaming
-            end
-        end
-
-        -- Final jump to target
+        -- Final jump to target (instan tanpa segmented delay)
         root.CFrame = cf
         pcall(function()
             lplr:RequestStreamAroundAsync(targetPos)
@@ -3839,7 +4103,7 @@ function createWaypointListWindow()
     searchBox.BackgroundTransparency = 1
     searchBox.Font = Enum.Font.GothamBold
     searchBox.Text = ""
-    searchBox.PlaceholderText = "Cari Waypoint..."
+    addTranslatable(searchBox, "SearchWP", "PlaceholderText")
     searchBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
     searchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
     searchBox.TextSize = 14
@@ -5435,22 +5699,7 @@ local function giveTPTool(char)
     local tool = Instance.new("Tool")
     tool.Name = "TP Tool"
     tool.RequiresHandle = false
-    
-    tool.Activated:Connect(function()
-        local mouse = Player:GetMouse()
-        if mouse then
-            local targetPos = mouse.Hit.Position + Vector3.new(0, 3, 0)
-            local character = Player.Character
-            local hrp = character and (character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso"))
-            if hrp then
-                if typeof(safeTeleportToCFrame) == "function" then
-                    safeTeleportToCFrame(CFrame.new(targetPos))
-                else
-                    character:PivotTo(CFrame.new(targetPos))
-                end
-            end
-        end
-    end)
+    tool.ManualActivationOnly = true -- Prevent Roblox camera/mouse interference in first person
     
     local toolEquipped = false
     local mouseConn = nil
@@ -5462,27 +5711,33 @@ local function giveTPTool(char)
                 updateExternalCursorVisibility()
             end
         end)
-        
-        -- Force Default MouseBehavior (unlock center) and enable cursor icon
-        mouseConn = RunService.RenderStepped:Connect(function()
-            if toolEquipped then
-                UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-                UserInputService.MouseIconEnabled = true
-            end
-        end)
     end)
     
     tool.Unequipped:Connect(function()
         toolEquipped = false
-        if mouseConn then
-            pcall(function() mouseConn:Disconnect() end)
-            mouseConn = nil
-        end
         pcall(function()
             if typeof(updateExternalCursorVisibility) == "function" then
                 updateExternalCursorVisibility()
             end
         end)
+    end)
+    
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if not gameProcessed and toolEquipped and input.UserInputType == Enum.UserInputType.MouseButton1 then
+            local mouse = Player:GetMouse()
+            if mouse then
+                local targetPos = mouse.Hit.Position + Vector3.new(0, 3, 0)
+                local character = Player.Character
+                local hrp = character and (character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso"))
+                if hrp then
+                    if typeof(safeTeleportToCFrame) == "function" then
+                        safeTeleportToCFrame(CFrame.new(targetPos))
+                    else
+                        character:PivotTo(CFrame.new(targetPos))
+                    end
+                end
+            end
+        end
     end)
     
     tool.Parent = backpack
@@ -6364,6 +6619,164 @@ local success, err = pcall(function()
             })
         end)
     end
+
+    local invisibleLoop = nil
+    local function setInvisible(state)
+        if state then
+            if not invisibleLoop then
+                invisibleLoop = RunService.Stepped:Connect(function()
+                    if Player.Character then
+                        for _, v in ipairs(Player.Character:GetDescendants()) do
+                            if v:IsA("BasePart") or v:IsA("Decal") then
+                                if v.Name ~= "HumanoidRootPart" then
+                                    v.Transparency = 1
+                                end
+                            end
+                        end
+                    end
+                end)
+                notifyPlayer("Visibility", "Karakter menjadi invisible.")
+            end
+        else
+            if invisibleLoop then
+                invisibleLoop:Disconnect()
+                invisibleLoop = nil
+                if Player.Character then
+                    for _, v in ipairs(Player.Character:GetDescendants()) do
+                        if v:IsA("BasePart") or v:IsA("Decal") then
+                            if v.Name ~= "HumanoidRootPart" then
+                                v.Transparency = 0
+                            end
+                        end
+                    end
+                end
+                notifyPlayer("Visibility", "Karakter sekarang visible.")
+            end
+        end
+    end
+
+    local monitorGui = nil
+    local monitorConnection = nil
+    _G.ToggleFPSPingMonitor = function()
+        if monitorGui then
+            if monitorConnection then monitorConnection:Disconnect() end
+            monitorGui:Destroy()
+            monitorGui = nil
+            notifyPlayer("Monitor", "FPS & Ping Monitor ditutup.")
+        else
+            monitorGui = Instance.new("ScreenGui")
+            monitorGui.Name = "FPSPingMonitor"
+            monitorGui.ResetOnSpawn = false
+            local guiParent = nil
+            if typeof(gethui) == "function" then guiParent = gethui()
+            elseif typeof(get_hidden_gui) == "function" then guiParent = get_hidden_gui()
+            elseif game:GetService("CoreGui") then guiParent = game:GetService("CoreGui")
+            else guiParent = PlayerGui end
+            monitorGui.Parent = guiParent
+
+            local monitorFrame = Instance.new("Frame")
+            monitorFrame.Size = UDim2.new(0, 140, 0, 70)
+            monitorFrame.Position = UDim2.new(1, -150, 0, 10)
+            monitorFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+            monitorFrame.BackgroundTransparency = 0.3
+            monitorFrame.BorderSizePixel = 0
+            monitorFrame.Active = true
+            monitorFrame.Parent = monitorGui
+
+            local corner = Instance.new("UICorner")
+            corner.CornerRadius = UDim.new(0, 8)
+            corner.Parent = monitorFrame
+
+            local topBar = Instance.new("Frame")
+            topBar.Size = UDim2.new(1, 0, 0, 20)
+            topBar.BackgroundTransparency = 1
+            topBar.Parent = monitorFrame
+
+            local dragging = false
+            local dragInput, dragStart, startPos
+            monitorFrame.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = true
+                    dragStart = input.Position
+                    startPos = monitorFrame.Position
+                    input.Changed:Connect(function()
+                        if input.UserInputState == Enum.UserInputState.End then dragging = false end
+                    end)
+                end
+            end)
+            monitorFrame.InputChanged:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+                    dragInput = input
+                end
+            end)
+            UserInputService.InputChanged:Connect(function(input)
+                if input == dragInput and dragging then
+                    local delta = input.Position - dragStart
+                    monitorFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+                end
+            end)
+
+            local closeBtn = Instance.new("TextButton")
+            closeBtn.Size = UDim2.new(0, 20, 0, 20)
+            closeBtn.Position = UDim2.new(1, -25, 0, 2)
+            closeBtn.BackgroundTransparency = 1
+            closeBtn.Text = "X"
+            closeBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
+            closeBtn.Font = Enum.Font.GothamBold
+            closeBtn.TextSize = 14
+            closeBtn.Parent = monitorFrame
+            closeBtn.MouseButton1Click:Connect(function()
+                _G.ToggleFPSPingMonitor()
+            end)
+
+            local fpsLabel = Instance.new("TextLabel")
+            fpsLabel.Size = UDim2.new(1, -30, 0, 25)
+            fpsLabel.Position = UDim2.new(0, 10, 0, 15)
+            fpsLabel.BackgroundTransparency = 1
+            fpsLabel.Text = "FPS: ..."
+            fpsLabel.TextColor3 = Color3.fromRGB(0, 255, 128)
+            fpsLabel.Font = Enum.Font.GothamBold
+            fpsLabel.TextSize = 14
+            fpsLabel.TextXAlignment = Enum.TextXAlignment.Left
+            fpsLabel.Parent = monitorFrame
+
+            local pingLabel = Instance.new("TextLabel")
+            pingLabel.Size = UDim2.new(1, -30, 0, 25)
+            pingLabel.Position = UDim2.new(0, 10, 0, 40)
+            pingLabel.BackgroundTransparency = 1
+            pingLabel.Text = "Ping: ..."
+            pingLabel.TextColor3 = Color3.fromRGB(0, 255, 128)
+            pingLabel.Font = Enum.Font.GothamBold
+            pingLabel.TextSize = 14
+            pingLabel.TextXAlignment = Enum.TextXAlignment.Left
+            pingLabel.Parent = monitorFrame
+
+            local lastUpdate = tick()
+            local frames = 0
+            monitorConnection = RunService.RenderStepped:Connect(function()
+                frames = frames + 1
+                local now = tick()
+                if now - lastUpdate >= 1 then
+                    fpsLabel.Text = "FPS: " .. frames
+                    frames = 0
+                    lastUpdate = now
+                    
+                    local ok, pingData = pcall(function()
+                        return game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue()
+                    end)
+                    if ok and pingData then
+                        pingLabel.Text = "Ping: " .. string.format("%.0f", pingData) .. " ms"
+                    else
+                        pingLabel.Text = "Ping: N/A"
+                    end
+                end
+            end)
+            notifyPlayer("Monitor", "FPS & Ping Monitor dibuka.")
+        end
+    end
+    local function toggleFPSMonitor()
+        _G.ToggleFPSPingMonitor()
+    end
     local commandsList = {
         { name = "cmds", aliases = {"commands"}, desc = "Menampilkan daftar perintah ini.", usage = "" },
         { name = "swp", aliases = {"savewp", "savewaypoint"}, desc = "Simpan posisi saat ini sebagai waypoint.", usage = " [nama]" },
@@ -6408,7 +6821,10 @@ local success, err = pcall(function()
         { name = "rusuh", aliases = {}, desc = "Menampilkan kategori Rusuh (trolling).", usage = "" },
         { name = "utility", aliases = {"utils"}, desc = "Menampilkan kategori Utility.", usage = "" },
         { name = "fullbright", aliases = {"fb"}, desc = "Aktifkan/nonaktifkan Fullbright.", usage = "" },
-        { name = "aimbot", aliases = {"aim"}, desc = "Aktifkan/nonaktifkan Aimbot.", usage = "" }
+        { name = "aimbot", aliases = {"aim"}, desc = "Aktifkan/nonaktifkan Aimbot.", usage = "" },
+        { name = "invisible", aliases = {"invis"}, desc = "Membuat karakter menjadi transparan (invisible lokal).", usage = "" },
+        { name = "visible", aliases = {"vis"}, desc = "Membuat karakter kembali terlihat.", usage = "" },
+        { name = "fps", aliases = {"fpsmonitor"}, desc = "Tampilkan/sembunyikan monitor FPS.", usage = "" }
     }
 
     table.sort(commandsList, function(a, b)
@@ -6493,7 +6909,7 @@ local success, err = pcall(function()
         searchBox.BackgroundTransparency = 1
         searchBox.Font = Enum.Font.Gotham
         searchBox.Text = ""
-        searchBox.PlaceholderText = "Search commands..."
+        addTranslatable(searchBox, "SearchCmds", "PlaceholderText")
         searchBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
         searchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
         searchBox.TextSize = 14
@@ -6906,16 +7322,18 @@ local success, err = pcall(function()
             if setCategory then
                 setCategory("Menu")
             end
-            
-        elseif cmd == "rusuh" then
-            if setCategory then
-                setCategory("Rusuh")
-            end
-            
+                 elseif cmd == "rusuh" then
+            if CmdListFrame then CmdListFrame:Destroy() CmdListFrame = nil end
+            setCategory("Rusuh")
         elseif cmd == "utility" or cmd == "utils" then
-            if setCategory then
-                setCategory("Utility")
-            end
+            if CmdListFrame then CmdListFrame:Destroy() CmdListFrame = nil end
+            setCategory("Utility")
+        elseif cmd == "invisible" or cmd == "invis" then
+            setInvisible(true)
+        elseif cmd == "visible" or cmd == "vis" then
+            setInvisible(false)
+        elseif cmd == "fps" or cmd == "fpsmonitor" then
+            toggleFPSMonitor()
         end
     end
 
@@ -6944,7 +7362,7 @@ local success, err = pcall(function()
     CmdBarGui.Parent = CmdBarGuiParent
 
     -- Create Command Bar UI
-    local CmdBarFrame = Instance.new("Frame")
+    CmdBarFrame = Instance.new("Frame")
     CmdBarFrame.Name = "CmdBarFrame"
     CmdBarFrame.Size = UDim2.new(0, 440, 0, 44)
     CmdBarFrame.Position = UDim2.new(0.5, -220, 0.5, -22)
@@ -6954,6 +7372,7 @@ local success, err = pcall(function()
     CmdBarFrame.ZIndex = 99999
     CmdBarFrame.Active = true
     CmdBarFrame.Parent = CmdBarGui
+    CmdBarFrame:GetPropertyChangedSignal("Visible"):Connect(updateExternalCursorVisibility)
 
     local cmdCorner = Instance.new("UICorner")
     cmdCorner.CornerRadius = UDim.new(0, 10)
@@ -6983,7 +7402,7 @@ local success, err = pcall(function()
     CmdBarInput.TextSize = 15
     CmdBarInput.TextColor3 = Color3.fromRGB(255, 255, 255)
     CmdBarInput.TextTransparency = 0
-    CmdBarInput.PlaceholderText = "Ketik perintah... (cth: swp nama)"
+    addTranslatable(CmdBarInput, "CmdBarPH", "PlaceholderText")
     CmdBarInput.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
     CmdBarInput.TextXAlignment = Enum.TextXAlignment.Left
     CmdBarInput.Text = ""
@@ -7172,3 +7591,4 @@ end)
 if not success then
     warn("Failed to initialize command bar: " .. tostring(err))
 end
+
