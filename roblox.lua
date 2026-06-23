@@ -11,6 +11,14 @@ local showCommandsWindow
 local showCmdBar
 local CmdBarFrame
 local CmdsFrame
+local MiniUnanchorBtn
+local Attachment1 = nil
+local plistSendPartTarget = nil
+local plistSendPartDescendantConn = nil
+MainGuiToggleConn = nil
+ShiftLockShortcutConn = nil
+SpeedShortcutConn = nil
+FlyV3ShortcutConn = nil
 
 local currentLanguage = "EN"
 
@@ -53,6 +61,7 @@ local LangDict = {
     ["Lampu"] = { EN = "Lampu", ID = "Lampu" },
     ["Fly V2"] = { EN = "Fly V2", ID = "Fly V2" },
     ["Fly V3"] = { EN = "Fly V3", ID = "Fly V3" },
+    ["Quick Tools"] = { EN = "Quick Tools", ID = "Quick Tools" },
     ["Animasi"] = { EN = "Animasi", ID = "Animasi" },
     ["Emotes"] = { EN = "Emotes", ID = "Emote" },
     ["Clone Avatar"] = { EN = "Clone Avatar", ID = "Kloning Avatar" },
@@ -63,8 +72,8 @@ local LangDict = {
     ["KickingBtn"] = { EN = "Kicking", ID = "Menendang" },
     ["FollowBtn"] = { EN = "Follow", ID = "Ikuti" },
     ["FollowingBtn"] = { EN = "Following", ID = "Mengikuti" },
-    ["SendPartBtn"] = { EN = "Send Part", ID = "Kirim Objek" },
-    ["SendingOnBtn"] = { EN = "Sending (On)", ID = "Mengirim (On)" },
+    ["SendPartBtn"] = { EN = "Send: OFF", ID = "Kirim: OFF" },
+    ["SendingOnBtn"] = { EN = "Send: ON", ID = "Kirim: ON" },
     ["PrevBtn"] = { EN = "Prev", ID = "Sebelum" },
     ["CloseBtn"] = { EN = "Close", ID = "Tutup" },
     ["NextBtn"] = { EN = "Next", ID = "Lanjut" },
@@ -77,6 +86,10 @@ local LangDict = {
     ["Infinite Jump"] = { EN = "Infinite Jump", ID = "Infinite Jump" },
     ["Shift Lock"] = { EN = "Shift Lock", ID = "Shift Lock" },
     ["Chat Logs"] = { EN = "Chat Logs", ID = "Catatan Chat" },
+    ["Fling Aura"] = { EN = "Fling Aura", ID = "Aura Fling" },
+    ["Orbit Fling"] = { EN = "Orbit Fling", ID = "Orbit Fling" },
+    ["Walk Fling"] = { EN = "Walk Fling", ID = "Walk Fling" },
+    ["Anti Fling"] = { EN = "Anti Fling", ID = "Anti Fling" },
     
     -- Inputs
     ["SearchCmds"] = { EN = "Search commands...", ID = "Cari perintah..." },
@@ -86,12 +99,13 @@ local LangDict = {
     ["FriendList"] = { EN = "Friend List", ID = "Daftar Teman" },
     
     -- Changelogs
-    ["CL_340"] = { EN = "- Added Spectator Player List Search & Alphabetical Sorting\n- Fixed Physics bugs on Fly V1\n- Fixed Player List Send Part integration\n- Added Quick Tools Mini Panel (Fly V3, Bring Part & Noclip)\n- UI/UX Improvements (Glow removal, Color fixes)\n- Added Invite Button to Friend List (Top bar only)\n- Re-positioned Speed Trails to Feet\n- Combined Spectator Search box into the Player List GUI\n- Fixed Spectator red highlight getting stuck on target change", ID = "- Penambahan Pencarian & Pengurutan Abjad Player List Spectator\n- Perbaikan bug fisik terpelanting pada Fly V1\n- Perbaikan Send Part yang tidak merespon di Player List\n- Penambahan Mini Panel Quick Tools (Fly V3, Bring Part & Noclip)\n- Peningkatan UI/UX (Hapus glow, Perbaikan warna)\n- Penambahan tombol Invite di Friend List (Hanya di top bar)\n- Perbaikan posisi Speed Trail ke Kaki\n- Menggabungkan kotak pencarian Spectator ke dalam GUI daftar pemain\n- Perbaikan sorotan merah Spectator yang tersangkut saat ganti target" },
+    ["CL_350"] = { EN = "- Renamed Fly V3 button in main GUI to Quick Tools\n- Added Spectate and Refresh buttons to Quick Tools\n- Switched Mobile Fly in Quick Tools to Fly V1 (better compatibility)\n- Fixed active Send Part button overlay color in Player List\n- Fixed Noclip movement bugs when disabling fly/noclip\n- Fixed Bring Part getting stuck after Send Part finishes\n- Changed Send Part to continuous loop mode\n- Updated Refresh button in Quick Tools to use refresh instead of respawn\n- Fixed local register limit error in Quick Tools\n- Added Fling (one-shot instant fling) to Spectate and Player List\n- Optimized Player List layout and removed redundant Kick button\n- Added joint-breaking to Part Scanner Bring to prevent map damage\n- Kept currently brought part at the top of the Part Scanner list\n- Improved Yeet in Part Scanner to instantly fling and vanish the part\n- Added ;ifling, ;walkfling, and ;antifling commands to Command Bar/List\n- Fixed Spectate & Player List flings by welding separate flingPart (preventing self-fling) and extending duration to 2s\n- Added God Mode (Kebal) & Health Monitor button to Quick Tools\n- Optimized Part Scanner lag by caching players and walking parent trees\n- Improved Yeet to teleport parts to sky boundary (99999, 9999, 99999) to bypass anti-void resets\n- Increased unanchor and yeet radius to 1000 studs\n- Reworked Part Scanner Unanchor to target unanchored parts and loop for 2.5s\n- Fixed Fly V3 fling when turning off and optimized main GUI startup rendering speed\n- Fixed top-clipped category buttons by adding padding to ScrollFrame and UtilityScroll\n- Added Fling Aura and Orbit Fling features to Combat category and Quick Tools\n- Added ;flingaura and ;orbitfling commands to Command Bar/List", ID = "- Mengubah tombol Fly V3 di GUI utama menjadi Quick Tools\n- Menambahkan tombol Spectate dan Refresh ke Quick Tools\n- Mengubah tombol Terbang mobile di Quick Tools menjadi Fly V1 (lebih kompatibel)\n- Memperbaiki warna tombol aktif Send Part pada Player List agar tidak menyatu/putih polos\n- Perbaikan bug gerakan Noclip setelah mematikan fly/noclip\n- Perbaikan Bring Part tersangkut setelah Send Part selesai\n- Mengubah Send Part menjadi mode loop terus-menerus\n- Memperbarui tombol Refresh di Quick Tools menggunakan metode refresh asli, bukan respawn\n- Memperbaiki error limit register lokal pada Quick Tools\n- Menambahkan Fling (instant fling sekali jalan) pada Spectate dan Player List\n- Mengoptimalkan tata letak Player List dan menghapus tombol Kick\n- Menambahkan pemutusan sambungan objek (BreakJoints) pada Bring Part Scanner agar map tidak rusak\n- Mengunci posisi part yang sedang di-bring di baris teratas Part Scanner\n- Memperbarui fungsi Yeet di Part Scanner agar langsung terlempar dan hilang seketika\n- Menambahkan perintah ;ifling, ;walkfling, dan ;antifling ke Command Bar/List\n- Memperbaiki Fling Spectate & Player List menggunakan metode welded flingPart (anti mati) dan durasi 2 detik\n- Menambahkan tombol Kebal (God Mode) & Health Monitor di Quick Tools\n- Mengoptimalkan lag Part Scanner dengan cache player dan penelusuran parent\n- Memperbarui Yeet untuk memindahkan part ke koordinat langit (99999, 9999, 99999) agar tidak reset\n- Meningkatkan radius unanchor dan yeet menjadi 1000 studs\n- Merombak Unanchor Part Scanner untuk part terlepas dan melakukan loop selama 2.5 detik\n- Perbaikan karakter terlempar saat mematikan Fly V3 dan optimasi kecepatan render awal GUI\n- Memperbaiki tombol kategori yang terlalu ke atas dengan menambahkan padding pada ScrollFrame dan UtilityScroll\n- Menambahkan fitur Fling Aura dan Orbit Fling pada kategori Rusuh dan Quick Tools\n- Menambahkan perintah ;flingaura dan ;orbitfling ke Command Bar/List" },
+    ["CL_340"] = { EN = "- Added Spectator Player List Search & Alphabetical Sorting\n- Fixed Physics bugs on Fly V1\n- Fixed Player List Send Part integration\n- Added Quick Tools Mini Panel (Fly V3, Bring Part & Noclip)\n- UI/UX Improvements (Glow removal, Color fixes)\n- Added Invite Button to Friend List (Top bar only)\n- Re-positioned Speed Trails to Feet\n- Combined Spectator Search box into the Player List GUI\n- Fixed Spectator red highlight getting stuck on target change", ID = "- Penambahan Pencarian & Pengurutan Abjad Player List Spectator\n- Perbaikan bug fisik terpelanting pada Fly V1\n- Perbaikan Send Part yang tidak merespon di Player List\n- Penambahan Mini Panel Quick Tools (Fly V3, Bring Part & Noclip)\n- Peningkatan UI/UX (Hapus glow, Perbaikan warna)\n- Perambahan tombol Invite di Friend List (Hanya di top bar)\n- Perbaikan posisi Speed Trail ke Kaki\n- Menggabungkan kotak pencarian Spectator ke dalam GUI daftar pemain\n- Perbaikan sorotan merah Spectator yang tersangkut saat ganti target" },
     ["CL_330"] = { EN = "- Added Dual Language System (English & Indonesian)\n- FE Invisible Rework (Bypasses StreamingEnabled & 100% Server Sync)\n- Fixed notification translations\n- UI scaling & layout adjustments for bilingual support", ID = "- Penambahan Sistem Dua Bahasa (Inggris & Indonesia)\n- Rombak ulang FE Invisible (Anti-bug StreamingEnabled & 100% tersinkron dengan Server)\n- Perbaikan bug terjemahan pada notifikasi\n- Penyesuaian teks & layout UI untuk bahasa" },
     ["CL_320"] = { EN = "- Custom cursor support in Command Bar\n- Fixed Infinite Jump bug\n- Fixed camera stutter on TP Tool (First Person)\n- Harmonized Server Hop GUI design\n- Fixed hidden Respawn button\n- Fixed camera issues on Invisible feature", ID = "- Dukungan custom cursor pada Command Bar\n- Perbaikan bug Infinite Jump tidak melompat\n- Perbaikan kamera tersendat pada TP Tool (First Person)\n- Menyeragamkan tampilan GUI Server Hop dengan UI lain\n- Perbaikan tombol Respawn yang tersembunyi\n- Perbaikan kamera nyasar pada fitur Invisible" },
     ["CL_310"] = { EN = "- Integrated BTools automatically to Utility tab\n- Added Premium Jump Power Customizer\n- Enhanced Instant Long-Range Teleport (Segmented Fast-TP & Raycast Ground Check)\n- Improved TP Tool with Auto Cursor Unlock\n- Added ;tweentp and ;jumppower to Command List", ID = "- Integrasi BTools ke tab Utility secara otomatis\n- Penambahan Premium Jump Power Customizer\n- Penyempurnaan Teleport Jarak Jauh Instan (Segmented Fast-TP & Raycast Ground Check)\n- Penyempurnaan TP Tool dengan Auto Cursor Unlock\n- Perintah ;tweentp dan ;jumppower ke Command List" },
     ["CL_300"] = { EN = "- Reconstructed Anti Lag (0% Idle CPU, event-driven lighting/water lock, 0.1s streaming pause)\n- Added BTools Feature (Hammer, Move, Grab, Clone)\n- Added Mobile Shift Lock (Shoulder view + body movement)\n- Added ESP Customization (Independent Chams, Name, Tracer toggle)\n- Added Changelog & Script Version Tab", ID = "- Rekonstruksi Anti Lag (0% Idle CPU, event-driven pengunci cahaya/air, jeda streaming 0.1s)\n- Penambahan Fitur BTools (Hammer, Move, Grab, Clone)\n- Penambahan Mobile Shift Lock (Sudut pandang bahu + pergerakan tubuh)\n- Penambahan Kustomisasi ESP (Toggle Chams, Name, Tracer independen)\n- Penambahan Tab Changelog & Versi Script" },
-    ["CL_250"] = { EN = "- Added Enter confirmation button to Command Bar\n- Auto alphabetical sorting for Command List on startup\n- Fixed Luau compiler 200 register limit\n- Added Friend List Window (Join & Auto Re-execute)", ID = "- Penambahan tombol Enter konfirmasi di Command Bar\n- Pengurutan abjad Command List otomatis saat startup\n- Perbaikan register limit 200 Luau compiler\n- Penambahan Window Friend List (Join & Auto Re-execute)" },
+    ["CL_250"] = { EN = "- Added Enter confirmation button to Command Bar\n- Auto alphabetical sorting for Command List on startup\n- Fixed Luau compiler 200 register limit\n- Added Friend List Window (Join & Auto Re-execute)", ID = "- Pengurutan abjad Command List otomatis saat startup\n- Perbaikan register limit 200 Luau compiler\n- Penambahan Window Friend List (Join & Auto Re-execute)" },
     ["CL_200"] = { EN = "- ESP billboard with health bar & distance indicator\n- Fixed unlimited ESP distance bug (math.huge)", ID = "- ESP billboard dengan health bar & indikator jarak\n- Perbaikan bug jarak ESP tidak terbatas (math.huge)" },
     
     -- Notifications
@@ -196,7 +210,7 @@ local function sendUnanchoredPartsToTarget(target)
     targetPart.CFrame = targetHRP.CFrame
     local attach1 = targetPart:FindFirstChild("Attachment") or Instance.new("Attachment", targetPart)
 
-    local function ForcePart(v)
+    local function SendForcePart(v)
         if not v:IsA("BasePart") then return end
         if v.Anchored then return end
         if v.Parent and v.Parent:FindFirstChildOfClass("Humanoid") then return end
@@ -258,7 +272,12 @@ local function sendUnanchoredPartsToTarget(target)
                         v.CanCollide = originalCanCollide
                         v.Anchored = originalAnchored
                         task.wait(0.05)
-                        v.CFrame = originalCFrame
+                        if not blackHoleActive then
+                            v.CFrame = originalCFrame
+                        end
+                        if blackHoleActive and typeof(ForcePart) == "function" then
+                            ForcePart(v)
+                        end
                     end)
                 end
             end)
@@ -269,7 +288,7 @@ local function sendUnanchoredPartsToTarget(target)
     for _, p in ipairs(parts) do
         pcall(function()
             if not p.Anchored then
-                ForcePart(p)
+                SendForcePart(p)
             end
         end)
     end
@@ -320,6 +339,33 @@ function updateLanguage(lang)
             end)
         end
     end
+end
+
+function makeSmoothDraggable(frame, dragHandle)
+    local dragging, dragInput, dragStart, startPos
+    dragHandle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    dragHandle.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
 end
 
 currentCategory = "Menu"
@@ -440,7 +486,7 @@ ModalFix.Text = ""
 ModalFix.Modal = true
 ModalFix.Parent = MainFrame
 -- Hotkey toggle (left bracket) untuk show/hide GUI - bekerja bahkan saat game punya kontrol cursor
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
+MainGuiToggleConn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if UserInputService:GetFocusedTextBox() then return end
     if input.KeyCode == Enum.KeyCode.LeftBracket then
         if MainFrame.Visible then
@@ -487,7 +533,7 @@ VersionLabel.TextSize = 11
 VersionLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 VersionLabel.TextXAlignment = Enum.TextXAlignment.Right
 VersionLabel.TextYAlignment = Enum.TextYAlignment.Bottom
-VersionLabel.Text = "v3.4.0"
+VersionLabel.Text = "v3.5.0"
 VersionLabel.ZIndex = 15
 VersionLabel.Parent = MainFrame
 
@@ -573,8 +619,8 @@ dividerCorner.CornerRadius = UDim.new(1, 0)
 dividerCorner.Parent = Divider
 
 local ButtonsFrame = Instance.new("Frame")
-ButtonsFrame.Size = UDim2.new(1, -180, 1, 0)
-ButtonsFrame.Position = UDim2.new(0, 180, 0, 10)
+ButtonsFrame.Size = UDim2.new(1, -190, 1, -30)
+ButtonsFrame.Position = UDim2.new(0, 180, 0, 15)
 ButtonsFrame.BackgroundTransparency = 1
 ButtonsFrame.ClipsDescendants = true
 ButtonsFrame.Parent = Container
@@ -588,6 +634,11 @@ ScrollFrame.ScrollBarImageTransparency = 0.5
 ScrollFrame.ScrollingDirection = Enum.ScrollingDirection.Y
 ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 ScrollFrame.Parent = ButtonsFrame
+
+local ScrollPadding = Instance.new("UIPadding")
+ScrollPadding.PaddingTop = UDim.new(0, 10)
+ScrollPadding.PaddingBottom = UDim.new(0, 10)
+ScrollPadding.Parent = ScrollFrame
 
 -- Dedicated Utility container (2 columns) to keep pairs aligned
 local UtilityFrame = Instance.new("Frame")
@@ -609,6 +660,11 @@ UtilityScroll.ScrollingDirection = Enum.ScrollingDirection.Y
 UtilityScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 UtilityScroll.Parent = UtilityFrame
 
+local UtilityPadding = Instance.new("UIPadding")
+UtilityPadding.PaddingTop = UDim.new(0, 10)
+UtilityPadding.PaddingBottom = UDim.new(0, 10)
+UtilityPadding.Parent = UtilityScroll
+
 local UtilityGrid = Instance.new("UIGridLayout")
 UtilityGrid.CellSize = UDim2.new(0, 150, 0, 35)
 UtilityGrid.CellPadding = UDim2.new(0, 8, 0, 8)
@@ -621,7 +677,7 @@ UtilityGrid.VerticalAlignment = Enum.VerticalAlignment.Top
 UtilityGrid.Parent = UtilityScroll
 
 UtilityGrid:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    UtilityScroll.CanvasSize = UDim2.new(0, 0, 0, UtilityGrid.AbsoluteContentSize.Y + 10)
+    UtilityScroll.CanvasSize = UDim2.new(0, 0, 0, UtilityGrid.AbsoluteContentSize.Y + 30)
 end)
 
 CmdsFrame = Instance.new("Frame")
@@ -716,8 +772,7 @@ do
         end
     end
 
-    -- filtering helpers
-    local rusuhKeywords = {"bringpart", "tarik objek", "spectator", "penonton", "noclip", "tembus tembok", "tendang", "unanchor", "lepas kunci", "fly", "terbang", "esp", "esp team"}
+    local rusuhKeywords = {"bringpart", "tarik objek", "spectator", "penonton", "noclip", "tembus tembok", "tendang", "unanchor", "lepas kunci", "fly", "terbang", "esp", "esp team", "quick tools", "quick", "anti fling", "antifling", "fling aura", "aura fling", "orbit fling", "orbit"}
     local utilityKeywords = {"free cam", "freecam", "kamera bebas", "click tp", "clicktp", "klik tp", "speed", "kecepatan", "save wp", "savewp", "swp", "simpan lokasi", "btools", "tween tp", "tweentp", "jump power", "jumppower", "jp", "tp tool", "tptool", "invisible", "tak terlihat", "visible", "terlihat", "fps & ping", "chat logs", "chatlogs"}
     local function matchesAny(text, keywords)
         local lower = string.lower(text or "")
@@ -1086,16 +1141,123 @@ do
     createCreditsWindow = function()
         if CreditsFrame:FindFirstChild("CreditsScroll") then return end
         
-        local label = Instance.new("TextLabel")
-        label.Name = "CreditsLabel"
-        label.Size = UDim2.new(1, 0, 1, 0)
-        label.Position = UDim2.new(0, 0, 0, 0)
-        label.BackgroundTransparency = 1
-        label.Font = Enum.Font.GothamBold
-        label.TextSize = 24
-        label.TextColor3 = Color3.fromRGB(255, 50, 50)
-        label.Text = "BY PIXECUTE"
-        label.Parent = CreditsFrame
+        local scrollFrame = Instance.new("ScrollingFrame")
+        scrollFrame.Name = "CreditsScroll"
+        scrollFrame.Size = UDim2.new(1, -10, 1, -10)
+        scrollFrame.Position = UDim2.new(0, 5, 0, 5)
+        scrollFrame.BackgroundTransparency = 1
+        scrollFrame.ScrollBarThickness = 4
+        scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255)
+        scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+        scrollFrame.Parent = CreditsFrame
+
+        local listLayout = Instance.new("UIListLayout")
+        listLayout.Padding = UDim.new(0, 10)
+        listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+        listLayout.Parent = scrollFrame
+
+        listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            scrollFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 20)
+        end)
+
+        -- Header Banner
+        local header = Instance.new("Frame")
+        header.Size = UDim2.new(1, -10, 0, 80)
+        header.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+        header.LayoutOrder = 1
+        header.Parent = scrollFrame
+        Instance.new("UICorner", header).CornerRadius = UDim.new(0, 8)
+        local hStroke = Instance.new("UIStroke", header)
+        hStroke.Color = Color3.fromRGB(40, 40, 50)
+        hStroke.Thickness = 1
+
+        local title = Instance.new("TextLabel")
+        title.Size = UDim2.new(1, 0, 0.6, 0)
+        title.BackgroundTransparency = 1
+        title.Text = "Chil Script Universal"
+        title.TextColor3 = Color3.fromRGB(255, 50, 50)
+        title.Font = Enum.Font.GothamBlack
+        title.TextSize = 20
+        title.Parent = header
+
+        local subtitle = Instance.new("TextLabel")
+        subtitle.Size = UDim2.new(1, 0, 0.4, 0)
+        subtitle.Position = UDim2.new(0, 0, 0.6, 0)
+        subtitle.BackgroundTransparency = 1
+        subtitle.Text = "by Pixecute"
+        subtitle.TextColor3 = Color3.fromRGB(180, 180, 180)
+        subtitle.Font = Enum.Font.GothamMedium
+        subtitle.TextSize = 11
+        subtitle.Parent = header
+
+        -- Staff Card
+        local staffCard = Instance.new("Frame")
+        staffCard.Size = UDim2.new(1, -10, 0, 70)
+        staffCard.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+        staffCard.LayoutOrder = 2
+        staffCard.Parent = scrollFrame
+        Instance.new("UICorner", staffCard).CornerRadius = UDim.new(0, 8)
+        local sStroke = Instance.new("UIStroke", staffCard)
+        sStroke.Color = Color3.fromRGB(40, 40, 50)
+        sStroke.Thickness = 1
+
+        local devRole = Instance.new("TextLabel")
+        devRole.Size = UDim2.new(1, -20, 0, 20)
+        devRole.Position = UDim2.new(0, 10, 0, 10)
+        devRole.BackgroundTransparency = 1
+        devRole.Text = "👑 OWNER & DEVELOPER"
+        devRole.TextColor3 = Color3.fromRGB(255, 200, 50)
+        devRole.Font = Enum.Font.GothamBold
+        devRole.TextSize = 11
+        devRole.TextXAlignment = Enum.TextXAlignment.Left
+        devRole.Parent = staffCard
+
+        local devName = Instance.new("TextLabel")
+        devName.Size = UDim2.new(1, -20, 0, 30)
+        devName.Position = UDim2.new(0, 10, 0, 28)
+        devName.BackgroundTransparency = 1
+        devName.Text = "PIXECUTE"
+        devName.TextColor3 = Color3.fromRGB(255, 255, 255)
+        devName.Font = Enum.Font.GothamBlack
+        devName.TextSize = 18
+        devName.TextXAlignment = Enum.TextXAlignment.Left
+        devName.Parent = staffCard
+
+        -- Disclaimer Card
+        local disclaimerCard = Instance.new("Frame")
+        disclaimerCard.Size = UDim2.new(1, -10, 0, 75)
+        disclaimerCard.BackgroundColor3 = Color3.fromRGB(25, 15, 15)
+        disclaimerCard.LayoutOrder = 3
+        disclaimerCard.Parent = scrollFrame
+        Instance.new("UICorner", disclaimerCard).CornerRadius = UDim.new(0, 8)
+        local discStroke = Instance.new("UIStroke", disclaimerCard)
+        discStroke.Color = Color3.fromRGB(100, 40, 40)
+        discStroke.Thickness = 1
+
+        local discTitle = Instance.new("TextLabel")
+        discTitle.Size = UDim2.new(1, -20, 0, 20)
+        discTitle.Position = UDim2.new(0, 10, 0, 8)
+        discTitle.BackgroundTransparency = 1
+        discTitle.Text = "⚠️ DISCLAIMER"
+        discTitle.TextColor3 = Color3.fromRGB(255, 80, 80)
+        discTitle.Font = Enum.Font.GothamBold
+        discTitle.TextSize = 11
+        discTitle.TextXAlignment = Enum.TextXAlignment.Left
+        discTitle.Parent = disclaimerCard
+
+        local discText = Instance.new("TextLabel")
+        discText.Size = UDim2.new(1, -20, 0, 40)
+        discText.Position = UDim2.new(0, 10, 0, 26)
+        discText.BackgroundTransparency = 1
+        discText.Text = "Use this script responsibly. We are not responsible for any actions taken against your Roblox account."
+        discText.TextColor3 = Color3.fromRGB(200, 150, 150)
+        discText.Font = Enum.Font.Gotham
+        discText.TextSize = 9
+        discText.TextWrapped = true
+        discText.TextXAlignment = Enum.TextXAlignment.Left
+        discText.TextYAlignment = Enum.TextYAlignment.Top
+        discText.Parent = disclaimerCard
     end
 
 
@@ -1411,8 +1573,9 @@ do
         listLayout.Parent = scrollFrame
 
         local changelogs = {
+            { title = "v3.5.0 (Quick Tools Update)", key = "CL_350" },
             { title = "v3.4.0 (Spectate & Bug Fixes)", key = "CL_340" },
-    { title = "v3.3.0 (Globalisation & Invis Rework)", key = "CL_330" },
+            { title = "v3.3.0 (Globalisation & Invis Rework)", key = "CL_330" },
             { title = "v3.2.0 (Bug Fixes & UX)", key = "CL_320" },
             { title = "v3.1.0 (Premium & TP Update)", key = "CL_310" },
             { title = "v3.0.0 (Anti Lag & Features)", key = "CL_300" },
@@ -1533,15 +1696,16 @@ do
         setCategory("Credits")
     end)
 
-    local btnChangelogs = makeSmallBtn("Changelogs", 7)
-    btnChangelogs.MouseButton1Click:Connect(function()
-        createChangelogsWindow()
-        setCategory("Changelogs")
-    end)
-    local btnConfig = makeSmallBtn("Config", 8)
+    local btnConfig = makeSmallBtn("Config", 7)
     btnConfig.MouseButton1Click:Connect(function()
         createConfigWindow()
         setCategory("Config")
+    end)
+
+    local btnChangelogs = makeSmallBtn("Changelogs", 8)
+    btnChangelogs.MouseButton1Click:Connect(function()
+        createChangelogsWindow()
+        setCategory("Changelogs")
     end)
 
 
@@ -1570,7 +1734,7 @@ ButtonGrid.StartCorner = Enum.StartCorner.TopLeft
 ButtonGrid.Parent = ScrollFrame
 
 ButtonGrid:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, ButtonGrid.AbsoluteContentSize.Y + 10)
+    ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, ButtonGrid.AbsoluteContentSize.Y + 30)
 end)
 
 local Navbar = Instance.new("Frame")
@@ -1588,7 +1752,7 @@ local TitleLabel = Instance.new("TextLabel")
 TitleLabel.Size = UDim2.new(1, -60, 1, 0)
 TitleLabel.Position = UDim2.new(0, 10, 0, 0)
 TitleLabel.BackgroundTransparency = 1
-TitleLabel.Text = "BY PIXECUTE"
+TitleLabel.Text = "Chil Script Universal by Pixecute"
 TitleLabel.Font = Enum.Font.GothamBlack
 TitleLabel.TextSize = 14
 TitleLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -1596,7 +1760,7 @@ TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 TitleLabel.Parent = Navbar
 
 task.spawn(function()
-    while true do
+    while ScreenGui and ScreenGui.Parent do
         TweenService:Create(TitleLabel, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {
             TextColor3 = Color3.fromRGB(255, 255, 255)
         }):Play()
@@ -1694,7 +1858,7 @@ do
 end
 
 local isShiftLockActive = false
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
+ShiftLockShortcutConn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then
         isShiftLockActive = not isShiftLockActive
         if updateExternalCursorVisibility then
@@ -1703,8 +1867,9 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
+local mouseInPlayerList = false
 function updateExternalCursorVisibility()
-    if isShiftLockActive then
+    if isShiftLockActive or mouseInPlayerList then
         ExternalCursor.Visible = false
     else
         local cmdVis = false
@@ -1861,6 +2026,30 @@ CloseBtn.MouseButton1Click:Connect(function()
     tween:Play()
     tween.Completed:Wait()
     pcall(function()
+        -- Turn off active features so they don't linger
+        if speedOn then pcall(toggleSpeed) end
+        if flying then pcall(disableFly) end
+        if flyV3Active then pcall(toggleFlyV3, false) end
+        if aktif then pcall(toggleUnanchor, false) end
+        if plistSendPartTarget then pcall(stopPlistSendPart) end
+        if followTarget then pcall(stopFollow) end
+        if headsitTarget then pcall(stopHeadsit) end
+        if currentSpectateTarget then pcall(stopSpectate) end
+        if ESPenabled then pcall(toggleESP, false) end
+        if isEspEnabled then pcall(toggleESP, false) end
+        if noclipActive then pcall(toggleNoclip, false) end
+        if blackHoleActive then pcall(toggleBringPart, false) end
+        
+        -- Stop unanchor v2 loop if active
+        unanchorV2Active = false
+        unanchorV2Loop = nil
+        
+        -- Disconnect shortcuts
+        if MainGuiToggleConn then pcall(function() MainGuiToggleConn:Disconnect() end) MainGuiToggleConn = nil end
+        if ShiftLockShortcutConn then pcall(function() ShiftLockShortcutConn:Disconnect() end) ShiftLockShortcutConn = nil end
+        if SpeedShortcutConn then pcall(function() SpeedShortcutConn:Disconnect() end) SpeedShortcutConn = nil end
+        if FlyV3ShortcutConn then pcall(function() FlyV3ShortcutConn:Disconnect() end) FlyV3ShortcutConn = nil end
+        
         local coreGui = game:GetService("CoreGui")
         for _, guiName in ipairs({"FlyGui", "CHCmdBarGUI", "PIXECUTE SPECTATE", "FriendListFrame", "PlayerListFrame"}) do
             local g = coreGui:FindFirstChild(guiName)
@@ -1950,16 +2139,27 @@ end
 function setButtonActive(button, active)
     if not button then return end
     buttonStates[button] = active
+    local stroke = button:FindFirstChildOfClass("UIStroke")
     if active then
         TweenService:Create(button, TweenInfo.new(0.2), {
             BackgroundColor3 = Color3.fromRGB(15, 15, 15),
             TextColor3 = Color3.fromRGB(255, 255, 255)
         }):Play()
+        if stroke then
+            TweenService:Create(stroke, TweenInfo.new(0.2), {
+                Color = Color3.fromRGB(255, 255, 255)
+            }):Play()
+        end
     else
         TweenService:Create(button, TweenInfo.new(0.2), {
             BackgroundColor3 = Color3.fromRGB(15, 15, 15),
             TextColor3 = Color3.fromRGB(255, 50, 50)
         }):Play()
+        if stroke then
+            TweenService:Create(stroke, TweenInfo.new(0.2), {
+                Color = Color3.fromRGB(255, 50, 50)
+            }):Play()
+        end
     end
 end
 
@@ -2346,27 +2546,6 @@ JumpBtn.MouseButton1Click:Connect(function()
     toggleInfiniteJump()
 end)
 
--- Helper to auto re-execute script on teleport / rejoin
-
-function queueTeleport()
-    local qot = queue_on_teleport or queueonteleport or (syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport)
-    if qot then
-        pcall(function()
-            qot([[
-                repeat task.wait(0.5) until game:IsLoaded()
-                task.wait(1)
-                pcall(function()
-                    if isfile and isfile("roblox.lua") then
-                        loadstring(readfile("roblox.lua"))()
-                    else
-                        loadstring(game:HttpGet("https://raw.githubusercontent.com/pixecute/roblox/main/roblox.lua") or game:HttpGet("https://pastebin.com/raw/zh4yDg0Q"))()
-                    end
-                end)
-            ]])
-        end)
-    end
-end
-
 -- Rejoin button (Menu): rejoin same server if possible, else rejoin place
 RejoinBtn = createButton("", "Rejoin")
 RejoinBtn.LayoutOrder = 1
@@ -2375,7 +2554,6 @@ function rejoinServer()
     local ts = game:GetService("TeleportService")
     local currentPlaceId = game.PlaceId
     local currentJobId = game.JobId
-    queueTeleport()
     local ok = false
     if #game.Players:GetPlayers() > 1 and currentJobId ~= "" then
         ok = pcall(function()
@@ -3020,7 +3198,6 @@ function createServerHopWindow()
                                 sBtn.MouseButton1Click:Connect(function()
                                     sBtn.Text = "Joining..."
                                     sBtn.BackgroundColor3 = Color3.fromRGB(60, 100, 60)
-                                    queueTeleport()
                                     teleportService:TeleportToPlaceInstance(tonumber(currentPlaceId) or game.PlaceId, v.id, game.Players.LocalPlayer)
                                 end)
                             end
@@ -3573,59 +3750,79 @@ local function startFollow(targetPlayer)
     end)
 end
 
-local plistSendPartFreezeConn = nil
-local function freezePlistCharacter()
-    if plistSendPartFreezeConn then return end
-    local char = game.Players.LocalPlayer.Character
-    if char then
-        local root = char:FindFirstChild("HumanoidRootPart")
-        if root then root.Anchored = true end
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if hum then
-            hum.WalkSpeed = 0
-            hum.JumpPower = 0
-        end
-    end
-end
-
-local function unfreezePlistCharacter()
-    local char = game.Players.LocalPlayer.Character
-    if char then
-        local root = char:FindFirstChild("HumanoidRootPart")
-        if root then root.Anchored = false end
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if hum then
-            hum.WalkSpeed = 16
-            hum.JumpPower = 50
-        end
-    end
-end
-
 local function stopPlistSendPart()
-    plistSendPartTarget = nil
-    unfreezePlistCharacter()
+    if plistSendPartTarget then
+        plistSendPartTarget = nil
+        if plistSendPartDescendantConn then
+            pcall(function() plistSendPartDescendantConn:Disconnect() end)
+            plistSendPartDescendantConn = nil
+        end
+        if not blackHoleActive then
+            for _, v in ipairs(Workspace:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    local torq = v:FindFirstChild("BringTorque")
+                    local align = v:FindFirstChild("BringAlign")
+                    local att = v:FindFirstChild("BringAttachment")
+                    if torq or align or att then
+                        pcall(function()
+                            if torq then torq:Destroy() end
+                            if align then align:Destroy() end
+                            if att then att:Destroy() end
+                            v:SetAttribute("WasBrought", true)
+                            v.Anchored = true
+                        end)
+                    end
+                end
+            end
+            DisableNetwork()
+        else
+            -- If Bring Part is active, make sure they remain unanchored so they return to us
+            for _, v in ipairs(Workspace:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    local torq = v:FindFirstChild("BringTorque")
+                    local align = v:FindFirstChild("BringAlign")
+                    if torq or align then
+                        v.Anchored = false
+                    end
+                end
+            end
+        end
+    end
 end
 
 local function startPlistSendPart(targetPlayer)
     stopPlistSendPart()
     plistSendPartTarget = targetPlayer
-    freezePlistCharacter()
-    if not plistSendPartLoopThread then
-        plistSendPartLoopThread = task.spawn(function()
-            while true do
-                if plistSendPartTarget then
-                    pcall(function()
-                        sendUnanchoredPartsToTarget(plistSendPartTarget)
-                    end)
-                else
-                    break
-                end
-                task.wait(2.2)
-            end
-            plistSendPartLoopThread = nil
-        end)
+    
+    EnableNetwork()
+    OneTimeUnanchor()
+    
+    for _, v in ipairs(GetAllPartsRecursive(Workspace)) do
+        if v:GetAttribute("WasBrought") then
+            v.Anchored = false
+        end
+        ForcePart(v)
     end
+    
+    if plistSendPartDescendantConn then plistSendPartDescendantConn:Disconnect() end
+    plistSendPartDescendantConn = Workspace.DescendantAdded:Connect(function(v)
+        if plistSendPartTarget and v:IsA("BasePart") then
+            if v:GetAttribute("WasBrought") then
+                v.Anchored = false
+            end
+            ForcePart(v)
+        end
+    end)
+
+    -- Auto-stop after 3 seconds, matching the spectate instant fling feel!
+    task.delay(3, function()
+        if plistSendPartTarget == targetPlayer then
+            stopPlistSendPart()
+            refreshPlayerList()
+        end
+    end)
 end
+
 
 function createPlayerRow(targetPlayer, index)
     local isExpanded = (expandedPlayerUserId == targetPlayer.UserId)
@@ -3680,15 +3877,33 @@ function createPlayerRow(targetPlayer, index)
     info.BackgroundTransparency = 1
     info.Parent = row
 
-    local dispLabel = Instance.new("TextLabel")
+        local dispLabel = Instance.new("TextLabel")
     dispLabel.Size = UDim2.new(1, 0, 0.5, 0)
     dispLabel.BackgroundTransparency = 1
     dispLabel.Font = Enum.Font.GothamBold
     dispLabel.TextSize = 12
     dispLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     dispLabel.TextXAlignment = Enum.TextXAlignment.Left
-    dispLabel.Text = targetPlayer.DisplayName
+    
+    local prefix = "⚫ "
+    pcall(function()
+        local lp = game:GetService("Players").LocalPlayer
+        local lpPos = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") and lp.Character.HumanoidRootPart.Position
+        local tHrp = targetPlayer.Character and (targetPlayer.Character:FindFirstChild("HumanoidRootPart") or targetPlayer.Character:FindFirstChild("Torso"))
+        if tHrp then
+            if lpPos then
+                local dist = math.floor((lpPos - tHrp.Position).Magnitude)
+                prefix = "🟢 [" .. dist .. "m] "
+            else
+                prefix = "🟢 "
+            end
+        end
+    end)
+    
+    -- Memasukkan ikon dan nama ke dalam label
+    dispLabel.Text = prefix .. targetPlayer.DisplayName
     dispLabel.Parent = info
+
 
     local userLabel = Instance.new("TextLabel")
     userLabel.Size = UDim2.new(1, 0, 0.5, 0)
@@ -3732,6 +3947,12 @@ function createPlayerRow(targetPlayer, index)
         local c = Instance.new("UICorner")
         c.CornerRadius = UDim.new(0, 4)
         c.Parent = btn
+
+        local s = Instance.new("UIStroke")
+        s.Color = strokeColor or Color3.fromRGB(40, 40, 45)
+        s.Thickness = 1
+        s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+        s.Parent = btn
 
         local hoverColor = Color3.new(math.min(color.R + 0.05, 1), math.min(color.G + 0.05, 1), math.min(color.B + 0.05, 1))
         btn.MouseEnter:Connect(function()
@@ -3917,8 +4138,8 @@ function createPlayerRow(targetPlayer, index)
     -- Right Action Buttons Row 1 (Copy, ESP)
     local exBtns = Instance.new("Frame")
     exBtns.Name = "ExtraButtons"
-    exBtns.Size = UDim2.new(0, 180, 0, 26)
-    exBtns.Position = UDim2.new(0, 110, 0, 6)
+    exBtns.Size = UDim2.new(1, -114, 0, 26)
+    exBtns.Position = UDim2.new(0, 108, 0, 6)
     exBtns.BackgroundTransparency = 1
     exBtns.Parent = expandedFrame
 
@@ -3927,13 +4148,13 @@ function createPlayerRow(targetPlayer, index)
     exListLayout.SortOrder = Enum.SortOrder.LayoutOrder
     exListLayout.Padding = UDim.new(0, 4)
     exListLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-    exListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+    exListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
     exListLayout.Parent = exBtns
 
     local function makeExActBtn(text, color, strokeColor, order, sizeX)
         if color == Color3.fromRGB(15, 15, 15) then color = Color3.fromRGB(25, 25, 25) end
         local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(0, sizeX, 0, 26)
+        btn.Size = UDim2.new(0.333, -3, 0, 26) -- 3 buttons in Row 1
         btn.BackgroundColor3 = color
         btn.Text = text
         btn.Font = Enum.Font.GothamBold
@@ -3945,6 +4166,12 @@ function createPlayerRow(targetPlayer, index)
         local c = Instance.new("UICorner")
         c.CornerRadius = UDim.new(0, 4)
         c.Parent = btn
+
+        local s = Instance.new("UIStroke")
+        s.Color = strokeColor or Color3.fromRGB(40, 40, 45)
+        s.Thickness = 1
+        s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+        s.Parent = btn
 
         local hoverColor = Color3.new(math.min(color.R + 0.05, 1), math.min(color.G + 0.05, 1), math.min(color.B + 0.05, 1))
         btn.MouseEnter:Connect(function()
@@ -3960,8 +4187,8 @@ function createPlayerRow(targetPlayer, index)
     -- Right Action Buttons Row 2 (Fling, Headsit, Follow)
     local exBtns2 = Instance.new("Frame")
     exBtns2.Name = "ExtraButtons2"
-    exBtns2.Size = UDim2.new(0, 180, 0, 26)
-    exBtns2.Position = UDim2.new(0, 110, 0, 36)
+    exBtns2.Size = UDim2.new(1, -114, 0, 26)
+    exBtns2.Position = UDim2.new(0, 108, 0, 36)
     exBtns2.BackgroundTransparency = 1
     exBtns2.Parent = expandedFrame
 
@@ -3970,17 +4197,18 @@ function createPlayerRow(targetPlayer, index)
     exListLayout2.SortOrder = Enum.SortOrder.LayoutOrder
     exListLayout2.Padding = UDim.new(0, 4)
     exListLayout2.VerticalAlignment = Enum.VerticalAlignment.Center
-    exListLayout2.HorizontalAlignment = Enum.HorizontalAlignment.Right
+    exListLayout2.HorizontalAlignment = Enum.HorizontalAlignment.Left
     exListLayout2.Parent = exBtns2
 
     local function makeExActBtn2(text, color, strokeColor, order, sizeX)
         if color == Color3.fromRGB(15, 15, 15) then color = Color3.fromRGB(25, 25, 25) end
         local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(0, sizeX, 0, 26)
+        btn.Size = UDim2.new(0.2, -4, 0, 26) -- 5 buttons in Row 2
         btn.BackgroundColor3 = color
         btn.Text = text
         btn.Font = Enum.Font.GothamBold
-        btn.TextSize = 10
+        btn.TextSize = 9
+        btn.TextWrapped = true
         btn.TextColor3 = Color3.fromRGB(255, 255, 255)
         btn.LayoutOrder = order
         btn.Parent = exBtns2
@@ -3988,6 +4216,12 @@ function createPlayerRow(targetPlayer, index)
         local c = Instance.new("UICorner")
         c.CornerRadius = UDim.new(0, 4)
         c.Parent = btn
+
+        local s = Instance.new("UIStroke")
+        s.Color = strokeColor or Color3.fromRGB(40, 40, 45)
+        s.Thickness = 1
+        s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+        s.Parent = btn
 
         local hoverColor = Color3.new(math.min(color.R + 0.05, 1), math.min(color.G + 0.05, 1), math.min(color.B + 0.05, 1))
         btn.MouseEnter:Connect(function()
@@ -4001,7 +4235,7 @@ function createPlayerRow(targetPlayer, index)
     end
 
     -- Copy ID Button
-    local copyBtn = makeExActBtn("Salin ID", Color3.fromRGB(40, 40, 45), Color3.fromRGB(60, 60, 65), 1, 46)
+    local copyBtn = makeExActBtn("Salin ID", Color3.fromRGB(40, 40, 45), Color3.fromRGB(60, 60, 65), 1, 50)
     copyBtn.MouseButton1Click:Connect(function()
         if setclipboard then
             setclipboard(tostring(targetPlayer.UserId))
@@ -4016,7 +4250,7 @@ function createPlayerRow(targetPlayer, index)
     end)
 
     -- Copy User Button
-    local copyUserBtn = makeExActBtn("Salin User", Color3.fromRGB(40, 40, 45), Color3.fromRGB(60, 60, 65), 2, 54)
+    local copyUserBtn = makeExActBtn("Salin User", Color3.fromRGB(40, 40, 45), Color3.fromRGB(60, 60, 65), 2, 60)
     copyUserBtn.MouseButton1Click:Connect(function()
         if setclipboard then
             setclipboard(targetPlayer.Name)
@@ -4032,26 +4266,29 @@ function createPlayerRow(targetPlayer, index)
 
     -- Toggle ESP Button
     local COREGUI = game:GetService("CoreGui")
-    local espBtn = makeExActBtn("ESP", Color3.fromRGB(0, 100, 150), Color3.fromRGB(0, 160, 220), 3, 32)
+    local espBtn = makeExActBtn("ESP", Color3.fromRGB(0, 100, 150), Color3.fromRGB(0, 160, 220), 3, 36)
     if COREGUI:FindFirstChild(targetPlayer.Name .. "_ESP") then
         espBtn.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
-        espBtn.FindFirstChildOfClass("UIStroke").Color = Color3.fromRGB(255, 255, 255)
+        local stroke = espBtn:FindFirstChildOfClass("UIStroke")
+        if stroke then stroke.Color = Color3.fromRGB(255, 255, 255) end
     end
     espBtn.MouseButton1Click:Connect(function()
         if COREGUI:FindFirstChild(targetPlayer.Name .. "_ESP") then
             destroyPlayerESP(targetPlayer.Name)
             espBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 150)
-            espBtn.FindFirstChildOfClass("UIStroke").Color = Color3.fromRGB(0, 160, 220)
+            local stroke = espBtn:FindFirstChildOfClass("UIStroke")
+            if stroke then stroke.Color = Color3.fromRGB(0, 160, 220) end
         else
             CreateESP(targetPlayer)
             espBtn.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
-            espBtn.FindFirstChildOfClass("UIStroke").Color = Color3.fromRGB(255, 255, 255)
+            local stroke = espBtn:FindFirstChildOfClass("UIStroke")
+            if stroke then stroke.Color = Color3.fromRGB(255, 255, 255) end
         end
     end)
 
     -- Fling Button
     local flingActive = false
-    local flingBtn = makeExActBtn2("Fling", Color3.fromRGB(150, 50, 50), Color3.fromRGB(200, 100, 100), 1, 36)
+    local flingBtn = makeExActBtn2("Fling", Color3.fromRGB(150, 50, 50), Color3.fromRGB(200, 100, 100), 0, 42)
     flingBtn.MouseButton1Click:Connect(function()
         local lplr = game.Players.LocalPlayer
         local char = lplr.Character
@@ -4062,7 +4299,8 @@ function createPlayerRow(targetPlayer, index)
         if flingActive then
             flingBtn.Text = "Stop"
             flingBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
-            flingBtn.FindFirstChildOfClass("UIStroke").Color = Color3.fromRGB(255, 150, 50)
+            local stroke = flingBtn:FindFirstChildOfClass("UIStroke")
+            if stroke then stroke.Color = Color3.fromRGB(255, 150, 50) end
             
             task.spawn(function()
                 local oldGravity = workspace.Gravity
@@ -4078,6 +4316,30 @@ function createPlayerRow(targetPlayer, index)
                     })
                 end)
 
+                -- Create welded fling part to prevent self-fling (like admin3.lua)
+                local flingPart = Instance.new("Part")
+                flingPart.Anchored = false
+                flingPart.CanCollide = false
+                flingPart.Transparency = 1
+                flingPart.Size = Vector3.new(1, 1, 1)
+                flingPart.CFrame = hrp.CFrame
+                flingPart.Parent = workspace
+
+                local flingWeld = Instance.new("WeldConstraint")
+                flingWeld.Part0 = flingPart
+                flingWeld.Part1 = hrp
+                flingWeld.Parent = flingPart
+
+                local BV = Instance.new("BodyVelocity")
+                BV.Parent = flingPart
+                BV.Velocity = Vector3.new(9e8, 9e8, 9e8)
+                BV.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+
+                local myHum = char:FindFirstChildOfClass("Humanoid")
+                if myHum then
+                    myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+                end
+
                 while flingActive and targetPlayer and targetPlayer.Parent do
                     RunService.Heartbeat:Wait()
                     local myChar = lplr.Character
@@ -4091,17 +4353,22 @@ function createPlayerRow(targetPlayer, index)
                     end
 
                     if tHrp then
-                        myHrp.AssemblyLinearVelocity = Vector3.new(0, 99999, 0)
-                        myHrp.AssemblyAngularVelocity = Vector3.new(0, 99999, 0)
+                        flingPart.AssemblyLinearVelocity = Vector3.new(9e7, 9e8, 9e7)
+                        flingPart.AssemblyAngularVelocity = Vector3.new(9e8, 9e8, 9e8)
                         myHrp.CFrame = tHrp.CFrame * CFrame.new(math.random(-1,1)*0.4, 0, math.random(-1,1)*0.4)
                     else
-                        myHrp.AssemblyLinearVelocity = Vector3.zero
-                        myHrp.AssemblyAngularVelocity = Vector3.zero
+                        flingPart.AssemblyLinearVelocity = Vector3.zero
+                        flingPart.AssemblyAngularVelocity = Vector3.zero
                     end
                 end
                 
                 flingActive = false
                 workspace.Gravity = oldGravity
+                
+                if myHum then
+                    myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+                end
+                pcall(function() flingPart:Destroy() end)
                 
                 -- Restore original state if loop finished naturally
                 if flingBtn and flingBtn.Parent then
@@ -4134,6 +4401,90 @@ function createPlayerRow(targetPlayer, index)
         end
     end)
 
+    -- Instant Fling Button (teleport ke player langsung lalu fling)
+    local instFlingBtn = makeExActBtn2("IFling", Color3.fromRGB(180, 60, 0), Color3.fromRGB(255, 120, 50), 1, 45)
+    instFlingBtn.MouseButton1Click:Connect(function()
+        local lp = Players.LocalPlayer
+        local myChar = lp and lp.Character
+        local myHrp = myChar and (myChar:FindFirstChild("HumanoidRootPart") or myChar:FindFirstChild("Torso"))
+        if not myHrp then return end
+        local tChar = targetPlayer.Character
+        local tHrp = tChar and (tChar:FindFirstChild("HumanoidRootPart") or tChar:FindFirstChild("Torso"))
+        if not tHrp then return end
+
+        task.spawn(function()
+            local origCF = myHrp.CFrame
+            local origGrav = workspace.Gravity
+            workspace.Gravity = 0
+
+            -- Create welded fling part to prevent self-fling (like admin3.lua)
+            local flingPart = Instance.new("Part")
+            flingPart.Anchored = false
+            flingPart.CanCollide = false
+            flingPart.Transparency = 1
+            flingPart.Size = Vector3.new(1, 1, 1)
+            flingPart.CFrame = myHrp.CFrame
+            flingPart.Parent = workspace
+
+            local flingWeld = Instance.new("WeldConstraint")
+            flingWeld.Part0 = flingPart
+            flingWeld.Part1 = myHrp
+            flingWeld.Parent = flingPart
+
+            local BV = Instance.new("BodyVelocity")
+            BV.Parent = flingPart
+            BV.Velocity = Vector3.new(9e8, 9e8, 9e8)
+            BV.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+
+            local myHum = myChar:FindFirstChildOfClass("Humanoid")
+            if myHum then
+                myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+            end
+
+            -- Teleport ke target, fling selama 2.0 detik (seperti admin3.lua)
+            local startFling = tick()
+            local angle = 0
+            while tick() - startFling < 2.0 and tHrp and tHrp.Parent do
+                angle = angle + 100
+                pcall(function()
+                    local offset = CFrame.new(0, 0.5, 0)
+                    if angle % 400 == 0 then
+                        offset = CFrame.new(0, 1.5, 0)
+                    elseif angle % 400 == 100 then
+                        offset = CFrame.new(0, -1.5, 0)
+                    elseif angle % 400 == 200 then
+                        offset = CFrame.new(2.25, 1.5, -2.25)
+                    elseif angle % 400 == 300 then
+                        offset = CFrame.new(-2.25, -1.5, 2.25)
+                    end
+                    
+                    myHrp.CFrame = tHrp.CFrame * offset * CFrame.Angles(math.rad(angle), 0, 0)
+                    flingPart.AssemblyLinearVelocity = Vector3.new(9e7, 9e8, 9e7)
+                    flingPart.AssemblyAngularVelocity = Vector3.new(9e8, 9e8, 9e8)
+                end)
+                RunService.Heartbeat:Wait()
+            end
+
+            task.wait(0.1)
+            workspace.Gravity = origGrav
+            
+            if myHum then
+                myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+            end
+            pcall(function() flingPart:Destroy() end)
+
+            -- Kembalikan ke posisi semula
+            pcall(function()
+                myHrp.Anchored = true
+                myHrp.AssemblyLinearVelocity = Vector3.zero
+                myHrp.AssemblyAngularVelocity = Vector3.zero
+                myHrp.CFrame = origCF
+                task.wait(0.1)
+                myHrp.Anchored = false
+            end)
+        end)
+    end)
+
     -- Headsit Button
     local isHeadsit = (headsitTarget == targetPlayer)
     local headsitBtnText = isHeadsit and "Stop" or tr("Headsit")
@@ -4143,10 +4494,17 @@ function createPlayerRow(targetPlayer, index)
     headsitBtn.MouseButton1Click:Connect(function()
         if headsitTarget == targetPlayer then
             stopHeadsit()
+            headsitBtn.Text = tr("Headsit")
+            headsitBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 150)
+            local stroke = headsitBtn:FindFirstChildOfClass("UIStroke")
+            if stroke then stroke.Color = Color3.fromRGB(0, 160, 220) end
         else
             startHeadsit(targetPlayer)
+            headsitBtn.Text = "Stop"
+            headsitBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
+            local stroke = headsitBtn:FindFirstChildOfClass("UIStroke")
+            if stroke then stroke.Color = Color3.fromRGB(255, 150, 50) end
         end
-        refreshPlayerList()
     end)
 
     -- Follow Button
@@ -4154,29 +4512,43 @@ function createPlayerRow(targetPlayer, index)
     local followBtnText = isFollow and "Stop" or tr("FollowBtn")
     local followBtnColor = isFollow and Color3.fromRGB(200, 100, 0) or Color3.fromRGB(0, 100, 150)
     local followBtnStroke = isFollow and Color3.fromRGB(255, 150, 50) or Color3.fromRGB(0, 160, 220)
-    local followBtn = makeExActBtn2(followBtnText, followBtnColor, followBtnStroke, 3, 44)
+    local followBtn = makeExActBtn2(followBtnText, followBtnColor, followBtnStroke, 3, 45)
     followBtn.MouseButton1Click:Connect(function()
         if followTarget == targetPlayer then
             stopFollow()
+            followBtn.Text = tr("FollowBtn")
+            followBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 150)
+            local stroke = followBtn:FindFirstChildOfClass("UIStroke")
+            if stroke then stroke.Color = Color3.fromRGB(0, 160, 220) end
         else
             startFollow(targetPlayer)
+            followBtn.Text = "Stop"
+            followBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
+            local stroke = followBtn:FindFirstChildOfClass("UIStroke")
+            if stroke then stroke.Color = Color3.fromRGB(255, 150, 50) end
         end
-        refreshPlayerList()
     end)
 
     -- Send Part Button
     local isSending = (plistSendPartTarget == targetPlayer)
     local sendBtnText = isSending and tr("SendingOnBtn") or tr("SendPartBtn")
-    local sendBtnColor = isSending and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(0, 100, 150)
-    local sendBtnStroke = isSending and Color3.fromRGB(200, 200, 200) or Color3.fromRGB(0, 160, 220)
-    local sendBtn = makeExActBtn2(sendBtnText, sendBtnColor, sendBtnStroke, 4, 36)
+    local sendBtnColor = isSending and Color3.fromRGB(200, 100, 0) or Color3.fromRGB(0, 100, 150)
+    local sendBtnStroke = isSending and Color3.fromRGB(255, 150, 50) or Color3.fromRGB(0, 160, 220)
+    local sendBtn = makeExActBtn2(sendBtnText, sendBtnColor, sendBtnStroke, 4, 82)
     sendBtn.MouseButton1Click:Connect(function()
         if plistSendPartTarget == targetPlayer then
             stopPlistSendPart()
+            sendBtn.Text = tr("SendPartBtn")
+            sendBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 150)
+            local stroke = sendBtn:FindFirstChildOfClass("UIStroke")
+            if stroke then stroke.Color = Color3.fromRGB(0, 160, 220) end
         else
             startPlistSendPart(targetPlayer)
+            sendBtn.Text = tr("SendingOnBtn")
+            sendBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
+            local stroke = sendBtn:FindFirstChildOfClass("UIStroke")
+            if stroke then stroke.Color = Color3.fromRGB(255, 150, 50) end
         end
-        refreshPlayerList()
     end)
 
     -- Expand/Collapse Interaction (Clicking info or left part)
@@ -4213,9 +4585,47 @@ refreshPlayerList = function()
     local count = 0
 
     local sortedPlayers = game:GetService("Players"):GetPlayers()
+    
+    local lp = game:GetService("Players").LocalPlayer
+    local lpPos = nil
+    if lp and lp.Character then
+        local lpHrp = lp.Character:FindFirstChild("HumanoidRootPart") or lp.Character:FindFirstChild("Torso")
+        if lpHrp then lpPos = lpHrp.Position end
+    end
+
     table.sort(sortedPlayers, function(a, b)
+        local distA, distB = math.huge, math.huge
+        
+        if lpPos then
+            if a.Character then
+                local aHrp = a.Character:FindFirstChild("HumanoidRootPart") or a.Character:FindFirstChild("Torso")
+                if aHrp then distA = (aHrp.Position - lpPos).Magnitude end
+            end
+            if b.Character then
+                local bHrp = b.Character:FindFirstChild("HumanoidRootPart") or b.Character:FindFirstChild("Torso")
+                if bHrp then distB = (bHrp.Position - lpPos).Magnitude end
+            end
+        end
+
+        local aIsDetected = (distA ~= math.huge)
+        local bIsDetected = (distB ~= math.huge)
+
+        if aIsDetected ~= bIsDetected then
+            return aIsDetected -- Dahulukan yang terdeteksi
+        end
+        
+        if aIsDetected and bIsDetected then
+            -- Jika keduanya terdeteksi, urutkan berdasarkan JARAK TERDEKAT
+            if math.abs(distA - distB) > 0.1 then
+                return distA < distB
+            end
+        end
+        
+        -- Jika tidak terdeteksi (atau jaraknya persis sama), urutkan abjad A-Z
         return string.lower(a.DisplayName) < string.lower(b.DisplayName)
     end)
+
+
 
     for _, plr in ipairs(sortedPlayers) do
         if plr ~= game.Players.LocalPlayer then
@@ -4237,7 +4647,7 @@ function createPlayerListWindow()
 
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "PlayerListFrame"
-    mainFrame.Size = UDim2.new(0, 390, 0, 360)
+    mainFrame.Size = UDim2.new(0, 450, 0, 360)
     mainFrame.Position = UDim2.new(0.5, 120, 0.5, -180)
     mainFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
     mainFrame.BackgroundTransparency = 0.1
@@ -4246,6 +4656,15 @@ function createPlayerListWindow()
     mainFrame.ClipsDescendants = true
     mainFrame.Parent = sgui
     PlayerListFrame = mainFrame
+
+    mainFrame.MouseEnter:Connect(function()
+        mouseInPlayerList = true
+        pcall(function() updateExternalCursorVisibility() end)
+    end)
+    mainFrame.MouseLeave:Connect(function()
+        mouseInPlayerList = false
+        pcall(function() updateExternalCursorVisibility() end)
+    end)
 
     local modal = Instance.new("TextButton")
     modal.Size = UDim2.new(0, 0, 0, 0)
@@ -4333,9 +4752,35 @@ function createPlayerListWindow()
     minStroke.Thickness = 1
     minStroke.Parent = minBtn
 
+    local refreshBtn = Instance.new("TextButton")
+    refreshBtn.Size = UDim2.new(0, 22, 0, 22)
+    refreshBtn.Position = UDim2.new(1, -80, 0.5, -11) -- Posisinya digeser ke kiri dari minimize (-54)
+    refreshBtn.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
+    refreshBtn.BackgroundTransparency = 0.1
+    refreshBtn.Text = "R"
+    refreshBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    refreshBtn.Font = Enum.Font.GothamBold
+    refreshBtn.TextSize = 13
+    refreshBtn.Parent = topBar
+    
+    local refreshCorner = Instance.new("UICorner")
+    refreshCorner.CornerRadius = UDim.new(0, 6)
+    refreshCorner.Parent = refreshBtn
+
+    local refreshStroke = Instance.new("UIStroke")
+    refreshStroke.Color = Color3.fromRGB(255, 255, 255)
+    refreshStroke.Thickness = 1
+    refreshStroke.Parent = refreshBtn
+
+    refreshBtn.MouseButton1Click:Connect(function()
+        refreshPlayerList()
+    end)
+
+
     local isMinimized = false
-    local normalSize = UDim2.new(0, 340, 0, 360)
-    local minimizedSize = UDim2.new(0, 340, 0, 30)
+    local normalSize = UDim2.new(0, 450, 0, 360)
+    local minimizedSize = UDim2.new(0, 450, 0, 30)
+
 
     minBtn.MouseButton1Click:Connect(function()
         isMinimized = not isMinimized
@@ -4419,31 +4864,9 @@ function createPlayerListWindow()
     listLayout.SortOrder = Enum.SortOrder.LayoutOrder
     listLayout.Parent = scroll
 
-    -- Drag logic
-    local dragging, dragInput, dragStart, startPos
-    topBar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = mainFrame.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
-    topBar.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - dragStart
-            mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
+    -- Drag logic (pakai makeSmoothDraggable sama seperti Part Scanner: smooth & tidak kena custom cursor)
+    makeSmoothDraggable(mainFrame, topBar)
+
 
     -- Dynamic Connections
     table.insert(playerConnections, game:GetService("Players").PlayerAdded:Connect(refreshPlayerList))
@@ -4482,22 +4905,6 @@ FriendListFrame = nil
 FriendListScroll = nil
 refreshFriendList = nil
 activeJoinConn = nil  -- track listener aktif untuk cegah double-fire TeleportInitFailed
-
--- queueTeleport: re-jalankan script setelah teleport (jika executor support)
--- Beberapa executor menyebutnya queue_on_teleport atau QueueOnTeleport
-function queueTeleport()
-    pcall(function()
-        local scriptSrc = nil
-        if syn and syn.queue_on_teleport then
-            syn.queue_on_teleport(scriptSrc or "")
-        elseif queue_on_teleport then
-            queue_on_teleport(scriptSrc or "")
-        elseif fluxus and fluxus.queue_on_teleport then
-            fluxus.queue_on_teleport(scriptSrc or "")
-        end
-        -- Jika tidak ada dukungan, diam saja (tidak error)
-    end)
-end
 
 function createFriendListWindow()
     if FriendListFrame then return end
@@ -5846,7 +6253,7 @@ function createChatLogsWindow()
 
                 local row = Instance.new("Frame")
                 row.Name = "ChatLogEntry"
-                row.Size = UDim2.new(1, -5, 0, 0)
+                row.Size = UDim2.new(1, -10, 0, 0)
                 row.BackgroundTransparency = 1
                 row.LayoutOrder = count
                 row.Parent = ChatLogsScroll
@@ -5869,12 +6276,12 @@ function createChatLogsWindow()
                 local wrapWidth = 310
                 if showTp then
                     wrapWidth = 272
-                    label.Size = UDim2.new(1, -38, 1, 0)
+                    label.Size = UDim2.new(1, -42, 1, 0)
 
                     local tpBtn = Instance.new("TextButton")
                     tpBtn.Name = "TPBtn"
                     tpBtn.Size = UDim2.new(0, 32, 0, 20)
-                    tpBtn.Position = UDim2.new(1, -32, 0.5, -10)
+                    tpBtn.Position = UDim2.new(1, -36, 0.5, -10)
                     tpBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
                     tpBtn.Text = "TP"
                     tpBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
@@ -6068,9 +6475,19 @@ function addSelendang(char)
 end
 
 function removeSelendang()
+	-- Hapus folder
 	if selendangPart then
 		selendangPart:Destroy()
 		selendangPart = nil
+	end
+	-- Hapus sisa trail/attachment di karakter (jaga-jaga kalau folder tidak ter-destroy bersama anaknya)
+	local char = Player.Character
+	if char then
+		for _, p in ipairs(char:GetDescendants()) do
+			if p.Name == "SpeedTrailAtt" or p.Name == "SpeedTrailInst" then
+				pcall(function() p:Destroy() end)
+			end
+		end
 	end
 end
 
@@ -6092,7 +6509,7 @@ end
 
 SpeedBtn.MouseButton1Click:Connect(toggleSpeed)
 
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
+SpeedShortcutConn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if UserInputService:GetFocusedTextBox() then return end
 	if input.KeyCode == Enum.KeyCode.RightBracket then
 		toggleSpeed()
@@ -6111,6 +6528,30 @@ Player.CharacterAdded:Connect(function(char)
 		setButtonActive(SpeedBtn, false)
 	end
 end)
+
+-- ===================================
+-- WALK FLING (port dari admin3.lua)
+-- ===================================
+local walkFlingActive = false
+local walkFlingConn = nil
+local walkFlingSpeed = 10000
+
+local function doWalkFlingBurst(root)
+    if not (root and root.Parent) then return end
+    local ok, vel = pcall(function() return root.Velocity end)
+    if not ok or typeof(vel) ~= "Vector3" then vel = Vector3.new(0,0,0) end
+    pcall(function()
+        root.Velocity = vel * walkFlingSpeed + Vector3.new(0, walkFlingSpeed, 0)
+    end)
+    RunService.RenderStepped:Wait()
+    if root and root.Parent then
+        pcall(function() root.Velocity = vel end)
+    end
+    RunService.Stepped:Wait()
+    if root and root.Parent then
+        pcall(function() root.Velocity = vel + Vector3.new(0, 0.1, 0) end)
+    end
+end
 
 FlingBtn = createButton("", "Tendang")
 local hiddenfling = false
@@ -6134,11 +6575,309 @@ FlingBtn.MouseButton1Click:Connect(function()
     hiddenfling = not hiddenfling
     if hiddenfling then
         setButtonActive(FlingBtn, true)
-        flingThread = coroutine.create(fling)
-        coroutine.resume(flingThread)
+        if walkFlingConn then walkFlingConn:Disconnect() end
+        walkFlingConn = RunService.Heartbeat:Connect(function()
+            if not hiddenfling then
+                if walkFlingConn then walkFlingConn:Disconnect(); walkFlingConn = nil end
+                return
+            end
+            local char = Players.LocalPlayer and Players.LocalPlayer.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            if root then task.spawn(doWalkFlingBurst, root) end
+        end)
     else
         setButtonActive(FlingBtn, false)
+        if walkFlingConn then walkFlingConn:Disconnect(); walkFlingConn = nil end
     end
+end)
+
+WalkFlingBtn = createButton("", "Walk Fling")
+WalkFlingBtn.Name = "WalkFlingBtn"
+
+WalkFlingBtn.MouseButton1Click:Connect(function()
+    walkFlingActive = not walkFlingActive
+    if walkFlingActive then
+        setButtonActive(WalkFlingBtn, true)
+        if walkFlingConn then walkFlingConn:Disconnect() end
+        walkFlingConn = RunService.Heartbeat:Connect(function()
+            if not walkFlingActive then return end
+            local char = Players.LocalPlayer and Players.LocalPlayer.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            if root then
+                task.spawn(doWalkFlingBurst, root)
+            end
+        end)
+    else
+        setButtonActive(WalkFlingBtn, false)
+        if walkFlingConn then walkFlingConn:Disconnect(); walkFlingConn = nil end
+    end
+end)
+
+-- ===================================
+-- ANTI FLING (port dari admin3.lua)
+-- ===================================
+AntiFlingBtn = createButton("", "Anti Fling")
+AntiFlingBtn.Name = "AntiFlingBtn"
+local antiFlingActive = false
+local antiFlingConns = {}
+local antiFlingTracked = {}
+
+local function antiFlingApply(p)
+    if not (p and typeof(p) == "Instance" and p:IsA("BasePart")) then return end
+    if antiFlingTracked[p] then return end
+    antiFlingTracked[p] = true
+    pcall(function() p.CanCollide = false end)
+end
+
+local function antiFlingClear(p)
+    if antiFlingTracked[p] then
+        antiFlingTracked[p] = nil
+        pcall(function() p.CanCollide = true end)
+    end
+end
+
+local function antiFlingHookChar(char)
+    if not char then return end
+    for _, d in ipairs(char:GetDescendants()) do
+        if d:IsA("BasePart") then antiFlingApply(d) end
+    end
+    table.insert(antiFlingConns, char.DescendantAdded:Connect(function(inst)
+        if inst:IsA("BasePart") and antiFlingActive then antiFlingApply(inst) end
+    end))
+    table.insert(antiFlingConns, char.DescendantRemoving:Connect(function(inst)
+        if inst:IsA("BasePart") then antiFlingClear(inst) end
+    end))
+end
+
+AntiFlingBtn.MouseButton1Click:Connect(function()
+    antiFlingActive = not antiFlingActive
+    if antiFlingActive then
+        setButtonActive(AntiFlingBtn, true)
+        antiFlingTracked = {}
+        -- Terapkan ke semua karakter pemain lain
+        local lp = Players.LocalPlayer
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr ~= lp then
+                antiFlingHookChar(plr.Character)
+                table.insert(antiFlingConns, plr.CharacterAdded:Connect(function(char)
+                    if antiFlingActive then antiFlingHookChar(char) end
+                end))
+            end
+        end
+        table.insert(antiFlingConns, Players.PlayerAdded:Connect(function(plr)
+            if plr ~= lp and antiFlingActive then
+                if plr.Character then antiFlingHookChar(plr.Character) end
+                table.insert(antiFlingConns, plr.CharacterAdded:Connect(function(char)
+                    if antiFlingActive then antiFlingHookChar(char) end
+                end))
+            end
+        end))
+        -- Loop setiap frame untuk mempertahankan CanCollide = false
+        table.insert(antiFlingConns, RunService.PreSimulation:Connect(function()
+            for p in pairs(antiFlingTracked) do
+                pcall(function()
+                    if p and p.Parent and p.CanCollide ~= false then
+                        p.CanCollide = false
+                    end
+                end)
+            end
+        end))
+    else
+        setButtonActive(AntiFlingBtn, false)
+        antiFlingActive = false
+        -- Putus semua koneksi
+        for _, c in ipairs(antiFlingConns) do pcall(function() c:Disconnect() end) end
+        antiFlingConns = {}
+        -- Restore CanCollide = true
+        for p in pairs(antiFlingTracked) do
+            pcall(function() if p and p.Parent then p.CanCollide = true end end)
+        end
+        antiFlingTracked = {}
+    end
+end)
+
+-- ===================================
+-- FLING AURA & ORBIT FLING (RUSUH COMBO)
+-- ===================================
+FlingAuraBtn = createButton("", "Fling Aura")
+FlingAuraBtn.Name = "FlingAuraBtn"
+flingAuraActive = false
+flingAuraRange = 35
+flingAuraConnection = nil
+
+function toggleFlingAura(state)
+    if state == nil then
+        flingAuraActive = not flingAuraActive
+    else
+        flingAuraActive = state
+    end
+    
+    local MiniFlingBtn = MiniButtons and MiniButtons["MiniFlingAuraBtn"]
+    if flingAuraActive then
+        setButtonActive(FlingAuraBtn, true)
+        if MiniFlingBtn then
+            MiniFlingBtn.Text = "Fling Aura: ON"
+            MiniFlingBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        end
+        
+        if flingAuraConnection then flingAuraConnection:Disconnect() end
+        flingAuraConnection = RunService.Heartbeat:Connect(function()
+            if not flingAuraActive then return end
+            local lp = Players.LocalPlayer
+            local char = lp.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if not hrp or not hum or hum.Health <= 0 then return end
+            
+            local targetHRP = nil
+            local shortestDist = flingAuraRange
+            for _, plr in ipairs(Players:GetPlayers()) do
+                if plr ~= lp and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and plr.Character:FindFirstChildOfClass("Humanoid") and plr.Character:FindFirstChildOfClass("Humanoid").Health > 0 then
+                    local dist = (plr.Character.HumanoidRootPart.Position - hrp.Position).Magnitude
+                    if dist < shortestDist then
+                        shortestDist = dist
+                        targetHRP = plr.Character.HumanoidRootPart
+                    end
+                end
+            end
+            
+            if targetHRP then
+                local originalCF = hrp.CFrame
+                for _, part in ipairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+                
+                hrp.CFrame = targetHRP.CFrame * CFrame.new(0, 0.2, 0)
+                hrp.Velocity = Vector3.new(999999, 999999, 999999)
+                RunService.RenderStepped:Wait()
+                
+                if hrp and hrp.Parent then
+                    hrp.Velocity = Vector3.zero
+                    hrp.CFrame = originalCF
+                end
+            end
+        end)
+    else
+        setButtonActive(FlingAuraBtn, false)
+        if MiniFlingBtn then
+            MiniFlingBtn.Text = "Fling Aura: OFF"
+            MiniFlingBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
+        end
+        if flingAuraConnection then
+            flingAuraConnection:Disconnect()
+            flingAuraConnection = nil
+        end
+    end
+end
+
+FlingAuraBtn.MouseButton1Click:Connect(function()
+    toggleFlingAura()
+end)
+
+OrbitFlingBtn = createButton("", "Orbit Fling")
+OrbitFlingBtn.Name = "OrbitFlingBtn"
+orbitFlingActive = false
+orbitFlingConnection = nil
+orbitFlingTarget = nil
+
+function toggleOrbitFling(state, targetPlayer)
+    if state == nil then
+        orbitFlingActive = not orbitFlingActive
+    else
+        orbitFlingActive = state
+    end
+    
+    local MiniOrbitBtn = MiniButtons and MiniButtons["MiniOrbitFlingBtn"]
+    if orbitFlingActive then
+        orbitFlingTarget = targetPlayer or getClosestPlayer()
+        if not orbitFlingTarget then
+            orbitFlingActive = false
+            pcall(function()
+                game:GetService("StarterGui"):SetCore("SendNotification", {
+                    Title = "Orbit Fling",
+                    Text = "No target player found nearby.",
+                    Duration = 3
+                })
+            end)
+            return
+        end
+        
+        setButtonActive(OrbitFlingBtn, true)
+        if MiniOrbitBtn then
+            MiniOrbitBtn.Text = "Orbit: " .. string.sub(orbitFlingTarget.Name, 1, 8)
+            MiniOrbitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        end
+        
+        local angle = 0
+        local radius = 4
+        local speed = 0.5
+        
+        if orbitFlingConnection then orbitFlingConnection:Disconnect() end
+        orbitFlingConnection = RunService.Heartbeat:Connect(function()
+            if not orbitFlingActive then return end
+            local lp = Players.LocalPlayer
+            local char = lp.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            if not hrp then return end
+            
+            if not orbitFlingTarget or not orbitFlingTarget.Parent or not orbitFlingTarget.Character then
+                toggleOrbitFling(false)
+                return
+            end
+            
+            local tHrp = orbitFlingTarget.Character:FindFirstChild("HumanoidRootPart")
+            local tHum = orbitFlingTarget.Character:FindFirstChildOfClass("Humanoid")
+            if not tHrp or (tHum and tHum.Health <= 0) then
+                local nextTarget = getClosestPlayer()
+                if nextTarget then
+                    orbitFlingTarget = nextTarget
+                    if MiniOrbitBtn then
+                        MiniOrbitBtn.Text = "Orbit: " .. string.sub(orbitFlingTarget.Name, 1, 8)
+                    end
+                else
+                    toggleOrbitFling(false)
+                    return
+                end
+            end
+            
+            angle = angle + speed
+            local offset = Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
+            
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+            
+            hrp.CFrame = CFrame.new(tHrp.Position + offset, tHrp.Position)
+            hrp.Velocity = Vector3.new(999999, 999999, 999999)
+        end)
+    else
+        setButtonActive(OrbitFlingBtn, false)
+        if MiniOrbitBtn then
+            MiniOrbitBtn.Text = "Orbit Fling: OFF"
+            MiniOrbitBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
+        end
+        if orbitFlingConnection then
+            orbitFlingConnection:Disconnect()
+            orbitFlingConnection = nil
+        end
+        orbitFlingTarget = nil
+        pcall(function()
+            local char = Players.LocalPlayer.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                hrp.Velocity = Vector3.zero
+                hrp.AssemblyLinearVelocity = Vector3.zero
+            end
+        end)
+    end
+end
+
+OrbitFlingBtn.MouseButton1Click:Connect(function()
+    toggleOrbitFling()
 end)
 
 -- Click TP and Free Cam integrations
@@ -6478,7 +7217,7 @@ local FlyBtn = createButton("", "Fly")
 
 function noclip(state)
     for _,v in pairs(character:GetDescendants()) do
-        if v:IsA("BasePart") and v.Name ~= "HumanoidRootPart" and not v:FindFirstAncestorOfClass("Accessory") then
+        if v:IsA("BasePart") and not v:FindFirstAncestorOfClass("Accessory") then
             v.CanCollide = not state
         end
     end
@@ -6504,7 +7243,9 @@ function disableFly()
     flying = false
     DPad.Visible = false
     humanoid.PlatformStand = false
-    noclip(false)
+    if not blackHoleActive then
+        noclip(false)
+    end
     Workspace.Gravity = oldGravity
     frozenPos = nil
     
@@ -6609,18 +7350,58 @@ local RADIUS = 500
 
 local activeParts = {}
 
+local function isMapAsset(o)
+    local name = string.lower(o.Name)
+    if name == "baseplate" or name == "terrain" or name == "road" or name == "sidewalk" 
+       or name == "floor" or name == "wall" or name == "glass" or name == "window" 
+       or name == "roof" or name == "ceiling" or name == "door" or name == "stairs" 
+       or name == "pillar" or name == "support" or name == "building" or name == "house"
+       or name == "rock" or name == "stone" or name == "batu" or name == "tree" 
+       or name == "leaf" or name == "leaves" or name == "trunk" or name == "branch" 
+       or name == "grass" or name == "hill" or name == "mountain" or name == "water" then
+        return true
+    end
+    local p = o.Parent
+    if p and p:IsA("Model") then
+        local pName = string.lower(p.Name)
+        if pName:find("map") or pName:find("lobby") or pName:find("terrain") 
+           or pName:find("city") or pName:find("building") or pName:find("tree") 
+           or pName:find("rock") or pName:find("stone") or pName:find("batu") 
+           or pName:find("nature") or pName:find("environment") or pName:find("road") then
+            return true
+        end
+    end
+    return false
+end
+
 function scanParts()
     local parts = {}
     local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if not root then return parts end
 
+    -- Kumpulkan semua karakter pemain untuk di-exclude
+    local charSet = {}
+    for _, plr in ipairs(game.Players:GetPlayers()) do
+        if plr.Character then
+            charSet[plr.Character] = true
+        end
+    end
+
     for _, part in pairs(workspace:GetDescendants()) do
-        if part:IsA("BasePart") 
-        and not part.Anchored 
-        and not part:IsDescendantOf(player.Character) then
-            local dist = (part.Position - root.Position).Magnitude
-            if dist <= RADIUS then
-                table.insert(parts, part)
+        if part:IsA("BasePart") and not part.Anchored then
+            -- Skip semua karakter pemain (bukan hanya lokal)
+            local isCharPart = false
+            local p = part.Parent
+            while p and p ~= workspace do
+                if charSet[p] then isCharPart = true; break end
+                p = p.Parent
+            end
+            if not isCharPart and not isMapAsset(part) and string.lower(part.Name) ~= "baseplate" and part.Name ~= "Handle" then
+                local dist = (part.Position - root.Position).Magnitude
+                -- Min distance 4m: jangan tarik part yang terlalu dekat (mencegah body ikut ketarik)
+                if dist <= RADIUS and dist > 4 then
+                    table.insert(parts, part)
+                end
             end
         end
     end
@@ -6631,11 +7412,14 @@ function applyForce(part)
     if not part or not part.Parent then return end
     part.CanCollide = false
 
-    for _, x in next, part:GetChildren() do
-        if x:IsA("BodyAngularVelocity") or x:IsA("BodyForce") or x:IsA("BodyGyro") 
-        or x:IsA("BodyPosition") or x:IsA("BodyThrust") or x:IsA("BodyVelocity")
-        or x:IsA("RocketPropulsion") then
-            x:Destroy()
+    -- Hapus welds/ropes/attachments agar tidak terseret bersama tali/las peta
+    pcall(function() part:BreakJoints() end)
+    for _, x in ipairs(part:GetChildren()) do
+        if x:IsA("Weld") or x:IsA("WeldConstraint") or x:IsA("ManualWeld") or x:IsA("Motor6D")
+            or x:IsA("RopeConstraint") or x:IsA("RodConstraint") or x:IsA("SpringConstraint") or x:IsA("CableConstraint")
+            or x:IsA("BodyMover") or x:IsA("RocketPropulsion") or x:IsA("AlignPosition") or x:IsA("Torque") or x:IsA("Attachment")
+        then
+            pcall(function() x:Destroy() end)
         end
     end
 
@@ -6713,11 +7497,18 @@ function toggleUnanchor(state)
         aktif = state
     end
     if aktif then
-        setButtonActive(UnanchorBtn, true)
+        if UnanchorBtn then setButtonActive(UnanchorBtn, true) end
         mulaiUnanchor()
     else
-        setButtonActive(UnanchorBtn, false)
+        if UnanchorBtn then setButtonActive(UnanchorBtn, false) end
         stopUnanchor()
+    end
+    if UnanchorBtn and UnanchorBtn.Parent then
+        UnanchorBtn.Text = aktif and "Stop" or "Unanchor"
+    end
+    if unanchorBtn and unanchorBtn.Parent then
+        unanchorBtn.Text = aktif and "Stop" or "Unanchor"
+        unanchorBtn.BackgroundColor3 = aktif and Color3.fromRGB(200, 50, 50) or Color3.fromRGB(200, 100, 0)
     end
 end
 
@@ -6733,7 +7524,8 @@ BringPartBtn = createButton("", "BringPart")
 
 -- [Optimized out duplicate] local LocalPlayer = Players.LocalPlayer
 local character, humanoidRootPart, head
-local blackHoleActive = false
+blackHoleActive = false
+scannerBroughtPart = nil
 local DescendantAddedConnection
 local NetworkConnection
 
@@ -6743,7 +7535,17 @@ local TargetPart = Instance.new("Part", Folder)
 TargetPart.Anchored = true
 TargetPart.CanCollide = false
 TargetPart.Transparency = 1
-local Attachment1 = Instance.new("Attachment", TargetPart)
+Attachment1 = Instance.new("Attachment", TargetPart)
+
+RunService.RenderStepped:Connect(function()
+	if blackHoleActive or scannerBroughtPart or plistSendPartTarget then
+		local char = plistSendPartTarget and plistSendPartTarget.Character or LocalPlayer.Character
+		local target = char and (char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart"))
+		if target then
+			Attachment1.WorldCFrame = target.CFrame * CFrame.new(0, 10, 0)
+		end
+	end
+end)
 
 if not getgenv().Network then
 	getgenv().Network = {
@@ -6779,9 +7581,20 @@ end
 function ForcePart(v)
 	if v:IsA("BasePart") 
 	and not v.Anchored 
+	and v.Transparency < 1          -- skip part invisible (hanya visual, tidak keliatan orang lain)
 	and not v.Parent:FindFirstChildOfClass("Humanoid") 
 	and not v.Parent:FindFirstChild("Head") 
 	and v.Name ~= "Handle" then
+
+		if v:GetAttribute("ScannerStopped") then return end
+		if v:FindFirstChild("BringAlign") then return end
+
+		-- Teleport part close to player once to claim network ownership from any distance!
+		local char = LocalPlayer.Character
+		local hrp = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
+		if hrp then
+			v.CFrame = hrp.CFrame * CFrame.new(0, 10, 0)
+		end
 
 		for _, x in ipairs(v:GetChildren()) do
 			if x:IsA("BodyMover") or x:IsA("RocketPropulsion") then
@@ -6807,6 +7620,7 @@ function ForcePart(v)
 		AlignPosition.Responsiveness = 200
 		AlignPosition.Attachment0 = Attachment2
 		AlignPosition.Attachment1 = Attachment1
+		v:SetAttribute("WasBrought", true)
 	end
 end
 
@@ -6857,6 +7671,158 @@ function OneTimeUnanchor()
 	end)
 end
 
+local function yeetAllParts()
+    -- Stop active loops safely without immediately calling DisableNetwork
+    if blackHoleActive then
+        blackHoleActive = false
+        setButtonActive(BringPartBtn, false)
+        if DescendantAddedConnection then
+            DescendantAddedConnection:Disconnect()
+            DescendantAddedConnection = nil
+        end
+    end
+    if plistSendPartTarget then
+        stopPlistSendPart()
+    end
+    if scannerBroughtPart then
+        StopScannerBring()
+    end
+
+    -- Keep network active
+    EnableNetwork()
+
+    local char = LocalPlayer.Character
+    local hrp = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
+    local lpPos = hrp and hrp.Position
+    
+    -- Kumpulkan semua karakter pemain untuk di-exclude
+    local charSet = {}
+    for _, plr in ipairs(game.Players:GetPlayers()) do
+        if plr.Character then
+            charSet[plr.Character] = true
+        end
+    end
+
+    local function isMapAsset(o)
+        local name = string.lower(o.Name)
+        if name == "baseplate" or name == "terrain" or name == "road" or name == "sidewalk" 
+           or name == "floor" or name == "wall" or name == "glass" or name == "window" 
+           or name == "roof" or name == "ceiling" or name == "door" or name == "stairs" 
+           or name == "pillar" or name == "support" or name == "building" or name == "house"
+           or name == "rock" or name == "stone" or name == "batu" or name == "tree" 
+           or name == "leaf" or name == "leaves" or name == "trunk" or name == "branch" 
+           or name == "grass" or name == "hill" or name == "mountain" or name == "water" then
+            return true
+        end
+        local p = o.Parent
+        if p and p:IsA("Model") then
+            local pName = string.lower(p.Name)
+            if pName:find("map") or pName:find("lobby") or pName:find("terrain") 
+               or pName:find("city") or pName:find("building") or pName:find("tree") 
+               or pName:find("rock") or pName:find("stone") or pName:find("batu") 
+               or pName:find("nature") or pName:find("environment") or pName:find("road") then
+                return true
+            end
+        end
+        return false
+    end
+
+    local partsToYeet = {}
+    local allDescendants = Workspace:GetDescendants()
+    
+    -- We chunk the scan to prevent any stutter
+    for i, obj in ipairs(allDescendants) do
+        if i % 1000 == 0 then
+            task.wait() -- yield to next frame to keep game running smoothly
+        end
+        if obj:IsA("BasePart") then
+            -- 1. Clean up any active bring constraints
+            local torq = obj:FindFirstChild("BringTorque") or obj:FindFirstChild("ScannerBringTorque")
+            local align = obj:FindFirstChild("BringAlign") or obj:FindFirstChild("ScannerBringAlign")
+            local att = obj:FindFirstChild("BringAttachment") or obj:FindFirstChild("ScannerBringAttachment")
+            if torq then pcall(function() torq:Destroy() end) end
+            if align then pcall(function() align:Destroy() end) end
+            if att then pcall(function() att:Destroy() end) end
+
+            -- 2. Check filters (exclude players, NPCs, baseplate, handle, map assets)
+            local isChar = false
+            local p = obj.Parent
+            while p and p ~= Workspace do
+                if charSet[p] or p:FindFirstChildOfClass("Humanoid") then
+                    isChar = true
+                    break
+                end
+                p = p.Parent
+            end
+
+            if not isChar and string.lower(obj.Name) ~= "baseplate" and obj.Name ~= "Handle" and not isMapAsset(obj) then
+                local shouldYeet = false
+                
+                -- If it was anchored, try to unanchor if close to player
+                if obj.Anchored then
+                    if lpPos and (obj.Position - lpPos).Magnitude <= 1000 then
+                        obj.Anchored = false
+                        shouldYeet = true
+                    end
+                else
+                    shouldYeet = true
+                end
+
+                if shouldYeet then
+                    table.insert(partsToYeet, obj)
+                end
+            end
+        end
+    end
+
+    if #partsToYeet > 0 then
+        task.spawn(function()
+            local chunkSize = 40
+            
+            -- Yeet phase: drop them down to void
+            for i, part in ipairs(partsToYeet) do
+                pcall(function()
+                    if part and part.Parent then
+                        part:BreakJoints()
+                        for _, x in ipairs(part:GetDescendants()) do
+                            if x:IsA("Weld") or x:IsA("WeldConstraint") or x:IsA("ManualWeld") or x:IsA("Motor6D")
+                                or x:IsA("BodyMover") or x:IsA("RocketPropulsion") or x:IsA("AlignPosition") or x:IsA("Torque") or x:IsA("Attachment")
+                                or x:IsA("Constraint")
+                            then
+                                pcall(function() x:Destroy() end)
+                            end
+                        end
+                        part.CanCollide = false
+                        part.Anchored = false
+                        part.AssemblyLinearVelocity = Vector3.new(0, 10000, 0)
+                    end
+                end)
+                if i % chunkSize == 0 then
+                    task.wait()
+                end
+            end
+
+            task.wait(1.5)
+
+            -- Re-anchor
+            for i, part in ipairs(partsToYeet) do
+                pcall(function()
+                    if part and part.Parent then
+                        part.Anchored = true
+                        part.CanCollide = true
+                    end
+                end)
+                if i % chunkSize == 0 then
+                    task.wait()
+                end
+            end
+
+            DisableNetwork()
+        end)
+    end
+end
+
+
 function GetAllPartsRecursive(parent)
 	local parts = {}
 	for _, obj in ipairs(parent:GetChildren()) do
@@ -6888,44 +7854,64 @@ function toggleBringPart(state)
 
 		OneTimeUnanchor()
 
-		for _, v in ipairs(GetAllPartsRecursive(Workspace)) do
-			ForcePart(v)
+		-- Clear ScannerStopped attributes so we can bring them again when turning Bring Part ON
+		for _, v in ipairs(Workspace:GetDescendants()) do
+			if v:IsA("BasePart") then
+				v:SetAttribute("ScannerStopped", nil)
+			end
 		end
+
+		-- Start a lightweight loop to periodically check and bring parts as player moves
+		task.spawn(function()
+			while blackHoleActive do
+				for _, v in ipairs(GetAllPartsRecursive(Workspace)) do
+					if not blackHoleActive then break end
+					if v:GetAttribute("WasBrought") then
+						v.Anchored = false
+					end
+					ForcePart(v)
+				end
+				task.wait(1.5)
+			end
+		end)
 
 		if DescendantAddedConnection then DescendantAddedConnection:Disconnect() end
 		DescendantAddedConnection = Workspace.DescendantAdded:Connect(function(v)
 			if blackHoleActive and v:IsA("BasePart") then
+				if v:GetAttribute("WasBrought") then
+					v.Anchored = false
+				end
 				ForcePart(v)
 			end
 		end)
 
-		task.spawn(function()
-			while blackHoleActive and RunService.RenderStepped:Wait() do
-				if head then
-					Attachment1.WorldCFrame = head.CFrame * CFrame.new(0, 10, 0)
-				else
-					Attachment1.WorldCFrame = humanoidRootPart.CFrame * CFrame.new(0, 10, 0)
-				end
-			end
-		end)
+
 	else
 		setButtonActive(BringPartBtn, false)
-		DisableNetwork()
 		if DescendantAddedConnection then
 			DescendantAddedConnection:Disconnect()
 			DescendantAddedConnection = nil
 		end
-		-- Clean up the created constraints/attachments on Workspace parts to prevent character dragging
+		-- Bersihkan constraints SAMBIL masih punya network ownership
+		-- DisableNetwork dipanggil SETELAH loop, agar server tidak ambil alih part sebelum di-anchor
 		for _, v in ipairs(Workspace:GetDescendants()) do
 			if v:IsA("BasePart") then
 				local torq = v:FindFirstChild("BringTorque")
 				local align = v:FindFirstChild("BringAlign")
 				local att = v:FindFirstChild("BringAttachment")
-				if torq then pcall(function() torq:Destroy() end) end
-				if align then pcall(function() align:Destroy() end) end
-				if att then pcall(function() att:Destroy() end) end
+				if torq or align or att then
+					pcall(function()
+						if torq then torq:Destroy() end
+						if align then align:Destroy() end
+						if att then att:Destroy() end
+						v:SetAttribute("WasBrought", true)
+						v.Anchored = true
+					end)
+				end
 			end
 		end
+		-- Baru lepas network setelah semua part sudah di-anchor
+		DisableNetwork()
 	end
 end
 
@@ -7410,7 +8396,7 @@ function enableNoclip()
         local char = Player.Character
         if char then
             for _, obj in ipairs(char:GetDescendants()) do
-                if obj:IsA("BasePart") then
+                if obj:IsA("BasePart") and not obj:FindFirstAncestorOfClass("Accessory") then
                     obj.CanCollide = false
                 end
             end
@@ -7427,7 +8413,7 @@ function disableNoclip()
     local char = Player.Character
     if char then
         for _, obj in ipairs(char:GetDescendants()) do
-            if obj:IsA("BasePart") and obj.Name ~= "HumanoidRootPart" and not obj:FindFirstAncestorOfClass("Accessory") then
+            if obj:IsA("BasePart") and not obj:FindFirstAncestorOfClass("Accessory") then
                 pcall(function() obj.CanCollide = true end)
             end
         end
@@ -7476,7 +8462,7 @@ AnimasiBtn = createButton("", "Animasi")
 EmoteBtn = createButton("", "Emotes")
 CloneAvatarBtn = createButton("", "Clone Avatar")
 FlyV2Btn = createButton("", "Fly V2")
-FlyV3Btn = createButton("", "Fly V3")
+FlyV3Btn = createButton("", "Quick Tools")
 ServerHopBtn = createButton("", "Server Hop")
 DexBtn = createButton("", "Dex Explorer")
 
@@ -7489,7 +8475,19 @@ end)
 
 function launchDex()
     local ok, err = pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/bochilascript/ROBLOX/refs/heads/main/dex.lua"))()
+        local success, result = pcall(function()
+            return game:HttpGet("https://raw.githubusercontent.com/bochilascript/ROBLOX/refs/heads/main/dex.lua")
+        end)
+        if success and result and result ~= "" then
+            local func, loadErr = loadstring(result)
+            if func then
+                func()
+            else
+                warn("Dex loadstring error: " .. tostring(loadErr))
+            end
+        else
+            warn("Dex HTTP request failed")
+        end
     end)
     if not ok then
         pcall(function()
@@ -7550,7 +8548,7 @@ local COLORS = {
     MEDIUM_BLACK = Color3.fromRGB(15, 15, 15),
     LIGHT_BLACK = Color3.fromRGB(25, 25, 25),
     WHITE = Color3.fromRGB(255, 255, 255),
-    GREEN = Color3.fromRGB(255, 255, 255),
+    GREEN = Color3.fromRGB(0, 150, 50),
     RED = Color3.fromRGB(255, 50, 50),
     GOLD = Color3.fromRGB(255, 215, 0)
 }
@@ -7658,6 +8656,12 @@ ProfileFrame.Parent = ScreenGui
 local ProfileCorner = Instance.new("UICorner", ProfileFrame)
 ProfileCorner.CornerRadius = UDim.new(0, 12)
 
+local ProfileStroke = Instance.new("UIStroke")
+ProfileStroke.Color = Color3.fromRGB(255, 50, 50)
+ProfileStroke.Thickness = 1
+ProfileStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+ProfileStroke.Parent = ProfileFrame
+
 
 
 local titleBg = ProfileFrame -- Keep variable for compatibility with tweens
@@ -7685,6 +8689,12 @@ ControlsFrame.Parent = ScreenGui
 
 local ControlsCorner = Instance.new("UICorner", ControlsFrame)
 ControlsCorner.CornerRadius = UDim.new(0, 12)
+
+local ControlsStroke = Instance.new("UIStroke")
+ControlsStroke.Color = Color3.fromRGB(255, 50, 50)
+ControlsStroke.Thickness = 1
+ControlsStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+ControlsStroke.Parent = ControlsFrame
 
 
 
@@ -7811,7 +8821,7 @@ end
 
 -- Create control buttons di frame kanan dengan spacing yang rapi
 local TeleBtn = createControlButton(ControlsFrame, tr("TeleportBtn"), COLORS.DARK_BLUE, 0.15, "")
-local KickBtn = createControlButton(ControlsFrame, tr("KickBtn"), COLORS.DARK_BLUE, 0.35, "")
+local FlingBtn = createControlButton(ControlsFrame, "Fling", COLORS.DARK_BLUE, 0.35, "")
 local FollowBtn = createControlButton(ControlsFrame, tr("FollowBtn"), COLORS.DARK_BLUE, 0.55, "")
 local SendPartBtn = createControlButton(ControlsFrame, tr("SendPartBtn"), COLORS.DARK_BLUE, 0.75, "")
 
@@ -7880,22 +8890,72 @@ function refreshSpectatorPlayerList()
     for _, p in ipairs(TargetList) do
         table.insert(sortedList, p)
     end
+    local lp = game:GetService("Players").LocalPlayer
+    local lpPos = nil
+    if lp and lp.Character then
+        local lpHrp = lp.Character:FindFirstChild("HumanoidRootPart") or lp.Character:FindFirstChild("Torso")
+        if lpHrp then lpPos = lpHrp.Position end
+    end
+
     table.sort(sortedList, function(a, b)
+        local distA, distB = math.huge, math.huge
+        if lpPos then
+            if a.Character then
+                local aHrp = a.Character:FindFirstChild("HumanoidRootPart") or a.Character:FindFirstChild("Torso")
+                if aHrp then distA = (aHrp.Position - lpPos).Magnitude end
+            end
+            if b.Character then
+                local bHrp = b.Character:FindFirstChild("HumanoidRootPart") or b.Character:FindFirstChild("Torso")
+                if bHrp then distB = (bHrp.Position - lpPos).Magnitude end
+            end
+        end
+        
+        local aIsDetected = (distA ~= math.huge)
+        local bIsDetected = (distB ~= math.huge)
+        if aIsDetected ~= bIsDetected then
+            return aIsDetected
+        end
+        if aIsDetected and bIsDetected then
+            if math.abs(distA - distB) > 0.1 then
+                return distA < distB
+            end
+        end
         return string.lower(a.DisplayName) < string.lower(b.DisplayName)
     end)
 
-    local ySize = 0
+        local ySize = 0
+    local urutan = 0
     for _, p in ipairs(sortedList) do
         local i = table.find(TargetList, p)
         if txt == "" or string.find(string.lower(p.Name), txt, 1, true) or string.find(string.lower(p.DisplayName), txt, 1, true) then
+            urutan = urutan + 1
+            
             local btn = Instance.new("TextButton")
             btn.Size = UDim2.new(1, 0, 0, 25)
             btn.BackgroundColor3 = COLORS.MEDIUM_BLACK
             btn.TextColor3 = COLORS.WHITE
             btn.Font = Enum.Font.Gotham
             btn.TextSize = 10
-            btn.Text = " " .. p.DisplayName .. " (@" .. p.Name .. ")"
+            
+            -- Kalkulasi Ikon & Jarak
+            local prefix = "⚫ "
+            pcall(function()
+                local lp = game:GetService("Players").LocalPlayer
+                local lpPos = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") and lp.Character.HumanoidRootPart.Position
+                local tHrp = p.Character and (p.Character:FindFirstChild("HumanoidRootPart") or p.Character:FindFirstChild("Torso"))
+                if tHrp then
+                    if lpPos then
+                        local dist = math.floor((lpPos - tHrp.Position).Magnitude)
+                        prefix = "🟢 [" .. dist .. "m] "
+                    else
+                        prefix = "🟢 "
+                    end
+                end
+            end)
+            
+            btn.Text = " " .. prefix .. p.DisplayName .. " (@" .. p.Name .. ")"
             btn.TextXAlignment = Enum.TextXAlignment.Left
+            btn.LayoutOrder = urutan
             btn.Parent = SpListScroll
 
             if p == CurrentTarget then
@@ -7911,7 +8971,6 @@ function refreshSpectatorPlayerList()
                     CurrentTarget = p
                     CurrentIndex = table.find(TargetList, p) or 1
                     updateProfile(CurrentTarget)
-                    if SendPartActive then turnOffSendPart() end
                     if FollowActive then stopFollow() end
                     refreshSpectatorPlayerList()
                 end
@@ -8056,13 +9115,46 @@ end
 
 -- ========== AUTO-OFF SEND PART FUNCTION ==========
 local function turnOffSendPart()
-    if SendPartActive then
-        SendPartActive = false
+    SendPartActive = false
+    if SendPartLoopThread then
+        pcall(function() task.cancel(SendPartLoopThread) end)
+        SendPartLoopThread = nil
+    end
+    pcall(function()
         SendPartBtn.Text = tr("SendPartBtn")
         TweenService:Create(SendPartBtn, TweenInfo.new(0.3), {BackgroundColor3 = COLORS.DARK_BLUE}):Play()
-        unfreezeCharacter()
-    end
+    end)
+    unfreezeCharacter()
 end
+
+-- ========== SEND PART BUTTON (PERSISTENT TOGGLE) ==========
+SendPartBtn.MouseButton1Click:Connect(function()
+    if SendPartActive then
+        turnOffSendPart()
+        return
+    end
+
+    SendPartActive = true
+    SendPartBtn.Text = tr("SendingOnBtn")
+    TweenService:Create(SendPartBtn, TweenInfo.new(0.3), {BackgroundColor3 = COLORS.GREEN}):Play()
+    freezeCharacter()
+
+    if SendPartLoopThread then
+        pcall(function() task.cancel(SendPartLoopThread) end)
+    end
+
+    SendPartLoopThread = task.spawn(function()
+        if CurrentTarget and CurrentTarget.Character then
+            pcall(function()
+                sendUnanchoredPartsToTarget(CurrentTarget)
+            end)
+        end
+        
+        task.wait(3) -- Menunggu 3 detik lalu otomatis mati
+        turnOffSendPart()
+    end)
+end)
+
 
 -- ========== TARGETING SYSTEM ==========
 local function getTargetablePlayers()
@@ -8145,11 +9237,7 @@ Players.PlayerRemoving:Connect(function(plr)
             stopFollow()
         end
         
-        if FlingActive then
-            FlingActive = false
-            KickBtn.Text = tr("KickBtn")
-            TweenService:Create(KickBtn, TweenInfo.new(0.3), {BackgroundColor3 = COLORS.DARK_BLUE}):Play()
-        end
+        -- Fling di spectate sekarang one-shot, tidak perlu shutdown manual di sini
         
         if SendPartActive then
             turnOffSendPart()
@@ -8169,7 +9257,6 @@ PrevBtn.MouseButton1Click:Connect(function()
         CurrentIndex = nextIndex
         CurrentTarget = TargetList[CurrentIndex]
         updateProfile(CurrentTarget)
-        turnOffSendPart()
         openProfileFrame()
     end
 end)
@@ -8185,7 +9272,6 @@ NextBtn.MouseButton1Click:Connect(function()
         CurrentIndex = nextIndex
         CurrentTarget = TargetList[CurrentIndex]
         updateProfile(CurrentTarget)
-        turnOffSendPart()
         openProfileFrame()
     end
 end)
@@ -8214,52 +9300,89 @@ TeleBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- ========== KICK/FLING FUNCTION ==========
-local function flingLoop()
-    while FlingActive do
-        RunService.Heartbeat:Wait()
-        local lpHRP = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
-        local targetHRP = CurrentTarget and CurrentTarget.Character and CurrentTarget.Character:FindFirstChild("HumanoidRootPart")
-        if lpHRP and targetHRP then
-            local dir = (targetHRP.Position - lpHRP.Position)
-            if dir.Magnitude > 0 then
-                lpHRP.AssemblyLinearVelocity = dir.Unit * 500
-            end
-            lpHRP.CFrame = targetHRP.CFrame
-        end
-    end
-end
-
-KickBtn.MouseButton1Click:Connect(function()
+FlingBtn.MouseButton1Click:Connect(function()
     if not CurrentTarget then return end
     local lpHRP = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
-    if not lpHRP then return end
+    local tHrp = CurrentTarget.Character and (CurrentTarget.Character:FindFirstChild("HumanoidRootPart") or CurrentTarget.Character:FindFirstChild("Torso"))
+    if not lpHRP or not tHrp then return end
 
-    FlingActive = not FlingActive
+    task.spawn(function()
+        FlingBtn.Text = "Flinging..."
+        TweenService:Create(FlingBtn, TweenInfo.new(0.3), {BackgroundColor3 = COLORS.RED}):Play()
 
-    if FlingActive then
-        OriginalCFrame = lpHRP.CFrame
-        KickBtn.Text = tr("KickingBtn")
-        TweenService:Create(KickBtn, TweenInfo.new(0.3), {BackgroundColor3 = COLORS.RED}):Play()
-        if not FlingThread then
-            FlingThread = task.spawn(flingLoop)
+        local origCF = lpHRP.CFrame
+        local origGrav = workspace.Gravity
+        workspace.Gravity = 0
+
+        -- Create welded fling part to prevent self-fling (like admin3.lua)
+        local flingPart = Instance.new("Part")
+        flingPart.Anchored = false
+        flingPart.CanCollide = false
+        flingPart.Transparency = 1
+        flingPart.Size = Vector3.new(1, 1, 1)
+        flingPart.CFrame = lpHRP.CFrame
+        flingPart.Parent = workspace
+
+        local flingWeld = Instance.new("WeldConstraint")
+        flingWeld.Part0 = flingPart
+        flingWeld.Part1 = lpHRP
+        flingWeld.Parent = flingPart
+
+        local BV = Instance.new("BodyVelocity")
+        BV.Parent = flingPart
+        BV.Velocity = Vector3.new(9e8, 9e8, 9e8)
+        BV.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+
+        local myHum = LP.Character:FindFirstChildOfClass("Humanoid")
+        if myHum then
+            myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
         end
-    else
-        FlingActive = false
-        KickBtn.Text = tr("KickBtn")
-        TweenService:Create(KickBtn, TweenInfo.new(0.3), {BackgroundColor3 = COLORS.DARK_BLUE}):Play()
-        FlingThread = nil
-        task.defer(function()
+
+        -- Teleport ke target, fling selama 2.0 detik (seperti admin3.lua)
+        local startFling = tick()
+        local angle = 0
+        while tick() - startFling < 2.0 and tHrp and tHrp.Parent do
+            angle = angle + 100
             pcall(function()
-                if lpHRP and OriginalCFrame then
-                    lpHRP.AssemblyLinearVelocity = Vector3.zero
-                    lpHRP.AssemblyAngularVelocity = Vector3.zero
-                    task.wait(0.1)
-                    lpHRP.CFrame = OriginalCFrame
+                local offset = CFrame.new(0, 0.5, 0)
+                if angle % 400 == 0 then
+                    offset = CFrame.new(0, 1.5, 0)
+                elseif angle % 400 == 100 then
+                    offset = CFrame.new(0, -1.5, 0)
+                elseif angle % 400 == 200 then
+                    offset = CFrame.new(2.25, 1.5, -2.25)
+                elseif angle % 400 == 300 then
+                    offset = CFrame.new(-2.25, -1.5, 2.25)
                 end
+                
+                lpHRP.CFrame = tHrp.CFrame * offset * CFrame.Angles(math.rad(angle), 0, 0)
+                flingPart.AssemblyLinearVelocity = Vector3.new(9e7, 9e8, 9e7)
+                flingPart.AssemblyAngularVelocity = Vector3.new(9e8, 9e8, 9e8)
             end)
+            RunService.Heartbeat:Wait()
+        end
+
+        task.wait(0.1)
+        workspace.Gravity = origGrav
+
+        if myHum then
+            myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+        end
+        pcall(function() flingPart:Destroy() end)
+
+        -- Kembalikan ke posisi semula
+        pcall(function()
+            lpHRP.Anchored = true
+            lpHRP.AssemblyLinearVelocity = Vector3.zero
+            lpHRP.AssemblyAngularVelocity = Vector3.zero
+            lpHRP.CFrame = origCF
+            task.wait(0.1)
+            lpHRP.Anchored = false
         end)
-    end
+
+        FlingBtn.Text = "Fling"
+        TweenService:Create(FlingBtn, TweenInfo.new(0.3), {BackgroundColor3 = COLORS.DARK_BLUE}):Play()
+    end)
 end)
 
 -- ========== FOLLOW FUNCTION ==========
@@ -8304,35 +9427,6 @@ FollowBtn.MouseButton1Click:Connect(function()
     startFollowToTarget(CurrentTarget)
 end)
 
--- ========== SEND PART BUTTON (PERSISTENT TOGGLE) ==========
-SendPartBtn.MouseButton1Click:Connect(function()
-    SendPartActive = not SendPartActive
-
-    if SendPartActive then
-        SendPartBtn.Text = tr("SendingOnBtn")
-        TweenService:Create(SendPartBtn, TweenInfo.new(0.3), {BackgroundColor3 = COLORS.GREEN}):Play()
-        freezeCharacter()
-
-        if not SendPartLoopThread then
-            SendPartLoopThread = task.spawn(function()
-                while SendPartActive do
-                    if CurrentTarget and CurrentTarget.Character then
-                        pcall(function()
-                            sendUnanchoredPartsToTarget(CurrentTarget)
-                        end)
-                    end
-                    task.wait(2.2)
-                end
-                SendPartLoopThread = nil
-            end)
-        end
-    else
-        SendPartBtn.Text = tr("SendPartBtn")
-        TweenService:Create(SendPartBtn, TweenInfo.new(0.3), {BackgroundColor3 = COLORS.DARK_BLUE}):Play()
-        unfreezeCharacter()
-    end
-end)
-
 -- ========== MAIN CLOSE FUNCTION ==========
 CloseNavBtn.MouseButton1Click:Connect(function()
     TweenService:Create(ProfileFrame, TweenInfo.new(0.4), {BackgroundTransparency = 1}):Play()
@@ -8350,7 +9444,6 @@ CloseNavBtn.MouseButton1Click:Connect(function()
     task.wait(0.4)
     
     Active = false
-    FlingActive = false
     SendPartActive = false
     
     unfreezeCharacter()
@@ -9877,9 +10970,7 @@ searchBar.Font = Enum.Font.GothamMedium
 searchBar.TextColor3 = Color3.fromRGB(255,255,255)
 searchBar.Parent = contentHolder
 Instance.new("UICorner", searchBar).CornerRadius = UDim.new(0,6)
-local sSearch = Instance.new("UIStroke", searchBar)
-sSearch.Color = Color3.fromRGB(120, 120, 120)
-sSearch.Thickness = 1.5
+-- Removed search box stroke
 
 local listLabel = Instance.new("TextLabel")
 listLabel.Size = UDim2.new(1, -20, 0, 22)
@@ -10042,113 +11133,102 @@ function launchFlyV2()
 	main.ResetOnSpawn = false
 
 	Frame.Parent = main
-	Frame.BackgroundColor3 = Color3.fromRGB(144, 213, 255)
-	Frame.BorderColor3 = Color3.fromRGB(103, 221, 213)
+	Frame.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
+	Frame.BackgroundTransparency = 0.1
+	Frame.BorderSizePixel = 0
 	Frame.Position = UDim2.new(0.100320168, 0, 0.379746825, 0)
 	Frame.Size = UDim2.new(0, 190, 0, 57)
+	Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 8)
+	local fStroke = Instance.new("UIStroke", Frame)
+	fStroke.Color = Color3.fromRGB(255, 50, 50)
+	fStroke.Thickness = 1
+
+	local function styleBtn(btn, text, isRed)
+		btn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+		btn.Font = Enum.Font.GothamBold
+		btn.Text = text
+		btn.TextColor3 = isRed and Color3.fromRGB(255, 50, 50) or Color3.fromRGB(255, 255, 255)
+		btn.TextSize = 10
+		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+	end
+
+	local function styleLbl(lbl, text, isRed)
+		lbl.BackgroundTransparency = 1
+		lbl.Font = Enum.Font.GothamBold
+		lbl.Text = text
+		lbl.TextColor3 = isRed and Color3.fromRGB(255, 50, 50) or Color3.fromRGB(255, 255, 255)
+		lbl.TextSize = 10
+	end
 
 	up.Name = "up"
 	up.Parent = Frame
-	up.BackgroundColor3 = Color3.fromRGB(144, 213, 255)
 	up.Size = UDim2.new(0, 44, 0, 28)
-	up.Font = Enum.Font.SourceSans
-	up.Text = "NAIK"
-	up.TextColor3 = Color3.fromRGB(5, 5, 5)
-	up.TextSize = 14.000
+	styleBtn(up, "NAIK", false)
 
 	down.Name = "down"
 	down.Parent = Frame
-	down.BackgroundColor3 = Color3.fromRGB(144, 213, 255)
 	down.Position = UDim2.new(0, 0, 0.491228074, 0)
 	down.Size = UDim2.new(0, 44, 0, 28)
-	down.Font = Enum.Font.SourceSans
-	down.Text = "TURUN"
-	down.TextColor3 = Color3.fromRGB(5, 5, 5)
-	down.TextSize = 14.000
+	styleBtn(down, "TURUN", false)
 
 	onof.Name = "onof"
 	onof.Parent = Frame
-	onof.BackgroundColor3 = Color3.fromRGB(144, 213, 255)
 	onof.Position = UDim2.new(0.702823281, 0, 0.491228074, 0)
 	onof.Size = UDim2.new(0, 56, 0, 28)
-	onof.Font = Enum.Font.SourceSans
-	onof.Text = "Klik Untuk Terbang!"
-	onof.TextColor3 = Color3.fromRGB(5, 5, 5)
-	onof.TextSize = 14.000
+	styleBtn(onof, "Klik Untuk Terbang!", false)
+	onof.TextScaled = true
 
 	TextLabel.Parent = Frame
-	TextLabel.BackgroundColor3 = Color3.fromRGB(144, 213, 255)
 	TextLabel.Position = UDim2.new(0.469327301, 0, 0, 0)
 	TextLabel.Size = UDim2.new(0, 100, 0, 28)
-	TextLabel.Font = Enum.Font.SourceSans
-	TextLabel.Text = "FLY V2 BY MANNN"
-	TextLabel.TextColor3 = Color3.fromRGB(5, 5, 5)
+	styleLbl(TextLabel, "FLY V2 BY MANNN", true)
 	TextLabel.TextScaled = true
-	TextLabel.TextSize = 14.000
 	TextLabel.TextWrapped = true
 
 	plus.Name = "plus"
 	plus.Parent = Frame
-	plus.BackgroundColor3 = Color3.fromRGB(144, 213, 255)
 	plus.Position = UDim2.new(0.231578946, 0, 0, 0)
 	plus.Size = UDim2.new(0, 45, 0, 28)
-	plus.Font = Enum.Font.SourceSans
-	plus.Text = "+"
-	plus.TextColor3 = Color3.fromRGB(5, 5, 5)
+	styleBtn(plus, "+", false)
 	plus.TextScaled = true
-	plus.TextSize = 14.000
 	plus.TextWrapped = true
 
 	speed.Name = "speed"
 	speed.Parent = Frame
-	speed.BackgroundColor3 = Color3.fromRGB(144, 213, 255)
 	speed.Position = UDim2.new(0.468421042, 0, 0.491228074, 0)
 	speed.Size = UDim2.new(0, 44, 0, 28)
-	speed.Font = Enum.Font.SourceSans
-	speed.Text = "1"
-	speed.TextColor3 = Color3.fromRGB(5, 5, 5)
+	styleLbl(speed, "1", false)
 	speed.TextScaled = true
-	speed.TextSize = 14.000
 	speed.TextWrapped = true
 
 	mine.Name = "mine"
 	mine.Parent = Frame
-	mine.BackgroundColor3 = Color3.fromRGB(144, 213, 255)
 	mine.Position = UDim2.new(0.231578946, 0, 0.491228074, 0)
 	mine.Size = UDim2.new(0, 45, 0, 29)
-	mine.Font = Enum.Font.SourceSans
-	mine.Text = "-"
-	mine.TextColor3 = Color3.fromRGB(5, 5, 5)
+	styleBtn(mine, "-", false)
 	mine.TextScaled = true
-	mine.TextSize = 14.000
 	mine.TextWrapped = true
 
 	closebutton.Name = "Close"
-	closebutton.Parent = main.Frame
-	closebutton.BackgroundColor3 = Color3.fromRGB(144, 213, 255)
-	closebutton.Font = "SourceSans"
+	closebutton.Parent = Frame
 	closebutton.Size = UDim2.new(0, 45, 0, 28)
-	closebutton.Text = "X"
-	closebutton.TextSize = 30
-	closebutton.Position =  UDim2.new(0, 0, -1, 27)
+	closebutton.Position = UDim2.new(0, 0, -1, 27)
+	styleBtn(closebutton, "X", true)
+	closebutton.TextSize = 14
 
 	mini.Name = "minimize"
-	mini.Parent = main.Frame
-	mini.BackgroundColor3 = Color3.fromRGB(144, 213, 255)
-	mini.Font = "SourceSans"
+	mini.Parent = Frame
 	mini.Size = UDim2.new(0, 45, 0, 28)
-	mini.Text = "-"
-	mini.TextSize = 40
 	mini.Position = UDim2.new(0, 44, -1, 27)
+	styleBtn(mini, "-", true)
+	mini.TextSize = 14
 
 	mini2.Name = "minimize2"
-	mini2.Parent = main.Frame
-	mini2.BackgroundColor3 = Color3.fromRGB(144, 213, 255)
-	mini2.Font = "SourceSans"
+	mini2.Parent = Frame
 	mini2.Size = UDim2.new(0, 45, 0, 28)
-	mini2.Text = "+"
-	mini2.TextSize = 40
 	mini2.Position = UDim2.new(0, 44, -1, 57)
+	styleBtn(mini2, "+", true)
+	mini2.TextSize = 14
 	mini2.Visible = false
 
 	local speeds = 1
@@ -10500,7 +11580,7 @@ tpwalking = true
 		mini.Visible = true
 		mini2.Visible = false
 		main.Frame.BackgroundTransparency = 0 
-		closebutton.Position =  UDim2.new(0, 0, -1, 27)
+			closebutton.Position =  UDim2.new(0, 0, -1, 27)
 	end)
 end
 
@@ -10509,19 +11589,113 @@ FlyV2Btn.MouseButton1Click:Connect(function()
 end)
 
 -- toggleFlyV3 globalized
+-- toggleFlyV3 globalized
 do
     flyV3Active = false
     flyV3Movers = {}
-    local flyV3Enabled = false
+    flyV3Enabled = false
+    MiniButtons = {}
+    
+    function toggleFlyV3(state)
+        if state == nil then
+            flyV3Active = not flyV3Active
+        else
+            flyV3Active = state
+        end
+        if not flyV3Active then
+            for _, mover in ipairs(flyV3Movers) do
+                if mover and mover.Parent then mover:Destroy() end
+            end
+            flyV3Movers = {}
+            local char = Player.Character
+            local primaryPart = char and char.PrimaryPart
+            if primaryPart then
+                primaryPart.AssemblyLinearVelocity = Vector3.zero
+                primaryPart.AssemblyAngularVelocity = Vector3.zero
+            end
+            if char and char:FindFirstChild("Humanoid") then
+                char.Humanoid.PlatformStand = false
+                pcall(function() char.Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp) end)
+            end
+        else
+            if Player.Character and Player.Character:FindFirstChild("Humanoid") then
+                Player.Character.Humanoid.PlatformStand = true
+            end
+        end
+    end
+
+    function toggleFlyV3Permission(state)
+        if state == nil then
+            flyV3Enabled = not flyV3Enabled
+        else
+            flyV3Enabled = state
+        end
+        if not flyV3Enabled then
+            toggleFlyV3(false)
+        end
+    end
+
+    godModeActive = false
+    godModeConnection = nil
+    
+    function toggleGodMode(state)
+        if state == nil then
+            godModeActive = not godModeActive
+        else
+            godModeActive = state
+        end
+        
+        local MiniGodBtn = MiniButtons and MiniButtons["MiniGodBtn"]
+        if godModeActive then
+            if MiniGodBtn then
+                MiniGodBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                MiniGodBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+            end
+            
+            if not godModeConnection then
+                godModeConnection = RunService.Heartbeat:Connect(function()
+                    local char = game.Players.LocalPlayer.Character
+                    local hum = char and char:FindFirstChildOfClass("Humanoid")
+                    if hum then
+                        pcall(function()
+                            hum.MaxHealth = 999999
+                            hum.Health = 999999
+                        end)
+                    end
+                end)
+            end
+        else
+            if MiniGodBtn then
+                MiniGodBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
+                MiniGodBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+            end
+            
+            if godModeConnection then
+                godModeConnection:Disconnect()
+                godModeConnection = nil
+            end
+            
+            local char = game.Players.LocalPlayer.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                pcall(function()
+                    hum.MaxHealth = 100
+                    hum.Health = 100
+                end)
+            end
+        end
+    end
+
     local MiniPanelFrame = Instance.new("Frame")
-    MiniPanelFrame.Size = UDim2.new(0, 155, 0, 175)
-    MiniPanelFrame.Position = UDim2.new(1, -170, 0.5, -50)
+    MiniPanelFrame.Size = UDim2.new(0, 360, 0, 210)
+    MiniPanelFrame.Position = UDim2.new(1, -370, 0.5, -50)
     MiniPanelFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
     MiniPanelFrame.BackgroundTransparency = 0.1
     MiniPanelFrame.BorderSizePixel = 0
     MiniPanelFrame.Active = true
-    MiniPanelFrame.Draggable = true
+    MiniPanelFrame.Draggable = false
     MiniPanelFrame.Visible = false
+    MiniPanelFrame.Parent = ScreenGui
     
     local MiniPanelCorner = Instance.new("UICorner", MiniPanelFrame)
     MiniPanelCorner.CornerRadius = UDim.new(0, 12)
@@ -10534,12 +11708,15 @@ do
     
     local MiniPanelHeader = Instance.new("Frame", MiniPanelFrame)
     MiniPanelHeader.Size = UDim2.new(1, 0, 0, 30)
-    MiniPanelHeader.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
-    Instance.new("UICorner", MiniPanelHeader).CornerRadius = UDim.new(0, 12)
+    MiniPanelHeader.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    MiniPanelHeader.BorderSizePixel = 0
+    makeSmoothDraggable(MiniPanelFrame, MiniPanelHeader)
+    local MiniHeaderCorner = Instance.new("UICorner", MiniPanelHeader)
+    MiniHeaderCorner.CornerRadius = UDim.new(0, 12)
     local HeaderBottomFix = Instance.new("Frame", MiniPanelHeader)
-    HeaderBottomFix.Size = UDim2.new(1, 0, 0, 10)
-    HeaderBottomFix.Position = UDim2.new(0, 0, 1, -10)
-    HeaderBottomFix.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
+    HeaderBottomFix.Size = UDim2.new(1, 0, 0, 6)
+    HeaderBottomFix.Position = UDim2.new(0, 0, 1, -6)
+    HeaderBottomFix.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
     HeaderBottomFix.BorderSizePixel = 0
     
     local MiniPanelTitle = Instance.new("TextLabel", MiniPanelHeader)
@@ -10565,7 +11742,7 @@ do
     local minStroke = Instance.new("UIStroke", MiniMinimizeBtn)
     minStroke.Color = Color3.fromRGB(255, 255, 255)
     minStroke.Thickness = 1
-
+ 
     local MiniCloseBtn = Instance.new("TextButton", MiniPanelHeader)
     MiniCloseBtn.Size = UDim2.new(0, 22, 0, 22)
     MiniCloseBtn.Position = UDim2.new(1, -28, 0.5, -11)
@@ -10585,128 +11762,244 @@ do
     MiniContent.Position = UDim2.new(0, 0, 0, 30)
     MiniContent.BackgroundTransparency = 1
     
-    local MiniFlyV3Btn = Instance.new("TextButton", MiniContent)
-    MiniFlyV3Btn.Size = UDim2.new(0.9, 0, 0, 30)
-    MiniFlyV3Btn.Position = UDim2.new(0.05, 0, 0, 5)
-    MiniFlyV3Btn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    MiniFlyV3Btn.TextColor3 = Color3.fromRGB(255, 50, 50)
-    MiniFlyV3Btn.Text = "Fly V3: OFF  [E]"
-    MiniFlyV3Btn.Font = Enum.Font.GothamBold
-    MiniFlyV3Btn.TextSize = 11
-    Instance.new("UICorner", MiniFlyV3Btn).CornerRadius = UDim.new(0, 6)
+    local buttonsData = {
+        {name = "MiniFlyV3Btn", text = "Fly V3: OFF  [E]"},
+        {name = "MiniBringBtn", text = "Bring Part: OFF"},
+        {name = "MiniScannerBtn", text = "Part Scanner: OFF"},
+        {name = "MiniNoclipBtn", text = "Noclip: OFF"},
+        {name = "MiniFlyTapBtn", text = "Fly (Mobile): OFF"},
+        {name = "MiniUnanchorV1Btn", text = "Unanchor v1"},
+        {name = "MiniUnanchorV2Btn", text = "Unanchor v2: OFF"},
+        {name = "MiniSpectateBtn", text = "Spectate: OFF"},
+        {name = "MiniRefreshBtn", text = "Refresh Char"},
+        {name = "MiniPlayerListBtn", text = "Player List: OFF"},
+        {name = "MiniEspBtn", text = "ESP: OFF"},
+        {name = "MiniYeetPartsBtn", text = "Yeet Parts"},
+        {name = "MiniGodBtn", text = "HP: 100"},
+        {name = "MiniFlingAuraBtn", text = "Fling Aura: OFF"},
+        {name = "MiniOrbitFlingBtn", text = "Orbit Fling: OFF"}
+    }
     
-    local MiniBringBtn = Instance.new("TextButton", MiniContent)
-    MiniBringBtn.Size = UDim2.new(0.9, 0, 0, 30)
-    MiniBringBtn.Position = UDim2.new(0.05, 0, 0, 40)
-    MiniBringBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    MiniBringBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
-    MiniBringBtn.Text = "Bring Part: OFF"
-    MiniBringBtn.Font = Enum.Font.GothamBold
-    MiniBringBtn.TextSize = 12
-    Instance.new("UICorner", MiniBringBtn).CornerRadius = UDim.new(0, 6)
-
-    local MiniNoclipBtn = Instance.new("TextButton", MiniContent)
-    MiniNoclipBtn.Size = UDim2.new(0.9, 0, 0, 30)
-    MiniNoclipBtn.Position = UDim2.new(0.05, 0, 0, 75)
-    MiniNoclipBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    MiniNoclipBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
-    MiniNoclipBtn.Text = "Noclip: OFF"
-    MiniNoclipBtn.Font = Enum.Font.GothamBold
-    MiniNoclipBtn.TextSize = 12
-    Instance.new("UICorner", MiniNoclipBtn).CornerRadius = UDim.new(0, 6)
+    MiniButtons = {}
+    local columns = 3
+    local btnWidth = 0.30
+    local startX = 0.025
+    local gapX = 0.025
+    local startY = 8
+    local btnHeight = 28
+    local gapY = 6
     
-    -- Tombol fly langsung (mobile tap / PC alt) - sync sama flyV3Active
-    local MiniFlyTapBtn = Instance.new("TextButton", MiniContent)
-    MiniFlyTapBtn.Size = UDim2.new(0.9, 0, 0, 30)
-    MiniFlyTapBtn.Position = UDim2.new(0.05, 0, 0, 110)
-    MiniFlyTapBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    MiniFlyTapBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
-    MiniFlyTapBtn.Text = "Terbang: OFF"
-    MiniFlyTapBtn.Font = Enum.Font.GothamBold
-    MiniFlyTapBtn.TextSize = 11
-    Instance.new("UICorner", MiniFlyTapBtn).CornerRadius = UDim.new(0, 6)
-    
-    local isMiniMinimized = false
-    MiniMinimizeBtn.MouseButton1Click:Connect(function()
-        isMiniMinimized = not isMiniMinimized
-        if isMiniMinimized then
-            MiniPanelFrame.Size = UDim2.new(0, 155, 0, 30)
-            MiniContent.Visible = false
-            MiniMinimizeBtn.Text = "+"
-        else
-            MiniPanelFrame.Size = UDim2.new(0, 155, 0, 175)
-            MiniContent.Visible = true
-            MiniMinimizeBtn.Text = "-"
-        end
-    end)
-    
-    MiniCloseBtn.MouseButton1Click:Connect(function()
-        MiniPanelFrame.Visible = false
-        setButtonActive(FlyV3Btn, false)
-        flyV3Enabled = false
-        MiniFlyV3Btn.Text = "Fly V3: OFF  [E]"
-        MiniFlyV3Btn.TextColor3 = Color3.fromRGB(255, 50, 50)
-        if flyV3Active then toggleFlyV3(false) end
-    end)
-    
-    pcall(function()
-        local coreGui = game:GetService("CoreGui")
-        local existingGui = coreGui:FindFirstChild("FlyGui") or coreGui:FindFirstChild("CHCheatGUI")
-        MiniPanelFrame.Parent = existingGui or (game.Players.LocalPlayer and game.Players.LocalPlayer:FindFirstChild("PlayerGui"))
-    end)
-
-    toggleFlyV3 = function(state)
-        if state == nil then
-            flyV3Active = not flyV3Active
-        else
-            flyV3Active = state
-        end
-        setButtonActive(FlyV3Btn, flyV3Active)
+    for i, data in ipairs(buttonsData) do
+        local col = (i - 1) % columns
+        local row = math.floor((i - 1) / columns)
         
-        -- MiniFlyV3Btn tidak di-sync ke flyV3Active, dikelola sendiri sebagai izin shortcut E
-
-        local char = Player.Character
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        if hum then hum.PlatformStand = flyV3Active end
-        
-        if not flyV3Active and flyV3Movers[1] then
-            flyV3Movers[1].Parent = nil
-            flyV3Movers[2].Parent = nil
-        end     
+        local btn = Instance.new("TextButton", MiniContent)
+        btn.Name = data.name
+        btn.Size = UDim2.new(btnWidth, 0, 0, btnHeight)
+        btn.Position = UDim2.new(startX + (col * (btnWidth + gapX)), 0, 0, startY + (row * (btnHeight + gapY)))
+        btn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+        btn.TextColor3 = Color3.fromRGB(255, 50, 50)
+        btn.Text = data.text
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 9
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+        MiniButtons[data.name] = btn
     end
+    
+    MiniFlyV3Btn = MiniButtons["MiniFlyV3Btn"]
+    MiniBringBtn = MiniButtons["MiniBringBtn"]
+    MiniScannerBtn = MiniButtons["MiniScannerBtn"]
+    MiniNoclipBtn = MiniButtons["MiniNoclipBtn"]
+    MiniFlyTapBtn = MiniButtons["MiniFlyTapBtn"]
+    MiniUnanchorV1Btn = MiniButtons["MiniUnanchorV1Btn"]
+    MiniUnanchorV2Btn = MiniButtons["MiniUnanchorV2Btn"]
+    MiniSpectateBtn = MiniButtons["MiniSpectateBtn"]
+    MiniRefreshBtn = MiniButtons["MiniRefreshBtn"]
+    MiniPlayerListBtn = MiniButtons["MiniPlayerListBtn"]
+    MiniEspBtn = MiniButtons["MiniEspBtn"]
+    MiniYeetPartsBtn = MiniButtons["MiniYeetPartsBtn"]
+    MiniGodBtn = MiniButtons["MiniGodBtn"]
+    MiniFlingAuraBtn = MiniButtons["MiniFlingAuraBtn"]
+    MiniOrbitFlingBtn = MiniButtons["MiniOrbitFlingBtn"]
+ 
+    MiniFlyV3Btn.MouseButton1Click:Connect(function() toggleFlyV3Permission() end)
+    MiniBringBtn.MouseButton1Click:Connect(function() toggleBringPart() end)
+    MiniYeetPartsBtn.MouseButton1Click:Connect(function() yeetAllParts() end)
+    MiniGodBtn.MouseButton1Click:Connect(function() toggleGodMode() end)
+    MiniFlingAuraBtn.MouseButton1Click:Connect(function() toggleFlingAura() end)
+    MiniOrbitFlingBtn.MouseButton1Click:Connect(function() toggleOrbitFling() end)
+
+    -- Loop HP Monitor
+    task.spawn(function()
+        while true do
+            pcall(function()
+                local btn = MiniButtons["MiniGodBtn"]
+                if btn then
+                    local char = game.Players.LocalPlayer.Character
+                    local hum = char and char:FindFirstChildOfClass("Humanoid")
+                    if hum then
+                        local currentHP = hum.Health
+                        if godModeActive then
+                            btn.Text = "Kebal: " .. (currentHP > 1000 and "999K" or tostring(math.floor(currentHP)))
+                            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                        else
+                            btn.Text = "HP: " .. tostring(math.floor(currentHP))
+                            btn.TextColor3 = Color3.fromRGB(255, 50, 50)
+                        end
+                    else
+                        btn.Text = "HP: 0"
+                        btn.TextColor3 = Color3.fromRGB(255, 50, 50)
+                    end
+                end
+            end)
+            task.wait(0.2)
+        end
+    end)
+    
+    MiniScannerBtn.MouseButton1Click:Connect(function()
+        if PartScannerFrame and PartScannerFrame.Visible then
+            PartScannerFrame.Visible = false
+            MiniScannerBtn.Text = "Part Scanner: OFF"
+            MiniScannerBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
+        else
+            createPartScannerWindow()
+            PartScannerFrame.Visible = true
+            refreshPartScanner()
+            MiniScannerBtn.Text = "Part Scanner: ON"
+            MiniScannerBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        end
+    end)
+    
+    MiniNoclipBtn.MouseButton1Click:Connect(function() toggleNoclip() end)
+    MiniFlyTapBtn.MouseButton1Click:Connect(function()
+        if flying then disableFly() else enableFly() end
+    end)
+    
+    -- Unanchor v1: One-shot unanchor (like original MiniUnanchorBtn)
+    MiniUnanchorV1Btn.MouseButton1Click:Connect(function()
+        MiniUnanchorV1Btn.Text = "Wait..."
+        MiniUnanchorV1Btn.TextColor3 = Color3.fromRGB(255, 150, 50)
+        local lp = game:GetService("Players").LocalPlayer
+        local lpPos = lp.Character and (lp.Character:FindFirstChild("HumanoidRootPart") or lp.Character:FindFirstChild("Torso"))
+        if lpPos then
+            EnableNetwork()
+            
+            -- Kumpulkan semua karakter pemain untuk exclude
+            local charSet = {}
+            for _, plr in ipairs(game.Players:GetPlayers()) do
+                if plr.Character then
+                    charSet[plr.Character] = true
+                end
+            end
+
+            -- Loop unanchoring selama 2.5 detik agar posisi tersinkronisasi ke server
+            task.spawn(function()
+                local start = tick()
+                while tick() - start < 2.5 do
+                    for _, obj in ipairs(workspace:GetDescendants()) do
+                        if obj:IsA("BasePart") and not obj.Anchored and obj.Transparency < 1 then
+                            local isChar = false
+                            local p = obj.Parent
+                            while p and p ~= workspace do
+                                if charSet[p] or p:FindFirstChildOfClass("Humanoid") then
+                                    isChar = true
+                                    break
+                                end
+                                p = p.Parent
+                            end
+
+                            if not isChar and string.lower(obj.Name) ~= "baseplate" and obj.Name ~= "Handle" then
+                                if (obj.Position - lpPos.Position).Magnitude <= 1000 then
+                                    obj.CanCollide = false
+                                    obj.Anchored = false
+                                    pcall(function() obj:BreakJoints() end)
+                                    obj.AssemblyLinearVelocity = Vector3.new(0, -20, 0)
+                                end
+                            end
+                        end
+                    end
+                    task.wait(0.25)
+                end
+
+                -- Kembalikan tabrakan (CanCollide) agar part bertengger di tanah
+                for _, obj in ipairs(workspace:GetDescendants()) do
+                    if obj:IsA("BasePart") and not obj.Anchored then
+                        obj.CanCollide = true
+                    end
+                end
+            end)
+        end
+        if OneTimeUnanchor then pcall(function() OneTimeUnanchor() end) end
+        task.delay(2.6, function()
+            MiniUnanchorV1Btn.Text = "Unanchor v1"
+            MiniUnanchorV1Btn.TextColor3 = Color3.fromRGB(255, 50, 50)
+        end)
+    end)
+    
+    -- Unanchor v2: Toggle on/off (using Part Scanner's toggleUnanchor logic)
+    MiniUnanchorV2Btn.MouseButton1Click:Connect(function()
+        toggleUnanchor()
+        if aktif then
+            MiniUnanchorV2Btn.Text = "Unanchor v2: ON"
+            MiniUnanchorV2Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            MiniUnanchorV2Btn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+        else
+            MiniUnanchorV2Btn.Text = "Unanchor v2: OFF"
+            MiniUnanchorV2Btn.TextColor3 = Color3.fromRGB(255, 50, 50)
+            MiniUnanchorV2Btn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+        end
+    end)
+    MiniSpectateBtn.MouseButton1Click:Connect(function() launchSpectator() end)
+    MiniRefreshBtn.MouseButton1Click:Connect(function() pcall(function() refreshCharacter(true) end) end)
+    MiniEspBtn.MouseButton1Click:Connect(function() 
+        if typeof(toggleESP) == "function" then toggleESP() end 
+    end)
+    
+    MiniPlayerListBtn.MouseButton1Click:Connect(function()
+        if PlayerListFrame and PlayerListFrame.Visible then
+            PlayerListFrame.Visible = false
+            MiniPlayerListBtn.Text = "Player List: OFF"
+            MiniPlayerListBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
+        else
+            createPlayerListWindow()
+            PlayerListFrame.Visible = true
+            refreshPlayerList()
+            MiniPlayerListBtn.Text = "Player List: ON"
+            MiniPlayerListBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        end
+    end)
 
     FlyV3Btn.MouseButton1Click:Connect(function()
         MiniPanelFrame.Visible = not MiniPanelFrame.Visible
         setButtonActive(FlyV3Btn, MiniPanelFrame.Visible)
         if not MiniPanelFrame.Visible then
-            flyV3Enabled = false
-            MiniFlyV3Btn.Text = "Fly V3: OFF  [E]"
-            MiniFlyV3Btn.TextColor3 = Color3.fromRGB(255, 50, 50)
-            if flyV3Active then toggleFlyV3(false) end
+            isMinPanelMinimized = false
+            MiniMinimizeBtn.Text = "-"
+            MiniPanelFrame.Size = UDim2.new(0, 360, 0, 210)
+            MiniContent.Visible = true
         end
-    end)
-    MiniFlyV3Btn.MouseButton1Click:Connect(function()
-        flyV3Enabled = not flyV3Enabled
-        if flyV3Enabled then
-            MiniFlyV3Btn.Text = "Fly V3: ON  [E]"
-            MiniFlyV3Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        else
-            MiniFlyV3Btn.Text = "Fly V3: OFF  [E]"
-            MiniFlyV3Btn.TextColor3 = Color3.fromRGB(255, 50, 50)
-            if flyV3Active then toggleFlyV3(false) end
-        end
-    end)
-    MiniBringBtn.MouseButton1Click:Connect(function()
-        toggleBringPart()
-    end)
-    MiniNoclipBtn.MouseButton1Click:Connect(function()
-        toggleNoclip()
-    end)
-    MiniFlyTapBtn.MouseButton1Click:Connect(function()
-        toggleFlyV3()
     end)
     
-    UserInputService.InputBegan:Connect(function(input, gpe)
+    isMinPanelMinimized = false
+    MiniMinimizeBtn.MouseButton1Click:Connect(function()
+        isMinPanelMinimized = not isMinPanelMinimized
+        if isMinPanelMinimized then
+            MiniMinimizeBtn.Text = "+"
+            game:GetService("TweenService"):Create(MiniPanelFrame, TweenInfo.new(0.25), {Size = UDim2.new(0, 360, 0, 30)}):Play()
+            MiniContent.Visible = false
+        else
+            MiniMinimizeBtn.Text = "-"
+            game:GetService("TweenService"):Create(MiniPanelFrame, TweenInfo.new(0.25), {Size = UDim2.new(0, 360, 0, 210)}):Play()
+            MiniContent.Visible = true
+        end
+    end)
+
+    MiniCloseBtn.MouseButton1Click:Connect(function()
+        MiniPanelFrame.Visible = false
+        setButtonActive(FlyV3Btn, false)
+    end)
+
+    FlyV3ShortcutConn = UserInputService.InputBegan:Connect(function(input, gpe)
         if gpe then return end
         if input.KeyCode == Enum.KeyCode.E and flyV3Enabled then
             toggleFlyV3()
@@ -10714,14 +12007,38 @@ do
     end)
     
     task.spawn(function()
-        while task.wait(0.1) do
+        while ScreenGui and ScreenGui.Parent and task.wait(0.1) do
             pcall(function()
+                if flyV3Enabled then
+                    MiniFlyV3Btn.Text = "Fly V3: ON  [E]"
+                    MiniFlyV3Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                else
+                    MiniFlyV3Btn.Text = "Fly V3: OFF  [E]"
+                    MiniFlyV3Btn.TextColor3 = Color3.fromRGB(255, 50, 50)
+                end
+                
+                if PartScannerFrame and PartScannerFrame.Visible then
+                    MiniScannerBtn.Text = "Part Scanner: ON"
+                    MiniScannerBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                else
+                    MiniScannerBtn.Text = "Part Scanner: OFF"
+                    MiniScannerBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
+                end
+                
                 if blackHoleActive then
                     MiniBringBtn.Text = "Bring Part: ON"
                     MiniBringBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
                 else
                     MiniBringBtn.Text = "Bring Part: OFF"
                     MiniBringBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
+                end
+                
+                if ESPenabled then
+                    MiniEspBtn.Text = "ESP: ON"
+                    MiniEspBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                else
+                    MiniEspBtn.Text = "ESP: OFF"
+                    MiniEspBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
                 end
                 
                 if noclipActive then
@@ -10732,13 +12049,49 @@ do
                     MiniNoclipBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
                 end
                 
-                -- Sync tombol fly tap dengan status terbang aktual
-                if flyV3Active then
-                    MiniFlyTapBtn.Text = "Terbang: ON"
+                if flying then
+                    MiniFlyTapBtn.Text = "Fly (Mobile): ON"
                     MiniFlyTapBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
                 else
-                    MiniFlyTapBtn.Text = "Terbang: OFF"
+                    MiniFlyTapBtn.Text = "Fly (Mobile): OFF"
                     MiniFlyTapBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
+                end
+
+                local specGui = PlayerGui:FindFirstChild("PIXECUTE SPECTATE") or (game:GetService("CoreGui") and game:GetService("CoreGui"):FindFirstChild("PIXECUTE SPECTATE"))
+                if specGui and specGui.Enabled then
+                    MiniSpectateBtn.Text = "Spectate: ON"
+                    MiniSpectateBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                else
+                    MiniSpectateBtn.Text = "Spectate: OFF"
+                    MiniSpectateBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
+                end
+                
+                if PlayerListFrame and PlayerListFrame.Visible then
+                    MiniPlayerListBtn.Text = "Player List: ON"
+                    MiniPlayerListBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                else
+                    MiniPlayerListBtn.Text = "Player List: OFF"
+                    MiniPlayerListBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
+                end
+                
+                if flingAuraActive then
+                    MiniFlingAuraBtn.Text = "Fling Aura: ON"
+                    MiniFlingAuraBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                else
+                    MiniFlingAuraBtn.Text = "Fling Aura: OFF"
+                    MiniFlingAuraBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
+                end
+                
+                if orbitFlingActive then
+                    if orbitFlingTarget then
+                        MiniOrbitFlingBtn.Text = "Orbit: " .. string.sub(orbitFlingTarget.Name, 1, 8)
+                    else
+                        MiniOrbitFlingBtn.Text = "Orbit: ON"
+                    end
+                    MiniOrbitFlingBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                else
+                    MiniOrbitFlingBtn.Text = "Orbit Fling: OFF"
+                    MiniOrbitFlingBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
                 end
             end)
         end
@@ -10798,10 +12151,6 @@ do
         end
     end)
 end
-
-AirwalkBtn.LayoutOrder = 1
-ESPBtn.LayoutOrder = 2
-LampBtn.LayoutOrder = 3
 JumpBtn.LayoutOrder = 4
 SpeedBtn.LayoutOrder = 5
 NoclipBtn.LayoutOrder = 7
@@ -10828,12 +12177,13 @@ ChatLogsBtn.MouseButton1Click:Connect(function()
 end);
 
 -- A->Z sort all action buttons and place input boxes under their buttons
-(function()
+task.spawn(function()
     local btns = {
         AirwalkBtn, ESPBtn, ESPTeamBtn, LampBtn, JumpBtn, SpeedBtn, NoclipBtn, FlingBtn, FlyBtn,
         UnanchorBtn, BringPartBtn, AntiLagBtn, SpectatorBtn,
         AnimasiBtn, CloneAvatarBtn, EmoteBtn, FlyV2Btn, FlyV3Btn, ClickTPBtn, FreeCamBtn, TweenTPBtn, ServerHopBtn, SWPBtn, DexBtn, CmdBarBtn,
-        BToolsBtn, ShiftLockBtn, JumpPowerBtn, TPToolBtn, ChatLogsBtn
+        BToolsBtn, ShiftLockBtn, JumpPowerBtn, TPToolBtn, ChatLogsBtn,
+        WalkFlingBtn, AntiFlingBtn, FlingAuraBtn, OrbitFlingBtn
     }
     local list = {}
     for _,b in ipairs(btns) do
@@ -10871,7 +12221,7 @@ end);
             order = order + 1
         end
     end
-end)()
+end)
 
 -- Hook chat commands & Command Bar (e.g. swp <name>) like Infinite Yield
 local success, err = pcall(function()
@@ -11064,6 +12414,11 @@ local success, err = pcall(function()
         { name = "tweentp", aliases = {"tween"}, desc = "Aktifkan/nonaktifkan Tween TP (Teleport bertahap).", usage = "" },
         { name = "unanchor", aliases = {}, desc = "Aktifkan/nonaktifkan fitur unanchor parts.", usage = "" },
         { name = "fling", aliases = {"tendang"}, desc = "Aktifkan/nonaktifkan mode fling untuk lempar pemain.", usage = "" },
+        { name = "ifling", aliases = {"instantfling"}, desc = "Teleport ke pemain, fling secara instan, lalu balik ke posisi semula.", usage = " [nama]" },
+        { name = "walkfling", aliases = {"wfling", "wf", "unwalkfling", "unwfling", "unwf"}, desc = "Aktifkan/nonaktifkan mode walkfling (menendang objek/orang saat berjalan).", usage = "" },
+        { name = "antifling", aliases = {"af", "unantifling"}, desc = "Aktifkan/nonaktifkan mode anti-fling agar tidak bisa terlempar oleh orang lain.", usage = "" },
+        { name = "flingaura", aliases = {"fa", "unflingaura"}, desc = "Aktifkan/nonaktifkan Fling Aura (menendang musuh yang mendekat secara otomatis).", usage = "" },
+        { name = "orbitfling", aliases = {"orbit", "unorbitfling"}, desc = "Aktifkan/nonaktifkan Orbit Fling (mengorbit di sekitar pemain lain untuk menabrak/fling mereka).", usage = " [nama]" },
         { name = "explorer", aliases = {"dex"}, desc = "Buka DEX Explorer.", usage = "" },
         { name = "airwalk", aliases = {"walkonair"}, desc = "Aktifkan/nonaktifkan jalan di udara.", usage = "" },
         { name = "esp", aliases = {}, desc = "Aktifkan/nonaktifkan ESP.", usage = "" },
@@ -11076,6 +12431,7 @@ local success, err = pcall(function()
         { name = "antiafk", aliases = {}, desc = "Aktifkan/nonaktifkan anti AFK.", usage = "" },
         { name = "serverhop", aliases = {"shop"}, desc = "Buka menu Server Hop.", usage = "" },
         { name = "bringpart", aliases = {"bp"}, desc = "Aktifkan/nonaktifkan penarik part (blackhole).", usage = "" },
+        { name = "yeetparts", aliases = {"yeetall", "yeet"}, desc = "Lempar semua objek di sekitar ke void secara instan.", usage = "" },
         { name = "antilag", aliases = {"boost"}, desc = "Aktifkan/nonaktifkan pengurang lag (Anti Lag).", usage = "" },
         { name = "btools", aliases = {"bt"}, desc = "Dapatkan Building Tools (BTools).", usage = "" },
         { name = "shiftlock", aliases = {"sl"}, desc = "Aktifkan/nonaktifkan Shift Lock.", usage = "" },
@@ -11499,6 +12855,153 @@ local success, err = pcall(function()
         elseif cmd == "unanchor" then
             toggleUnanchor()
 
+        elseif cmd == "ifling" or cmd == "instantfling" then
+            local targetName = fullArgString
+            if targetName and targetName ~= "" then
+                local target = findPlayerByQuery(targetName)
+                if target then
+                    local lp = Players.LocalPlayer
+                    local myChar = lp and lp.Character
+                    local myHrp = myChar and (myChar:FindFirstChild("HumanoidRootPart") or myChar:FindFirstChild("Torso"))
+                    local tChar = target.Character
+                    local tHrp = tChar and (tChar:FindFirstChild("HumanoidRootPart") or tChar:FindFirstChild("Torso"))
+                    if myHrp and tHrp then
+                        task.spawn(function()
+                            local origCF = myHrp.CFrame
+                            local origGrav = workspace.Gravity
+                            workspace.Gravity = 0
+                            for _ = 1, 5 do
+                                pcall(function()
+                                    myHrp.CFrame = tHrp.CFrame * CFrame.new(0, 0.5, 0)
+                                    myHrp.AssemblyLinearVelocity = Vector3.new(9e7, 9e8, 9e7)
+                                    myHrp.AssemblyAngularVelocity = Vector3.new(9e8, 9e8, 9e8)
+                                end)
+                                RunService.Heartbeat:Wait()
+                            end
+                            task.wait(0.2)
+                            workspace.Gravity = origGrav
+                            pcall(function()
+                                myHrp.Anchored = true
+                                myHrp.AssemblyLinearVelocity = Vector3.zero
+                                myHrp.AssemblyAngularVelocity = Vector3.zero
+                                myHrp.CFrame = origCF
+                                task.wait(0.1)
+                                myHrp.Anchored = false
+                            end)
+                        end)
+                    else
+                        notifyPlayer("IFling", "Karakter target/Anda tidak valid.")
+                    end
+                else
+                    notifyPlayer("IFling", "Pemain tidak ditemukan: " .. tostring(targetName))
+                end
+            end
+
+        elseif cmd == "walkfling" or cmd == "wfling" or cmd == "wf" then
+            walkFlingActive = not walkFlingActive
+            if walkFlingActive then
+                setButtonActive(WalkFlingBtn, true)
+                if walkFlingConn then walkFlingConn:Disconnect() end
+                walkFlingConn = RunService.Heartbeat:Connect(function()
+                    if not walkFlingActive then return end
+                    local char = Players.LocalPlayer and Players.LocalPlayer.Character
+                    local root = char and char:FindFirstChild("HumanoidRootPart")
+                    if root then task.spawn(doWalkFlingBurst, root) end
+                end)
+                notifyPlayer("Walk Fling", "Walk Fling aktif.")
+            else
+                setButtonActive(WalkFlingBtn, false)
+                if walkFlingConn then walkFlingConn:Disconnect(); walkFlingConn = nil end
+                notifyPlayer("Walk Fling", "Walk Fling mati.")
+            end
+
+        elseif cmd == "unwalkfling" or cmd == "unwfling" or cmd == "unwf" then
+            walkFlingActive = false
+            setButtonActive(WalkFlingBtn, false)
+            if walkFlingConn then walkFlingConn:Disconnect(); walkFlingConn = nil end
+            notifyPlayer("Walk Fling", "Walk Fling mati.")
+
+        elseif cmd == "antifling" or cmd == "af" then
+            antiFlingActive = not antiFlingActive
+            if antiFlingActive then
+                setButtonActive(AntiFlingBtn, true)
+                antiFlingTracked = {}
+                local lp = Players.LocalPlayer
+                for _, plr in ipairs(Players:GetPlayers()) do
+                    if plr ~= lp then
+                        antiFlingHookChar(plr.Character)
+                        table.insert(antiFlingConns, plr.CharacterAdded:Connect(function(char)
+                            if antiFlingActive then antiFlingHookChar(char) end
+                        end))
+                    end
+                end
+                table.insert(antiFlingConns, Players.PlayerAdded:Connect(function(plr)
+                    if plr ~= lp and antiFlingActive then
+                        if plr.Character then antiFlingHookChar(plr.Character) end
+                        table.insert(antiFlingConns, plr.CharacterAdded:Connect(function(char)
+                            if antiFlingActive then antiFlingHookChar(char) end
+                        end))
+                    end
+                end))
+                table.insert(antiFlingConns, RunService.PreSimulation:Connect(function()
+                    for p in pairs(antiFlingTracked) do
+                        pcall(function()
+                            if p and p.Parent and p.CanCollide ~= false then
+                                p.CanCollide = false
+                            end
+                        end)
+                    end
+                end))
+                notifyPlayer("Anti Fling", "Anti Fling aktif.")
+            else
+                setButtonActive(AntiFlingBtn, false)
+                for _, c in ipairs(antiFlingConns) do pcall(function() c:Disconnect() end) end
+                antiFlingConns = {}
+                for p in pairs(antiFlingTracked) do
+                    pcall(function() if p and p.Parent then p.CanCollide = true end end)
+                end
+                antiFlingTracked = {}
+                notifyPlayer("Anti Fling", "Anti Fling mati.")
+            end
+
+        elseif cmd == "unantifling" then
+            antiFlingActive = false
+            setButtonActive(AntiFlingBtn, false)
+            for _, c in ipairs(antiFlingConns) do pcall(function() c:Disconnect() end) end
+            antiFlingConns = {}
+            for p in pairs(antiFlingTracked) do
+                pcall(function() if p and p.Parent then p.CanCollide = true end end)
+            end
+            antiFlingTracked = {}
+            notifyPlayer("Anti Fling", "Anti Fling mati.")
+
+        elseif cmd == "flingaura" or cmd == "fa" then
+            toggleFlingAura()
+            notifyPlayer("Fling Aura", flingAuraActive and "Fling Aura aktif." or "Fling Aura mati.")
+
+        elseif cmd == "unflingaura" or cmd == "noflingaura" or cmd == "unfa" then
+            toggleFlingAura(false)
+            notifyPlayer("Fling Aura", "Fling Aura mati.")
+
+        elseif cmd == "orbitfling" or cmd == "orbit" then
+            local targetName = fullArgString
+            if targetName and targetName ~= "" then
+                local target = findPlayerByQuery(targetName)
+                if target then
+                    toggleOrbitFling(true, target)
+                    notifyPlayer("Orbit Fling", "Mengorbit di sekitar " .. target.Name)
+                else
+                    notifyPlayer("Orbit Fling", "Pemain tidak ditemukan: " .. targetName)
+                end
+            else
+                toggleOrbitFling()
+                notifyPlayer("Orbit Fling", orbitFlingActive and "Orbit Fling aktif." or "Orbit Fling mati.")
+            end
+
+        elseif cmd == "unorbitfling" or cmd == "unorbit" or cmd == "noorbit" then
+            toggleOrbitFling(false)
+            notifyPlayer("Orbit Fling", "Orbit Fling mati.")
+
         elseif cmd == "fling" or cmd == "tendang" then
             hiddenfling = not hiddenfling
             if hiddenfling then
@@ -11541,6 +13044,10 @@ local success, err = pcall(function()
 
         elseif cmd == "bringpart" or cmd == "bp" then
             toggleBringPart()
+
+        elseif cmd == "yeetparts" or cmd == "yeetall" or cmd == "yeet" then
+            yeetAllParts()
+            notifyPlayer("Yeet Parts", "Semua objek di sekitar telah di-yeet ke void.")
 
         elseif cmd == "antilag" or cmd == "boost" then
             toggleAntiLag()
@@ -11909,3 +13416,617 @@ end)
 if not success then
     warn("Failed to initialize command bar: " .. tostring(err))
 end
+
+-- Apply UIStroke to all buttons across all GUIs automatically (except left panel sidebar)
+pcall(function()
+    local function applyStrokeToButton(btn)
+        if not btn:IsA("TextButton") and not btn:IsA("ImageButton") then return end
+        
+        -- Skip sidebar buttons (in QuickPanel)
+        local parent = btn.Parent
+        while parent do
+            if parent.Name == "QuickPanel" then
+                return
+            end
+            parent = parent.Parent
+        end
+
+        -- Skip background/invisible interaction buttons
+        if btn.Name == "ClickDetector" or btn.Name == "ModalFix" or (btn.BackgroundTransparency == 1 and btn.Text == "") then
+            return
+        end
+
+        -- Don't duplicate strokes
+        if btn:FindFirstChildOfClass("UIStroke") then
+            return
+        end
+
+        local s = Instance.new("UIStroke")
+        s.Thickness = 1
+        s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+        
+        -- Style based on button colors/properties
+        local textColor = btn:IsA("TextButton") and btn.TextColor3 or nil
+        if textColor == Color3.fromRGB(255, 255, 255) then
+            s.Color = Color3.fromRGB(80, 80, 80)
+        elseif textColor == Color3.fromRGB(255, 50, 50) then
+            s.Color = Color3.fromRGB(255, 50, 50)
+        else
+            s.Color = textColor or Color3.fromRGB(120, 120, 120)
+        end
+        s.Parent = btn
+    end
+
+    -- Monitor new buttons
+    ScreenGui.DescendantAdded:Connect(function(descendant)
+        if descendant:IsA("TextButton") or descendant:IsA("ImageButton") then
+            task.defer(function()
+                if descendant.Parent then
+                    applyStrokeToButton(descendant)
+                end
+            end)
+        end
+    end)
+
+    -- Apply to existing ones
+    for _, descendant in ipairs(ScreenGui:GetDescendants()) do
+        if descendant:IsA("TextButton") or descendant:IsA("ImageButton") then
+            applyStrokeToButton(descendant)
+        end
+    end
+end)
+
+-- =====================================
+-- ADVANCED PART SCANNER GUI V4 (BRUTE UNANCHOR + TELEPORT)
+-- =====================================
+PartScannerFrame = nil
+local PartScannerScroll = nil
+local PartScannerAutoRefresh = nil
+
+local scannerBringHeartbeat = nil
+local function StopScannerBring()
+    if scannerBroughtPart then
+        local part = scannerBroughtPart
+        scannerBroughtPart = nil
+        if scannerBringHeartbeat then
+            pcall(function() scannerBringHeartbeat:Disconnect() end)
+            scannerBringHeartbeat = nil
+        end
+        pcall(function()
+            local torq = part:FindFirstChild("ScannerBringTorque")
+            local align = part:FindFirstChild("ScannerBringAlign")
+            local att = part:FindFirstChild("ScannerBringAttachment")
+            if torq then torq:Destroy() end
+            if align then align:Destroy() end
+            if att then att:Destroy() end
+            part.CanCollide = true
+            part.Anchored = true -- Anchor in place, like Bring Part when turned off
+        end)
+    end
+    pcall(refreshPartScanner)
+end
+
+local function StartScannerBring(part)
+    StopScannerBring()
+    if not part or not part.Parent then return end
+
+    scannerBroughtPart = part
+    EnableNetwork()
+    pcall(function()
+        part.CanCollide = false
+        part.Anchored = false
+
+        -- Putus semua joint/weld agar bagian map lainnya tidak ikut rusak/tertarik
+        pcall(function() part:BreakJoints() end)
+        for _, x in ipairs(part:GetChildren()) do
+            if x:IsA("Weld") or x:IsA("WeldConstraint") or x:IsA("ManualWeld") or x:IsA("Motor6D") then
+                pcall(function() x:Destroy() end)
+            end
+        end
+
+        -- Teleport once to claim network ownership (infinite range)
+        local char = LocalPlayer.Character
+        local hrp = char and (char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart"))
+        if hrp then
+            part.CFrame = hrp.CFrame * CFrame.new(0, 10, 0)
+        end
+
+        for _, x in ipairs(part:GetChildren()) do
+            if x:IsA("BodyMover") or x:IsA("RocketPropulsion") then x:Destroy() end
+        end
+
+        -- Reuse the same Attachment1 from the main BringPart system
+        local torq = part:FindFirstChild("ScannerBringTorque") or Instance.new("Torque", part)
+        torq.Name = "ScannerBringTorque"
+        torq.Torque = Vector3.new(100000, 100000, 100000)
+
+        local align = part:FindFirstChild("ScannerBringAlign") or Instance.new("AlignPosition", part)
+        align.Name = "ScannerBringAlign"
+        align.MaxForce = math.huge
+        align.MaxVelocity = math.huge
+        align.Responsiveness = 200
+
+        local att = part:FindFirstChild("ScannerBringAttachment") or Instance.new("Attachment", part)
+        att.Name = "ScannerBringAttachment"
+
+        torq.Attachment0 = att
+        align.Attachment0 = att
+        align.Attachment1 = Attachment1 -- global Attachment1 from BringPart system
+    end)
+    
+    -- Fast loop to assert network ownership and velocity continuously (very aggressive)
+    scannerBringHeartbeat = RunService.Heartbeat:Connect(function()
+        if not scannerBroughtPart or not scannerBroughtPart.Parent then
+            StopScannerBring()
+            return
+        end
+        pcall(function()
+            sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge)
+            scannerBroughtPart.CanCollide = false
+            scannerBroughtPart.Anchored = false
+            local char = LocalPlayer.Character
+            local hrp = char and (char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart"))
+            if hrp then
+                scannerBroughtPart.CFrame = hrp.CFrame * CFrame.new(0, 10, 0)
+                scannerBroughtPart.AssemblyLinearVelocity = Vector3.new(0, 30, 0)
+            end
+        end)
+    end)
+    
+    pcall(refreshPartScanner)
+end
+
+local function isCharacterPart(part)
+    for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
+        if p.Character and part:IsDescendantOf(p.Character) then
+            return true
+        end
+    end
+    return false
+end
+
+local isScanning = false
+function refreshPartScanner()
+    if not PartScannerFrame or not PartScannerFrame.Visible then return end
+    if isScanning then return end
+    isScanning = true
+    
+    task.spawn(function()
+        local lp = game:GetService("Players").LocalPlayer
+        local lpPos = nil
+        if lp and lp.Character then
+            local lpHrp = lp.Character:FindFirstChild("HumanoidRootPart") or lp.Character:FindFirstChild("Torso")
+            if lpHrp then lpPos = lpHrp.Position end
+        end
+
+        local unanchoredParts = {}
+        if scannerBroughtPart and scannerBroughtPart.Parent then
+            table.insert(unanchoredParts, scannerBroughtPart)
+        end
+
+        -- Pre-cache character set to avoid nested player loops
+        local charSet = {}
+        for _, plr in ipairs(game.Players:GetPlayers()) do
+            if plr.Character then
+                charSet[plr.Character] = true
+            end
+        end
+
+        local allDescendants = workspace:GetDescendants()
+        for i, obj in ipairs(allDescendants) do
+            if i % 2000 == 0 then
+                task.wait() -- Yield to next frame to prevent freeze/lag!
+                if not PartScannerFrame or not PartScannerFrame.Visible then 
+                    isScanning = false
+                    return 
+                end
+            end
+            if obj:IsA("BasePart") and not obj.Anchored and not obj:IsDescendantOf(workspace.CurrentCamera) then
+                if obj ~= scannerBroughtPart then
+                    -- Fast parent tree traversal check instead of slow IsDescendantOf nested loops
+                    local belongsToChar = false
+                    local p = obj.Parent
+                    while p and p ~= workspace do
+                        if charSet[p] or p:FindFirstChildOfClass("Humanoid") then
+                            belongsToChar = true
+                            break
+                        end
+                        p = p.Parent
+                    end
+                    
+                    if not belongsToChar and obj.Name ~= "HumanoidRootPart" and obj.Name ~= "Torso" then
+                        table.insert(unanchoredParts, obj)
+                    end
+                end
+            end
+        end
+
+        table.sort(unanchoredParts, function(a, b)
+            local aPos, bPos
+            pcall(function() aPos = a.Position end)
+            pcall(function() bPos = b.Position end)
+            if aPos and bPos and lpPos then
+                return (aPos - lpPos).Magnitude < (bPos - lpPos).Magnitude
+            end
+            return a.Name < b.Name
+        end)
+
+        -- Clean UI on main thread
+        for _, child in ipairs(PartScannerScroll:GetChildren()) do
+            if child:IsA("Frame") and child.Name == "PartItem" then child:Destroy() end
+        end
+
+        local count = 0
+        for _, part in ipairs(unanchoredParts) do
+            if count >= 100 then break end -- render closest 100 parts max to avoid UI lag
+            count = count + 1
+            
+            local row = Instance.new("Frame")
+            row.Name = "PartItem"
+            row.Size = UDim2.new(1, -8, 0, 40)
+            row.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+            row.BorderSizePixel = 0
+            row.LayoutOrder = count
+            row:SetAttribute("PartRef", tostring(part)) -- untuk fitur klik-to-scan
+            row.Parent = PartScannerScroll
+            Instance.new("UICorner", row).CornerRadius = UDim.new(0, 6)
+
+            local distText = ""
+            pcall(function()
+                if lpPos then distText = "[" .. math.floor((part.Position - lpPos).Magnitude) .. "m] " end
+            end)
+
+            local title = Instance.new("TextLabel", row)
+            title.Size = UDim2.new(1, -230, 1, 0)
+            title.Position = UDim2.new(0, 10, 0, 0)
+            title.BackgroundTransparency = 1
+            title.Font = Enum.Font.GothamBold
+            title.TextSize = 11
+            title.TextColor3 = Color3.fromRGB(200, 200, 200)
+            title.TextXAlignment = Enum.TextXAlignment.Left
+            title.TextTruncate = Enum.TextTruncate.AtEnd
+            title.Text = "🧱 " .. distText .. part.Name
+
+            local btns = Instance.new("Frame", row)
+            btns.Size = UDim2.new(0, 220, 1, 0)
+            btns.Position = UDim2.new(1, -224, 0, 0)
+            btns.BackgroundTransparency = 1
+
+            local blay = Instance.new("UIListLayout", btns)
+            blay.FillDirection = Enum.FillDirection.Horizontal
+            blay.Padding = UDim.new(0, 4)
+            blay.VerticalAlignment = Enum.VerticalAlignment.Center
+
+            local function makeBtn(txt, col, w, strokeColor)
+                local b = Instance.new("TextButton", btns)
+                b.Size = UDim2.new(0, w, 0, 28)
+                b.BackgroundColor3 = col
+                b.Text = txt
+                b.Font = Enum.Font.GothamBold
+                b.TextSize = 10
+                b.TextColor3 = Color3.fromRGB(255, 255, 255)
+                Instance.new("UICorner", b).CornerRadius = UDim.new(0, 4)
+                local s = Instance.new("UIStroke", b)
+                s.Color = strokeColor or Color3.fromRGB(40, 40, 45)
+                s.Thickness = 1
+                s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+                return b
+            end
+
+            -- BRING TOGGLE (pakai ForcePart — logika identik dengan BringPart utama)
+            -- Cek apakah part ini sedang di-bring (tidak perlu blackHoleActive)
+            local partBeingBrought = (part == scannerBroughtPart) or (part:FindFirstChild("ScannerBringAlign") ~= nil) or (part:FindFirstChild("BringAlign") ~= nil)
+            local bringBtn = makeBtn(partBeingBrought and "Stop" or "Bring", partBeingBrought and Color3.fromRGB(200, 100, 0) or Color3.fromRGB(50, 120, 220), 46, partBeingBrought and Color3.fromRGB(255, 150, 50) or Color3.fromRGB(100, 180, 255))
+            bringBtn.MouseButton1Click:Connect(function()
+                pcall(function()
+                    local isBrought = (part == scannerBroughtPart) or (part:FindFirstChild("ScannerBringAlign") ~= nil) or (part:FindFirstChild("BringAlign") ~= nil)
+                    if isBrought then
+                        if scannerBroughtPart == part then
+                            StopScannerBring()
+                        end
+                        
+                        local torq = part:FindFirstChild("BringTorque") or part:FindFirstChild("ScannerBringTorque")
+                        local align = part:FindFirstChild("BringAlign") or part:FindFirstChild("ScannerBringAlign")
+                        local att = part:FindFirstChild("BringAttachment") or part:FindFirstChild("ScannerBringAttachment")
+                        pcall(function()
+                            if torq then torq:Destroy() end
+                            if align then align:Destroy() end
+                            if att then att:Destroy() end
+                        end)
+                        
+                        part:SetAttribute("ScannerStopped", true)
+                        part.Anchored = true
+                        
+                        bringBtn.Text = "Bring"
+                        bringBtn.BackgroundColor3 = Color3.fromRGB(50, 120, 220)
+                        local stroke = bringBtn:FindFirstChildOfClass("UIStroke")
+                        if stroke then stroke.Color = Color3.fromRGB(100, 180, 255) end
+                    else
+                        part:SetAttribute("ScannerStopped", nil)
+                        if blackHoleActive then
+                            part.Anchored = false
+                            ForcePart(part)
+                        else
+                            StartScannerBring(part)
+                        end
+                        
+                        bringBtn.Text = "Stop"
+                        bringBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
+                        local stroke = bringBtn:FindFirstChildOfClass("UIStroke")
+                        if stroke then stroke.Color = Color3.fromRGB(255, 150, 50) end
+                    end
+                end)
+            end)
+
+            -- TELEPORT BUTTON
+            local tpBtn = makeBtn("Teleport", Color3.fromRGB(150, 50, 150), 70, Color3.fromRGB(220, 100, 220))
+            tpBtn.MouseButton1Click:Connect(function()
+                if lp and lp.Character then
+                    local tHrp = lp.Character:FindFirstChild("HumanoidRootPart") or lp.Character:FindFirstChild("Torso")
+                    if tHrp then
+                        tHrp.CFrame = part.CFrame * CFrame.new(0, 3, 0)
+                    end
+                end
+            end)
+
+            -- YEET: stop any active bring → fling part sejauh mungkin → anchor permanen
+            local yeetBtn = makeBtn("Yeet", Color3.fromRGB(200, 40, 40), 42, Color3.fromRGB(255, 100, 100))
+            yeetBtn.MouseButton1Click:Connect(function()
+                if scannerBroughtPart == part then
+                    StopScannerBring()
+                end
+                pcall(function()
+                    -- One-shot klaim network ownership
+                    pcall(function() sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge) end)
+                    -- Teleport dekat player untuk klaim ownership
+                    local char = lp and lp.Character
+                    local hrp = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Head"))
+                    if hrp then
+                        part.CFrame = hrp.CFrame * CFrame.new(0, 5, 0)
+                    end
+                    -- Hapus joints/welds agar map tidak rusak saat terlempar
+                    pcall(function() part:BreakJoints() end)
+                    for _, x in ipairs(part:GetChildren()) do
+                        if x:IsA("Weld") or x:IsA("WeldConstraint") or x:IsA("ManualWeld") or x:IsA("Motor6D")
+                            or x:IsA("BodyMover") or x:IsA("RocketPropulsion")
+                            or x.Name == "ScannerBringTorque" or x.Name == "ScannerBringAlign"
+                            or x.Name == "ScannerBringAttachment"
+                            or x.Name == "BringTorque" or x.Name == "BringAlign" or x.Name == "BringAttachment"
+                        then x:Destroy() end
+                    end
+                    part.CanCollide = false
+                    part.Anchored = false
+                    -- Fling SANGAT jauh ke void (hilang seketika)
+                    part.AssemblyLinearVelocity = Vector3.new(
+                        math.random(-20000, 20000), -50000, math.random(-20000, 20000)
+                    )
+                    part.AssemblyAngularVelocity = Vector3.new(
+                        math.random(-500, 500), math.random(-500, 500), math.random(-500, 500)
+                    )
+                    -- Keep updating position to void for 2.0s before anchoring (Y = -9999)
+                    task.spawn(function()
+                        local startYeet = tick()
+                        while tick() - startYeet < 2.0 do
+                            pcall(function()
+                                part.CanCollide = false
+                                part.Anchored = false
+                                part.CFrame = CFrame.new(part.Position.X, -9999, part.Position.Z)
+                                part.AssemblyLinearVelocity = Vector3.new(0, -100, 0)
+                            end)
+                            task.wait(0.05) -- 20 Hz, very lightweight
+                        end
+                        pcall(function()
+                            part.CFrame = CFrame.new(part.Position.X, -9999, part.Position.Z)
+                            part.Anchored = true
+                        end)
+                    end)
+                end)
+                task.delay(0.2, function() refreshPartScanner() end)
+            end)
+        end
+        isScanning = false
+    end)
+end
+
+function createPartScannerWindow()
+    if PartScannerFrame then return end
+
+    PartScannerFrame = Instance.new("Frame", ScreenGui)
+    PartScannerFrame.Name = "PartScannerFrame"
+    PartScannerFrame.Size = UDim2.new(0, 420, 0, 380)
+    PartScannerFrame.Position = UDim2.new(0.5, -210, 0.5, -190)
+    PartScannerFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
+    PartScannerFrame.BackgroundTransparency = 0.1
+    PartScannerFrame.BorderSizePixel = 0
+    PartScannerFrame.Visible = false
+    PartScannerFrame.ClipsDescendants = true
+    PartScannerFrame.Active = true
+    PartScannerFrame.Draggable = false
+    Instance.new("UICorner", PartScannerFrame).CornerRadius = UDim.new(0, 12)
+
+    -- Modal invisible button: blok custom cursor agar tidak muncul di atas Part Scanner
+    local scannerModal = Instance.new("TextButton", PartScannerFrame)
+    scannerModal.Size = UDim2.new(0, 0, 0, 0)
+    scannerModal.BackgroundTransparency = 1
+    scannerModal.Text = ""
+    scannerModal.Modal = true
+
+    local stroke = Instance.new("UIStroke", PartScannerFrame)
+    stroke.Color = Color3.fromRGB(255, 255, 255)
+    stroke.Thickness = 2
+
+    local topBar = Instance.new("Frame", PartScannerFrame)
+    topBar.Size = UDim2.new(1, 0, 0, 30)
+    topBar.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
+    topBar.BorderSizePixel = 0
+    Instance.new("UICorner", topBar).CornerRadius = UDim.new(0, 12)
+    makeSmoothDraggable(PartScannerFrame, topBar)
+
+    local title = Instance.new("TextLabel", topBar)
+    title.Size = UDim2.new(1, -150, 1, 0)
+    title.Position = UDim2.new(0, 12, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Text = "Part Scanner"
+    title.TextColor3 = Color3.fromRGB(200, 200, 200)
+    title.TextSize = 14
+    title.Font = Enum.Font.GothamBold
+    title.TextXAlignment = Enum.TextXAlignment.Left
+
+    local closeBtn = Instance.new("TextButton", topBar)
+    closeBtn.Size = UDim2.new(0, 22, 0, 22)
+    closeBtn.Position = UDim2.new(1, -28, 0.5, -11)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+    closeBtn.Text = "X"
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
+    local closeStroke = Instance.new("UIStroke", closeBtn)
+    closeStroke.Color = Color3.fromRGB(255, 255, 255)
+    closeStroke.Thickness = 1
+    closeBtn.MouseButton1Click:Connect(function()
+        PartScannerFrame.Visible = false
+        if PartScannerAutoRefresh then
+            task.cancel(PartScannerAutoRefresh)
+            PartScannerAutoRefresh = nil
+        end
+    end)
+
+    local minBtn = Instance.new("TextButton", topBar)
+    minBtn.Size = UDim2.new(0, 22, 0, 22)
+    minBtn.Position = UDim2.new(1, -54, 0.5, -11)
+    minBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
+    minBtn.Text = "-"
+    minBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    minBtn.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", minBtn).CornerRadius = UDim.new(0, 6)
+    local minStroke = Instance.new("UIStroke", minBtn)
+    minStroke.Color = Color3.fromRGB(255, 255, 255)
+    minStroke.Thickness = 1
+    
+    local isMinimized = false
+    local normalSize = UDim2.new(0, 420, 0, 380)
+    local minimizedSize = UDim2.new(0, 420, 0, 30)
+
+    minBtn.MouseButton1Click:Connect(function()
+        isMinimized = not isMinimized
+        if isMinimized then
+            minBtn.Text = "+"
+            game:GetService("TweenService"):Create(PartScannerFrame, TweenInfo.new(0.25), {Size = minimizedSize}):Play()
+            PartScannerScroll.Visible = false
+        else
+            minBtn.Text = "-"
+            game:GetService("TweenService"):Create(PartScannerFrame, TweenInfo.new(0.25), {Size = normalSize}):Play()
+            PartScannerScroll.Visible = true
+        end
+    end)
+
+    local refreshBtn = Instance.new("TextButton", topBar)
+    refreshBtn.Size = UDim2.new(0, 22, 0, 22)
+    refreshBtn.Position = UDim2.new(1, -80, 0.5, -11)
+    refreshBtn.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
+    refreshBtn.Text = "R"
+    refreshBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    refreshBtn.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", refreshBtn).CornerRadius = UDim.new(0, 6)
+    local refreshStroke = Instance.new("UIStroke", refreshBtn)
+    refreshStroke.Color = Color3.fromRGB(255, 255, 255)
+    refreshStroke.Thickness = 1
+    refreshBtn.MouseButton1Click:Connect(function()
+        refreshPartScanner()
+    end)
+
+    PartScannerScroll = Instance.new("ScrollingFrame", PartScannerFrame)
+    PartScannerScroll.Size = UDim2.new(1, -16, 1, -42)
+    PartScannerScroll.Position = UDim2.new(0, 8, 0, 38)
+    PartScannerScroll.BackgroundTransparency = 1
+    PartScannerScroll.ScrollBarThickness = 4
+    
+    local lay = Instance.new("UIListLayout", PartScannerScroll)
+    lay.Padding = UDim.new(0, 6)
+    lay.SortOrder = Enum.SortOrder.LayoutOrder
+
+    lay:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        PartScannerScroll.CanvasSize = UDim2.new(0, 0, 0, lay.AbsoluteContentSize.Y + 10)
+    end)
+
+    PartScannerFrame:GetPropertyChangedSignal("Visible"):Connect(function()
+        if PartScannerFrame.Visible then
+            if not PartScannerAutoRefresh then
+                PartScannerAutoRefresh = task.spawn(function()
+                    while PartScannerFrame.Visible do
+                        pcall(refreshPartScanner)
+                        task.wait(2.5)
+                    end
+                end)
+            end
+        else
+            if PartScannerAutoRefresh then
+                task.cancel(PartScannerAutoRefresh)
+                PartScannerAutoRefresh = nil
+            end
+        end
+    end)
+end
+
+-- ==============================================
+-- FITUR KLIK PART DI DUNIA → AUTO HIGHLIGHT DI PART SCANNER
+-- Klik kiri saat Part Scanner terbuka → bagian di list di-scroll & di-highlight
+-- ==============================================
+do
+    local Mouse = game:GetService("Players").LocalPlayer:GetMouse()
+    Mouse.Button1Down:Connect(function()
+        -- Hanya aktif kalau Part Scanner sedang terbuka
+        if not PartScannerFrame or not PartScannerFrame.Visible then return end
+        -- Jangan proses kalau klik di atas GUI
+        local guiObjects = game:GetService("Players").LocalPlayer.PlayerGui:GetGuiObjectsAtPosition(Mouse.X, Mouse.Y)
+        for _, obj in ipairs(guiObjects) do
+            if obj:IsDescendantOf(PartScannerFrame) then return end
+        end
+
+        local target = Mouse.Target
+        if not target or not target:IsA("BasePart") or target.Anchored then return end
+
+        -- Cek bukan bagian karakter
+        local isChar = false
+        for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
+            if p.Character and target:IsDescendantOf(p.Character) then
+                isChar = true; break
+            end
+        end
+        if isChar then return end
+
+        -- Cari row di Part Scanner yang sesuai dengan part ini
+        if not PartScannerScroll then return end
+        local found = nil
+        for _, row in ipairs(PartScannerScroll:GetChildren()) do
+            if row:IsA("Frame") and row.Name == "PartItem" then
+                -- Row menyimpan referensi part via tag/attribute
+                if row:GetAttribute("PartRef") == tostring(target) then
+                    found = row
+                    break
+                end
+            end
+        end
+
+        if found then
+            -- Scroll ke row yang ditemukan
+            local rowPos = found.AbsolutePosition.Y - PartScannerScroll.AbsolutePosition.Y + PartScannerScroll.CanvasPosition.Y
+            game:GetService("TweenService"):Create(PartScannerScroll, TweenInfo.new(0.2), {
+                CanvasPosition = Vector2.new(0, math.max(0, rowPos - 40))
+            }):Play()
+            -- Flash highlight kuning
+            local origCol = found.BackgroundColor3
+            found.BackgroundColor3 = Color3.fromRGB(200, 180, 0)
+            task.delay(0.4, function()
+                pcall(function() found.BackgroundColor3 = origCol end)
+            end)
+        else
+            -- Part tidak ditemukan di list (mungkin baru unanchor), refresh dulu lalu coba lagi
+            isScanning = false
+            refreshPartScanner()
+        end
+    end)
+end
+-- Klik kiri saat Part Scanner terbuka → bagian di list di-scroll & di-highlight
+-- ==============================================
+
