@@ -2022,9 +2022,6 @@ do
 end
 
 CloseBtn.MouseButton1Click:Connect(function()
-    local tween = TweenService:Create(MainFrame, TweenInfo.new(0.2), {Size = UDim2.new(0, 0, 0, 0)})
-    tween:Play()
-    tween.Completed:Wait()
     pcall(function()
         -- Turn off active features so they don't linger
         if speedOn then pcall(toggleSpeed) end
@@ -2039,6 +2036,12 @@ CloseBtn.MouseButton1Click:Connect(function()
         if isEspEnabled then pcall(toggleESP, false) end
         if noclipActive then pcall(toggleNoclip, false) end
         if blackHoleActive then pcall(toggleBringPart, false) end
+        if flingAuraActive then pcall(toggleFlingAura, false) end
+        if orbitFlingActive then pcall(toggleOrbitFling, false) end
+        if walkFlingActive then pcall(toggleWalkFling, false) end
+        if antiFlingActive then pcall(toggleAntiFling, false) end
+        if godModeActive then pcall(toggleGodMode, false) end
+        if jumpPowerOn then pcall(toggleJumpPower, false) end
         
         -- Stop unanchor v2 loop if active
         unanchorV2Active = false
@@ -2049,6 +2052,7 @@ CloseBtn.MouseButton1Click:Connect(function()
         if ShiftLockShortcutConn then pcall(function() ShiftLockShortcutConn:Disconnect() end) ShiftLockShortcutConn = nil end
         if SpeedShortcutConn then pcall(function() SpeedShortcutConn:Disconnect() end) SpeedShortcutConn = nil end
         if FlyV3ShortcutConn then pcall(function() FlyV3ShortcutConn:Disconnect() end) FlyV3ShortcutConn = nil end
+        if JumpPowerShortcutConn then pcall(function() JumpPowerShortcutConn:Disconnect() end) JumpPowerShortcutConn = nil end
         
         local coreGui = game:GetService("CoreGui")
         for _, guiName in ipairs({"FlyGui", "CHCmdBarGUI", "PIXECUTE SPECTATE", "FriendListFrame", "PlayerListFrame"}) do
@@ -2067,6 +2071,10 @@ CloseBtn.MouseButton1Click:Connect(function()
             end
         end
     end)
+    
+    local tween = TweenService:Create(MainFrame, TweenInfo.new(0.2), {Size = UDim2.new(0, 0, 0, 0)})
+    tween:Play()
+    tween.Completed:Wait()
     ScreenGui:Destroy()
 end)
 
@@ -3178,7 +3186,7 @@ function createServerHopWindow()
                             local sBtn = Instance.new("TextButton")
                             sBtn.Size = UDim2.new(1, -10, 0, 35)
                             if isCurrent then
-                                sBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                                sBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
                                 sBtn.Text = string.format("Server %d (YOU) | Players: %d/%d | Ping: %s", count, v.playing, v.maxPlayers, tostring(v.ping or "?"))
                                 sBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
                             else
@@ -6425,35 +6433,65 @@ function addSelendang(char)
 
 	local trails = {}
 	for _, foot in ipairs({leftFoot, rightFoot}) do
-		local attTop = Instance.new("Attachment")
-		attTop.Name = "SpeedTrailAtt"
-		attTop.Position = Vector3.new(0, 0.8, 0)
-		attTop.Parent = foot
+		-- Trail 1 (Vertical)
+		local attTop1 = Instance.new("Attachment")
+		attTop1.Name = "SpeedTrailAtt"
+		attTop1.Position = Vector3.new(0, 0.4, 0)
+		attTop1.Parent = foot
 
-		local attBottom = Instance.new("Attachment")
-		attBottom.Name = "SpeedTrailAtt"
-		attBottom.Position = Vector3.new(0, -0.8, 0)
-		attBottom.Parent = foot
+		local attBottom1 = Instance.new("Attachment")
+		attBottom1.Name = "SpeedTrailAtt"
+		attBottom1.Position = Vector3.new(0, -0.4, 0)
+		attBottom1.Parent = foot
 
-		local newTrail = Instance.new("Trail")
-		newTrail.Name = "SpeedTrailInst"
-		newTrail.Attachment0 = attTop
-		newTrail.Attachment1 = attBottom
-		newTrail.Lifetime = 0.6
-		newTrail.MinLength = 0.05
-		newTrail.LightEmission = 0.8
-		newTrail.Transparency = NumberSequence.new({
+		local newTrail1 = Instance.new("Trail")
+		newTrail1.Name = "SpeedTrailInst"
+		newTrail1.Attachment0 = attTop1
+		newTrail1.Attachment1 = attBottom1
+		newTrail1.Lifetime = 1.2
+		newTrail1.MinLength = 0.05
+		newTrail1.LightEmission = 0.8
+		newTrail1.Transparency = NumberSequence.new({
 			NumberSequenceKeypoint.new(0, 0.2),
 			NumberSequenceKeypoint.new(1, 1)
 		})
-		newTrail.WidthScale = NumberSequence.new({
-			NumberSequenceKeypoint.new(0, 0.9),
+		newTrail1.WidthScale = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1.0),
 			NumberSequenceKeypoint.new(0.5, 0.5),
 			NumberSequenceKeypoint.new(1, 0)
 		})
-		newTrail.Parent = foot
+		newTrail1.Parent = foot
+		table.insert(trails, newTrail1)
 
-		table.insert(trails, newTrail)
+		-- Trail 2 (Horizontal - cross)
+		local attTop2 = Instance.new("Attachment")
+		attTop2.Name = "SpeedTrailAtt"
+		attTop2.Position = Vector3.new(0.4, 0, 0)
+		attTop2.Parent = foot
+
+		local attBottom2 = Instance.new("Attachment")
+		attBottom2.Name = "SpeedTrailAtt"
+		attBottom2.Position = Vector3.new(-0.4, 0, 0)
+		attBottom2.Parent = foot
+
+		local newTrail2 = Instance.new("Trail")
+		newTrail2.Name = "SpeedTrailInst"
+		newTrail2.Attachment0 = attTop2
+		newTrail2.Attachment1 = attBottom2
+		newTrail2.Lifetime = 1.2
+		newTrail2.MinLength = 0.05
+		newTrail2.LightEmission = 0.8
+		newTrail2.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.2),
+			NumberSequenceKeypoint.new(1, 1)
+		})
+		newTrail2.WidthScale = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1.0),
+			NumberSequenceKeypoint.new(0.5, 0.5),
+			NumberSequenceKeypoint.new(1, 0)
+		})
+		newTrail2.Parent = foot
+		table.insert(trails, newTrail2)
 	end
 
 	task.spawn(function()
@@ -6491,19 +6529,67 @@ function removeSelendang()
 	end
 end
 
+local speedConnection
+local updatingSpeed = false
+local lastGameSpeed = 16
+
+local function setupSpeedListener(char)
+	if speedConnection then speedConnection:Disconnect() end
+	local hum = char:WaitForChild("Humanoid", 5)
+	if not hum then return end
+	
+	local function checkSpeed()
+		if updatingSpeed then return end
+		local currentSpeed = hum.WalkSpeed
+		if speedOn then
+			updatingSpeed = true
+			if currentSpeed ~= desiredSpeed and currentSpeed ~= (desiredSpeed + (lastGameSpeed - 16)) then
+				lastGameSpeed = currentSpeed
+			end
+			local finalSpeed = desiredSpeed
+			if lastGameSpeed > 16 then
+				finalSpeed = desiredSpeed + (lastGameSpeed - 16)
+			end
+			hum.WalkSpeed = finalSpeed
+			updatingSpeed = false
+		else
+			lastGameSpeed = currentSpeed
+		end
+	end
+	
+	speedConnection = hum:GetPropertyChangedSignal("WalkSpeed"):Connect(checkSpeed)
+	checkSpeed()
+end
+
 function toggleSpeed()
 	speedOn = not speedOn
 	local char = Player.Character or Player.CharacterAdded:Wait()
 	local hum = char:FindFirstChild("Humanoid")
 
 	if speedOn then
-		if hum then hum.WalkSpeed = desiredSpeed end
 		addSelendang(char)
 		setButtonActive(SpeedBtn, true)
+		if hum then
+			updatingSpeed = true
+			local currentSpeed = hum.WalkSpeed
+			if currentSpeed > 16 then
+				lastGameSpeed = currentSpeed
+			end
+			local finalSpeed = desiredSpeed
+			if lastGameSpeed > 16 then
+				finalSpeed = desiredSpeed + (lastGameSpeed - 16)
+			end
+			hum.WalkSpeed = finalSpeed
+			updatingSpeed = false
+		end
 	else
-		if hum then hum.WalkSpeed = 16 end
 		removeSelendang()
 		setButtonActive(SpeedBtn, false)
+		if hum then
+			updatingSpeed = true
+			hum.WalkSpeed = lastGameSpeed
+			updatingSpeed = false
+		end
 	end
 end
 
@@ -6517,17 +6603,19 @@ SpeedShortcutConn = UserInputService.InputBegan:Connect(function(input, gameProc
 end)
 
 Player.CharacterAdded:Connect(function(char)
-	local hum = char:WaitForChild("Humanoid")
 	task.wait(0.5)
+	setupSpeedListener(char)
 	if speedOn then
-		hum.WalkSpeed = desiredSpeed
 		addSelendang(char)
 		setButtonActive(SpeedBtn, true)
 	else
-		hum.WalkSpeed = 16
 		setButtonActive(SpeedBtn, false)
 	end
 end)
+
+if Player.Character then
+	task.spawn(setupSpeedListener, Player.Character)
+end
 
 -- ===================================
 -- WALK FLING (port dari admin3.lua)
@@ -6594,8 +6682,12 @@ end)
 WalkFlingBtn = createButton("", "Walk Fling")
 WalkFlingBtn.Name = "WalkFlingBtn"
 
-WalkFlingBtn.MouseButton1Click:Connect(function()
-    walkFlingActive = not walkFlingActive
+function toggleWalkFling(state)
+    if state == nil then
+        walkFlingActive = not walkFlingActive
+    else
+        walkFlingActive = state
+    end
     if walkFlingActive then
         setButtonActive(WalkFlingBtn, true)
         if walkFlingConn then walkFlingConn:Disconnect() end
@@ -6611,6 +6703,10 @@ WalkFlingBtn.MouseButton1Click:Connect(function()
         setButtonActive(WalkFlingBtn, false)
         if walkFlingConn then walkFlingConn:Disconnect(); walkFlingConn = nil end
     end
+end
+
+WalkFlingBtn.MouseButton1Click:Connect(function()
+    toggleWalkFling()
 end)
 
 -- ===================================
@@ -6649,8 +6745,12 @@ local function antiFlingHookChar(char)
     end))
 end
 
-AntiFlingBtn.MouseButton1Click:Connect(function()
-    antiFlingActive = not antiFlingActive
+function toggleAntiFling(state)
+    if state == nil then
+        antiFlingActive = not antiFlingActive
+    else
+        antiFlingActive = state
+    end
     if antiFlingActive then
         setButtonActive(AntiFlingBtn, true)
         antiFlingTracked = {}
@@ -6694,6 +6794,10 @@ AntiFlingBtn.MouseButton1Click:Connect(function()
         end
         antiFlingTracked = {}
     end
+end
+
+AntiFlingBtn.MouseButton1Click:Connect(function()
+    toggleAntiFling()
 end)
 
 -- ===================================
@@ -8196,6 +8300,102 @@ do
     end)
 end
 
+local jumpTrailPart
+
+local function addJumpTrail(char)
+	if jumpTrailPart then
+		pcall(function() jumpTrailPart:Destroy() end)
+		jumpTrailPart = nil
+	end
+	for _, p in ipairs(char:GetDescendants()) do
+		if p.Name == "JumpTrailAtt" or p.Name == "JumpTrailInst" then
+			pcall(function() p:Destroy() end)
+		end
+	end
+
+	local torso = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso") or char:FindFirstChild("HumanoidRootPart")
+	if not torso then return end
+
+	jumpTrailPart = Instance.new("Folder")
+	jumpTrailPart.Name = "JumpTrailPart"
+	jumpTrailPart.Parent = char
+
+	-- Torso Trail 1 (Vertical)
+	local attTop1 = Instance.new("Attachment")
+	attTop1.Name = "JumpTrailAtt"
+	attTop1.Position = Vector3.new(0, 0.6, 0)
+	attTop1.Parent = torso
+
+	local attBottom1 = Instance.new("Attachment")
+	attBottom1.Name = "JumpTrailAtt"
+	attBottom1.Position = Vector3.new(0, -0.6, 0)
+	attBottom1.Parent = torso
+
+	local newTrail1 = Instance.new("Trail")
+	newTrail1.Name = "JumpTrailInst"
+	newTrail1.Attachment0 = attTop1
+	newTrail1.Attachment1 = attBottom1
+	newTrail1.Lifetime = 1.2
+	newTrail1.MinLength = 0.05
+	newTrail1.LightEmission = 0.1
+	newTrail1.Color = ColorSequence.new(Color3.fromRGB(220, 20, 20)) -- Crimson Red
+	newTrail1.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.2),
+		NumberSequenceKeypoint.new(1, 1)
+	})
+	newTrail1.WidthScale = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1.0),
+		NumberSequenceKeypoint.new(0.5, 0.5),
+		NumberSequenceKeypoint.new(1, 0)
+	})
+	newTrail1.Parent = torso
+
+	-- Torso Trail 2 (Horizontal - cross)
+	local attTop2 = Instance.new("Attachment")
+	attTop2.Name = "JumpTrailAtt"
+	attTop2.Position = Vector3.new(0.4, 0, 0)
+	attTop2.Parent = torso
+
+	local attBottom2 = Instance.new("Attachment")
+	attBottom2.Name = "JumpTrailAtt"
+	attBottom2.Position = Vector3.new(-0.4, 0, 0)
+	attBottom2.Parent = torso
+
+	local newTrail2 = Instance.new("Trail")
+	newTrail2.Name = "JumpTrailInst"
+	newTrail2.Attachment0 = attTop2
+	newTrail2.Attachment1 = attBottom2
+	newTrail2.Lifetime = 1.2
+	newTrail2.MinLength = 0.05
+	newTrail2.LightEmission = 0.1
+	newTrail2.Color = ColorSequence.new(Color3.fromRGB(220, 20, 20)) -- Crimson Red
+	newTrail2.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.2),
+		NumberSequenceKeypoint.new(1, 1)
+	})
+	newTrail2.WidthScale = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1.0),
+		NumberSequenceKeypoint.new(0.5, 0.5),
+		NumberSequenceKeypoint.new(1, 0)
+	})
+	newTrail2.Parent = torso
+end
+
+local function removeJumpTrail()
+	if jumpTrailPart then
+		pcall(function() jumpTrailPart:Destroy() end)
+		jumpTrailPart = nil
+	end
+	local char = Player.Character
+	if char then
+		for _, p in ipairs(char:GetDescendants()) do
+			if p.Name == "JumpTrailAtt" or p.Name == "JumpTrailInst" then
+				pcall(function() p:Destroy() end)
+			end
+		end
+	end
+end
+
 function toggleJumpPower(state)
     if state == nil then
         jumpPowerOn = not jumpPowerOn
@@ -8210,18 +8410,29 @@ function toggleJumpPower(state)
             hum.UseJumpPower = true
             hum.JumpPower = desiredJumpPower
         end
+        if char then
+            addJumpTrail(char)
+        end
         setButtonActive(JumpPowerBtn, true)
     else
         if hum then
             hum.UseJumpPower = true
             hum.JumpPower = 50
         end
+        removeJumpTrail()
         setButtonActive(JumpPowerBtn, false)
     end
 end
 
 JumpPowerBtn.MouseButton1Click:Connect(function()
     toggleJumpPower()
+end)
+
+JumpPowerShortcutConn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if UserInputService:GetFocusedTextBox() then return end
+    if input.KeyCode == Enum.KeyCode.BackSlash then
+        toggleJumpPower()
+    end
 end)
 
 Player.CharacterAdded:Connect(function(char)
@@ -8231,6 +8442,7 @@ Player.CharacterAdded:Connect(function(char)
         if jumpPowerOn then
             hum.UseJumpPower = true
             hum.JumpPower = desiredJumpPower
+            addJumpTrail(char)
         end
     end
 end)
@@ -11686,9 +11898,9 @@ do
         end
     end
 
-    local MiniPanelFrame = Instance.new("Frame")
-    MiniPanelFrame.Size = UDim2.new(0, 360, 0, 210)
-    MiniPanelFrame.Position = UDim2.new(1, -370, 0.5, -50)
+    MiniPanelFrame = Instance.new("Frame")
+    MiniPanelFrame.Size = UDim2.new(0, 250, 0, 320)
+    MiniPanelFrame.Position = UDim2.new(1, -260, 0.5, -50)
     MiniPanelFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
     MiniPanelFrame.BackgroundTransparency = 0.1
     MiniPanelFrame.BorderSizePixel = 0
@@ -11697,29 +11909,29 @@ do
     MiniPanelFrame.Visible = false
     MiniPanelFrame.Parent = ScreenGui
     
-    local MiniPanelCorner = Instance.new("UICorner", MiniPanelFrame)
+    MiniPanelCorner = Instance.new("UICorner", MiniPanelFrame)
     MiniPanelCorner.CornerRadius = UDim.new(0, 12)
     
-    local mainStroke = Instance.new("UIStroke")
+    mainStroke = Instance.new("UIStroke")
     mainStroke.Color = Color3.fromRGB(255, 255, 255)
     mainStroke.Thickness = 2
     mainStroke.Transparency = 0
     mainStroke.Parent = MiniPanelFrame
     
-    local MiniPanelHeader = Instance.new("Frame", MiniPanelFrame)
+    MiniPanelHeader = Instance.new("Frame", MiniPanelFrame)
     MiniPanelHeader.Size = UDim2.new(1, 0, 0, 30)
     MiniPanelHeader.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
     MiniPanelHeader.BorderSizePixel = 0
     makeSmoothDraggable(MiniPanelFrame, MiniPanelHeader)
-    local MiniHeaderCorner = Instance.new("UICorner", MiniPanelHeader)
+    MiniHeaderCorner = Instance.new("UICorner", MiniPanelHeader)
     MiniHeaderCorner.CornerRadius = UDim.new(0, 12)
-    local HeaderBottomFix = Instance.new("Frame", MiniPanelHeader)
+    HeaderBottomFix = Instance.new("Frame", MiniPanelHeader)
     HeaderBottomFix.Size = UDim2.new(1, 0, 0, 6)
     HeaderBottomFix.Position = UDim2.new(0, 0, 1, -6)
     HeaderBottomFix.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
     HeaderBottomFix.BorderSizePixel = 0
     
-    local MiniPanelTitle = Instance.new("TextLabel", MiniPanelHeader)
+    MiniPanelTitle = Instance.new("TextLabel", MiniPanelHeader)
     MiniPanelTitle.Size = UDim2.new(1, -60, 1, 0)
     MiniPanelTitle.Position = UDim2.new(0, 10, 0, 0)
     MiniPanelTitle.BackgroundTransparency = 1
@@ -11729,7 +11941,7 @@ do
     MiniPanelTitle.TextSize = 12
     MiniPanelTitle.TextXAlignment = Enum.TextXAlignment.Left
     
-    local MiniMinimizeBtn = Instance.new("TextButton", MiniPanelHeader)
+    MiniMinimizeBtn = Instance.new("TextButton", MiniPanelHeader)
     MiniMinimizeBtn.Size = UDim2.new(0, 22, 0, 22)
     MiniMinimizeBtn.Position = UDim2.new(1, -55, 0.5, -11)
     MiniMinimizeBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
@@ -11739,11 +11951,11 @@ do
     MiniMinimizeBtn.Font = Enum.Font.GothamBold
     MiniMinimizeBtn.TextSize = 14
     Instance.new("UICorner", MiniMinimizeBtn).CornerRadius = UDim.new(0, 6)
-    local minStroke = Instance.new("UIStroke", MiniMinimizeBtn)
+    minStroke = Instance.new("UIStroke", MiniMinimizeBtn)
     minStroke.Color = Color3.fromRGB(255, 255, 255)
     minStroke.Thickness = 1
  
-    local MiniCloseBtn = Instance.new("TextButton", MiniPanelHeader)
+    MiniCloseBtn = Instance.new("TextButton", MiniPanelHeader)
     MiniCloseBtn.Size = UDim2.new(0, 22, 0, 22)
     MiniCloseBtn.Position = UDim2.new(1, -28, 0.5, -11)
     MiniCloseBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
@@ -11753,11 +11965,11 @@ do
     MiniCloseBtn.Font = Enum.Font.GothamBold
     MiniCloseBtn.TextSize = 13
     Instance.new("UICorner", MiniCloseBtn).CornerRadius = UDim.new(0, 6)
-    local clsStroke = Instance.new("UIStroke", MiniCloseBtn)
+    clsStroke = Instance.new("UIStroke", MiniCloseBtn)
     clsStroke.Color = Color3.fromRGB(255, 255, 255)
     clsStroke.Thickness = 1
     
-    local MiniContent = Instance.new("Frame", MiniPanelFrame)
+    MiniContent = Instance.new("Frame", MiniPanelFrame)
     MiniContent.Size = UDim2.new(1, 0, 1, -30)
     MiniContent.Position = UDim2.new(0, 0, 0, 30)
     MiniContent.BackgroundTransparency = 1
@@ -11781,10 +11993,10 @@ do
     }
     
     MiniButtons = {}
-    local columns = 3
-    local btnWidth = 0.30
-    local startX = 0.025
-    local gapX = 0.025
+    local columns = 2
+    local btnWidth = 0.46
+    local startX = 0.027
+    local gapX = 0.026
     local startY = 8
     local btnHeight = 28
     local gapY = 6
@@ -11801,7 +12013,7 @@ do
         btn.TextColor3 = Color3.fromRGB(255, 50, 50)
         btn.Text = data.text
         btn.Font = Enum.Font.GothamBold
-        btn.TextSize = 9
+        btn.TextSize = 10
         Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
         MiniButtons[data.name] = btn
     end
@@ -11975,7 +12187,7 @@ do
         if not MiniPanelFrame.Visible then
             isMinPanelMinimized = false
             MiniMinimizeBtn.Text = "-"
-            MiniPanelFrame.Size = UDim2.new(0, 360, 0, 210)
+            MiniPanelFrame.Size = UDim2.new(0, 250, 0, 320)
             MiniContent.Visible = true
         end
     end)
@@ -11985,11 +12197,11 @@ do
         isMinPanelMinimized = not isMinPanelMinimized
         if isMinPanelMinimized then
             MiniMinimizeBtn.Text = "+"
-            game:GetService("TweenService"):Create(MiniPanelFrame, TweenInfo.new(0.25), {Size = UDim2.new(0, 360, 0, 30)}):Play()
+            game:GetService("TweenService"):Create(MiniPanelFrame, TweenInfo.new(0.25), {Size = UDim2.new(0, 250, 0, 30)}):Play()
             MiniContent.Visible = false
         else
             MiniMinimizeBtn.Text = "-"
-            game:GetService("TweenService"):Create(MiniPanelFrame, TweenInfo.new(0.25), {Size = UDim2.new(0, 360, 0, 210)}):Play()
+            game:GetService("TweenService"):Create(MiniPanelFrame, TweenInfo.new(0.25), {Size = UDim2.new(0, 250, 0, 320)}):Play()
             MiniContent.Visible = true
         end
     end)
