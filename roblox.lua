@@ -98,7 +98,12 @@ local LangDict = {
     ["CmdBarPH"] = { EN = "Type command... (ex: swp name)", ID = "Ketik perintah... (cth: swp nama)" },
     ["FriendList"] = { EN = "Friend List", ID = "Daftar Teman" },
     
+    -- Shortcuts & Keybinds
+    ["ShortcutsKey"] = { EN = "Shortcuts", ID = "Shortcut PC" },
+    ["ShortcutsDesc"] = { EN = "<b><font color=\"rgb(255, 60, 60)\">[</font></b>  - Open / Close GUI\n<b><font color=\"rgb(255, 60, 60)\">]</font></b>  - Toggle Speed Hack\n<b><font color=\"rgb(255, 60, 60)\">\\</font></b>  - Toggle Jump Power\n<b><font color=\"rgb(255, 60, 60)\">'</font></b>  - Open Command Bar\n\n*Note for <b>\\</b>: Disable 'UI Navigation Toggle' in Roblox Settings for it to work properly.", ID = "<b><font color=\"rgb(255, 60, 60)\">[</font></b>  - Buka / Tutup GUI\n<b><font color=\"rgb(255, 60, 60)\">]</font></b>  - Aktif / Matikan Speed Hack\n<b><font color=\"rgb(255, 60, 60)\">\\</font></b>  - Aktif / Matikan Jump Power\n<b><font color=\"rgb(255, 60, 60)\">'</font></b>  - Buka Command Bar\n\n*Catatan untuk <b>\\</b>: Matikan 'Tombol Navigasi UI' di Pengaturan Roblox agar pintasan berfungsi." },
+
     -- Changelogs
+    ["CL_360"] = { EN = "- Added Shortcuts PC category to easily view keybinds\n- Added \\ shortcut to toggle Jump Power on/off\n- Improved Jump Trail size to be smaller and sleeker\n- Fixed active features cleanup not working properly when closing the GUI\n- Incremented version to v3.6.0", ID = "- Menambahkan kategori Shortcut PC untuk melihat pintasan keyboard\n- Menambahkan shortcut tombol \\ untuk mengaktifkan/mematikan Jump Power\n- Memperbaiki ukuran trail lompat agar lebih kecil dan ramping\n- Memperbaiki pembersihan fitur yang aktif saat GUI utama ditutup agar langsung mati\n- Menaikkan versi script menjadi v3.6.0" },
     ["CL_350"] = { EN = "- Renamed Fly V3 button in main GUI to Quick Tools\n- Added Spectate and Refresh buttons to Quick Tools\n- Switched Mobile Fly in Quick Tools to Fly V1 (better compatibility)\n- Fixed active Send Part button overlay color in Player List\n- Fixed Noclip movement bugs when disabling fly/noclip\n- Fixed Bring Part getting stuck after Send Part finishes\n- Changed Send Part to continuous loop mode\n- Updated Refresh button in Quick Tools to use refresh instead of respawn\n- Fixed local register limit error in Quick Tools\n- Added Fling (one-shot instant fling) to Spectate and Player List\n- Optimized Player List layout and removed redundant Kick button\n- Added joint-breaking to Part Scanner Bring to prevent map damage\n- Kept currently brought part at the top of the Part Scanner list\n- Improved Yeet in Part Scanner to instantly fling and vanish the part\n- Added ;ifling, ;walkfling, and ;antifling commands to Command Bar/List\n- Fixed Spectate & Player List flings by welding separate flingPart (preventing self-fling) and extending duration to 2s\n- Added God Mode (Kebal) & Health Monitor button to Quick Tools\n- Optimized Part Scanner lag by caching players and walking parent trees\n- Improved Yeet to teleport parts to sky boundary (99999, 9999, 99999) to bypass anti-void resets\n- Increased unanchor and yeet radius to 1000 studs\n- Reworked Part Scanner Unanchor to target unanchored parts and loop for 2.5s\n- Fixed Fly V3 fling when turning off and optimized main GUI startup rendering speed\n- Fixed top-clipped category buttons by adding padding to ScrollFrame and UtilityScroll\n- Added Fling Aura and Orbit Fling features to Combat category and Quick Tools\n- Added ;flingaura and ;orbitfling commands to Command Bar/List", ID = "- Mengubah tombol Fly V3 di GUI utama menjadi Quick Tools\n- Menambahkan tombol Spectate dan Refresh ke Quick Tools\n- Mengubah tombol Terbang mobile di Quick Tools menjadi Fly V1 (lebih kompatibel)\n- Memperbaiki warna tombol aktif Send Part pada Player List agar tidak menyatu/putih polos\n- Perbaikan bug gerakan Noclip setelah mematikan fly/noclip\n- Perbaikan Bring Part tersangkut setelah Send Part selesai\n- Mengubah Send Part menjadi mode loop terus-menerus\n- Memperbarui tombol Refresh di Quick Tools menggunakan metode refresh asli, bukan respawn\n- Memperbaiki error limit register lokal pada Quick Tools\n- Menambahkan Fling (instant fling sekali jalan) pada Spectate dan Player List\n- Mengoptimalkan tata letak Player List dan menghapus tombol Kick\n- Menambahkan pemutusan sambungan objek (BreakJoints) pada Bring Part Scanner agar map tidak rusak\n- Mengunci posisi part yang sedang di-bring di baris teratas Part Scanner\n- Memperbarui fungsi Yeet di Part Scanner agar langsung terlempar dan hilang seketika\n- Menambahkan perintah ;ifling, ;walkfling, dan ;antifling ke Command Bar/List\n- Memperbaiki Fling Spectate & Player List menggunakan metode welded flingPart (anti mati) dan durasi 2 detik\n- Menambahkan tombol Kebal (God Mode) & Health Monitor di Quick Tools\n- Mengoptimalkan lag Part Scanner dengan cache player dan penelusuran parent\n- Memperbarui Yeet untuk memindahkan part ke koordinat langit (99999, 9999, 99999) agar tidak reset\n- Meningkatkan radius unanchor dan yeet menjadi 1000 studs\n- Merombak Unanchor Part Scanner untuk part terlepas dan melakukan loop selama 2.5 detik\n- Perbaikan karakter terlempar saat mematikan Fly V3 dan optimasi kecepatan render awal GUI\n- Memperbaiki tombol kategori yang terlalu ke atas dengan menambahkan padding pada ScrollFrame dan UtilityScroll\n- Menambahkan fitur Fling Aura dan Orbit Fling pada kategori Rusuh dan Quick Tools\n- Menambahkan perintah ;flingaura dan ;orbitfling ke Command Bar/List" },
     ["CL_340"] = { EN = "- Added Spectator Player List Search & Alphabetical Sorting\n- Fixed Physics bugs on Fly V1\n- Fixed Player List Send Part integration\n- Added Quick Tools Mini Panel (Fly V3, Bring Part & Noclip)\n- UI/UX Improvements (Glow removal, Color fixes)\n- Added Invite Button to Friend List (Top bar only)\n- Re-positioned Speed Trails to Feet\n- Combined Spectator Search box into the Player List GUI\n- Fixed Spectator red highlight getting stuck on target change", ID = "- Penambahan Pencarian & Pengurutan Abjad Player List Spectator\n- Perbaikan bug fisik terpelanting pada Fly V1\n- Perbaikan Send Part yang tidak merespon di Player List\n- Penambahan Mini Panel Quick Tools (Fly V3, Bring Part & Noclip)\n- Peningkatan UI/UX (Hapus glow, Perbaikan warna)\n- Perambahan tombol Invite di Friend List (Hanya di top bar)\n- Perbaikan posisi Speed Trail ke Kaki\n- Menggabungkan kotak pencarian Spectator ke dalam GUI daftar pemain\n- Perbaikan sorotan merah Spectator yang tersangkut saat ganti target" },
     ["CL_330"] = { EN = "- Added Dual Language System (English & Indonesian)\n- FE Invisible Rework (Bypasses StreamingEnabled & 100% Server Sync)\n- Fixed notification translations\n- UI scaling & layout adjustments for bilingual support", ID = "- Penambahan Sistem Dua Bahasa (Inggris & Indonesia)\n- Rombak ulang FE Invisible (Anti-bug StreamingEnabled & 100% tersinkron dengan Server)\n- Perbaikan bug terjemahan pada notifikasi\n- Penyesuaian teks & layout UI untuk bahasa" },
@@ -533,7 +538,7 @@ VersionLabel.TextSize = 11
 VersionLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 VersionLabel.TextXAlignment = Enum.TextXAlignment.Right
 VersionLabel.TextYAlignment = Enum.TextYAlignment.Bottom
-VersionLabel.Text = "v3.5.0"
+VersionLabel.Text = "v3.6.0"
 VersionLabel.ZIndex = 15
 VersionLabel.Parent = MainFrame
 
@@ -705,9 +710,15 @@ ChangelogsFrame = Instance.new("Frame")
 ChangelogsFrame.Name = "ChangelogsFrame"
 ChangelogsFrame.Size = UDim2.new(1, 0, 1, 0)
 ChangelogsFrame.Visible = false
-                ConfigFrame.Visible = false
 ChangelogsFrame.BackgroundTransparency = 1
 ChangelogsFrame.Parent = ButtonsFrame
+
+ShortcutsFrame = Instance.new("Frame")
+ShortcutsFrame.Name = "ShortcutsFrame"
+ShortcutsFrame.Size = UDim2.new(1, 0, 1, 0)
+ShortcutsFrame.Visible = false
+ShortcutsFrame.BackgroundTransparency = 1
+ShortcutsFrame.Parent = ButtonsFrame
 
 -- Left quick panel under profile picture
 do
@@ -1045,30 +1056,41 @@ do
                 CreditsFrame.Visible = false
                 ChangelogsFrame.Visible = false
                 ConfigFrame.Visible = false
+                ShortcutsFrame.Visible = false
             elseif cat == "Credits" then
                 ScrollFrame.Visible = false
                 CmdsFrame.Visible = false
                 CreditsFrame.Visible = true
                 ChangelogsFrame.Visible = false
                 ConfigFrame.Visible = false
+                ShortcutsFrame.Visible = false
             elseif cat == "Config" then
                 ScrollFrame.Visible = false
                 CmdsFrame.Visible = false
                 CreditsFrame.Visible = false
                 ChangelogsFrame.Visible = false
-                ConfigFrame.Visible = false
                 ConfigFrame.Visible = true
+                ShortcutsFrame.Visible = false
             elseif cat == "Changelogs" then
                 ScrollFrame.Visible = false
                 CmdsFrame.Visible = false
                 CreditsFrame.Visible = false
                 ChangelogsFrame.Visible = true
                 ConfigFrame.Visible = false
+                ShortcutsFrame.Visible = false
+            elseif cat == "Shortcuts" then
+                ScrollFrame.Visible = false
+                CmdsFrame.Visible = false
+                CreditsFrame.Visible = false
+                ChangelogsFrame.Visible = false
+                ConfigFrame.Visible = false
+                ShortcutsFrame.Visible = true
             else
                 CmdsFrame.Visible = false
                 CreditsFrame.Visible = false
                 ChangelogsFrame.Visible = false
                 ConfigFrame.Visible = false
+                ShortcutsFrame.Visible = false
                 ScrollFrame.Visible = true
             end
         end
@@ -1554,6 +1576,64 @@ do
         refreshConfigsUI()
     end
 
+    local createShortcutsWindow = function()
+        if ShortcutsFrame:FindFirstChild("ShortcutsScroll") then return end
+        
+        local scrollFrame = Instance.new("ScrollingFrame")
+        scrollFrame.Name = "ShortcutsScroll"
+        scrollFrame.Size = UDim2.new(1, -10, 1, -10)
+        scrollFrame.Position = UDim2.new(0, 5, 0, 5)
+        scrollFrame.BackgroundTransparency = 1
+        scrollFrame.ScrollBarThickness = 4
+        scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255)
+        scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 300)
+        scrollFrame.Parent = ShortcutsFrame
+
+        local listLayout = Instance.new("UIListLayout")
+        listLayout.Padding = UDim.new(0, 8)
+        listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        listLayout.Parent = scrollFrame
+
+        local itemFrame = Instance.new("Frame")
+        itemFrame.Name = "ShortcutsItem"
+        itemFrame.Size = UDim2.new(1, -8, 0, 190)
+        itemFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+        itemFrame.Parent = scrollFrame
+
+        local itemCorner = Instance.new("UICorner")
+        itemCorner.CornerRadius = UDim.new(0, 6)
+        itemCorner.Parent = itemFrame
+
+        local titleLabel = Instance.new("TextLabel")
+        titleLabel.Size = UDim2.new(1, -16, 0, 22)
+        titleLabel.Position = UDim2.new(0, 8, 0, 6)
+        titleLabel.BackgroundTransparency = 1
+        titleLabel.Font = Enum.Font.GothamBold
+        titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+        titleLabel.TextSize = 14
+        titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        titleLabel.Text = "PC Keyboard Shortcuts"
+        titleLabel.Parent = itemFrame
+
+        local valueLabel = Instance.new("TextLabel")
+        valueLabel.Size = UDim2.new(1, -16, 1, -38)
+        valueLabel.Position = UDim2.new(0, 8, 0, 34)
+        valueLabel.BackgroundTransparency = 1
+        valueLabel.Font = Enum.Font.Gotham
+        valueLabel.TextXAlignment = Enum.TextXAlignment.Left
+        valueLabel.TextYAlignment = Enum.TextYAlignment.Top
+        valueLabel.TextSize = 13
+        valueLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+        valueLabel.RichText = true
+        addTranslatable(valueLabel, "ShortcutsDesc", "Text")
+        valueLabel.TextWrapped = true
+        valueLabel.Parent = itemFrame
+        
+        listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            scrollFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 10)
+        end)
+    end
+
     createChangelogsWindow = function()
         if ChangelogsFrame:FindFirstChild("ChangelogsScroll") then return end
         
@@ -1573,6 +1653,7 @@ do
         listLayout.Parent = scrollFrame
 
         local changelogs = {
+            { title = "v3.6.0 (Shortcuts & UX Update)", key = "CL_360" },
             { title = "v3.5.0 (Quick Tools Update)", key = "CL_350" },
             { title = "v3.4.0 (Spectate & Bug Fixes)", key = "CL_340" },
             { title = "v3.3.0 (Globalisation & Invis Rework)", key = "CL_330" },
@@ -1702,7 +1783,13 @@ do
         setCategory("Config")
     end)
 
-    local btnChangelogs = makeSmallBtn("Changelogs", 8)
+    local btnShortcuts = makeSmallBtn("ShortcutsKey", 8)
+    btnShortcuts.MouseButton1Click:Connect(function()
+        createShortcutsWindow()
+        setCategory("Shortcuts")
+    end)
+
+    local btnChangelogs = makeSmallBtn("Changelogs", 9)
     btnChangelogs.MouseButton1Click:Connect(function()
         createChangelogsWindow()
         setCategory("Changelogs")
