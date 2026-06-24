@@ -103,6 +103,7 @@ local LangDict = {
     ["ShortcutsDesc"] = { EN = "<b><font color=\"rgb(255, 60, 60)\">[</font></b>  - Open / Close GUI\n<b><font color=\"rgb(255, 60, 60)\">]</font></b>  - Toggle Speed Hack\n<b><font color=\"rgb(255, 60, 60)\">\\</font></b>  - Toggle Jump Power\n<b><font color=\"rgb(255, 60, 60)\">'</font></b>  - Open Command Bar\n\n*Note for <b>\\</b>: Disable 'UI Navigation Toggle' in Roblox Settings for it to work properly.", ID = "<b><font color=\"rgb(255, 60, 60)\">[</font></b>  - Buka / Tutup GUI\n<b><font color=\"rgb(255, 60, 60)\">]</font></b>  - Aktif / Matikan Speed Hack\n<b><font color=\"rgb(255, 60, 60)\">\\</font></b>  - Aktif / Matikan Jump Power\n<b><font color=\"rgb(255, 60, 60)\">'</font></b>  - Buka Command Bar\n\n*Catatan untuk <b>\\</b>: Matikan 'Tombol Navigasi UI' di Pengaturan Roblox agar pintasan berfungsi." },
 
     -- Changelogs
+    ["CL_370"] = { EN = "- Massive UI update: Mobile draggable sliders for Speed & Jump Power\n- Safe Raycast landing algorithm for Fly V1 to prevent clipping\n- Draggable Mobile Command Bar\n- Added Config System (Auto-saves your settings locally)\n- Tab Rusuh Expansion: Added Hitbox Expander & Silent Aim\n- Custom Keybind Settings (Change hotkeys dynamically)\n- Incremented version to v3.7.0", ID = "- Pembaruan UI Masif: Slider Mobile yang bisa digeser untuk Speed & Jump Power\n- Algoritma pendaratan aman Raycast untuk Fly V1 agar tidak nyangkut\n- Command Bar Mobile yang bisa di-drag\n- Sistem Config (Otomatis save settingan script)\n- Ekspansi Tab Rusuh: Menambahkan Hitbox Expander & Silent Aim\n- Kustomisasi Tombol/Keybind (Ganti pintasan sesuka hati)\n- Menaikkan versi script menjadi v3.7.0" },
     ["CL_360"] = { EN = "- Added Shortcuts PC category to easily view keybinds\n- Added \\ shortcut to toggle Jump Power on/off\n- Improved Jump Trail size to be smaller and sleeker\n- Fixed active features cleanup not working properly when closing the GUI\n- Incremented version to v3.6.0", ID = "- Menambahkan kategori Shortcut PC untuk melihat pintasan keyboard\n- Menambahkan shortcut tombol \\ untuk mengaktifkan/mematikan Jump Power\n- Memperbaiki ukuran trail lompat agar lebih kecil dan ramping\n- Memperbaiki pembersihan fitur yang aktif saat GUI utama ditutup agar langsung mati\n- Menaikkan versi script menjadi v3.6.0" },
     ["CL_350"] = { EN = "- Renamed Fly V3 button in main GUI to Quick Tools\n- Added Spectate and Refresh buttons to Quick Tools\n- Switched Mobile Fly in Quick Tools to Fly V1 (better compatibility)\n- Fixed active Send Part button overlay color in Player List\n- Fixed Noclip movement bugs when disabling fly/noclip\n- Fixed Bring Part getting stuck after Send Part finishes\n- Changed Send Part to continuous loop mode\n- Updated Refresh button in Quick Tools to use refresh instead of respawn\n- Fixed local register limit error in Quick Tools\n- Added Fling (one-shot instant fling) to Spectate and Player List\n- Optimized Player List layout and removed redundant Kick button\n- Added joint-breaking to Part Scanner Bring to prevent map damage\n- Kept currently brought part at the top of the Part Scanner list\n- Improved Yeet in Part Scanner to instantly fling and vanish the part\n- Added ;ifling, ;walkfling, and ;antifling commands to Command Bar/List\n- Fixed Spectate & Player List flings by welding separate flingPart (preventing self-fling) and extending duration to 2s\n- Added God Mode (Kebal) & Health Monitor button to Quick Tools\n- Optimized Part Scanner lag by caching players and walking parent trees\n- Improved Yeet to teleport parts to sky boundary (99999, 9999, 99999) to bypass anti-void resets\n- Increased unanchor and yeet radius to 1000 studs\n- Reworked Part Scanner Unanchor to target unanchored parts and loop for 2.5s\n- Fixed Fly V3 fling when turning off and optimized main GUI startup rendering speed\n- Fixed top-clipped category buttons by adding padding to ScrollFrame and UtilityScroll\n- Added Fling Aura and Orbit Fling features to Combat category and Quick Tools\n- Added ;flingaura and ;orbitfling commands to Command Bar/List", ID = "- Mengubah tombol Fly V3 di GUI utama menjadi Quick Tools\n- Menambahkan tombol Spectate dan Refresh ke Quick Tools\n- Mengubah tombol Terbang mobile di Quick Tools menjadi Fly V1 (lebih kompatibel)\n- Memperbaiki warna tombol aktif Send Part pada Player List agar tidak menyatu/putih polos\n- Perbaikan bug gerakan Noclip setelah mematikan fly/noclip\n- Perbaikan Bring Part tersangkut setelah Send Part selesai\n- Mengubah Send Part menjadi mode loop terus-menerus\n- Memperbarui tombol Refresh di Quick Tools menggunakan metode refresh asli, bukan respawn\n- Memperbaiki error limit register lokal pada Quick Tools\n- Menambahkan Fling (instant fling sekali jalan) pada Spectate dan Player List\n- Mengoptimalkan tata letak Player List dan menghapus tombol Kick\n- Menambahkan pemutusan sambungan objek (BreakJoints) pada Bring Part Scanner agar map tidak rusak\n- Mengunci posisi part yang sedang di-bring di baris teratas Part Scanner\n- Memperbarui fungsi Yeet di Part Scanner agar langsung terlempar dan hilang seketika\n- Menambahkan perintah ;ifling, ;walkfling, dan ;antifling ke Command Bar/List\n- Memperbaiki Fling Spectate & Player List menggunakan metode welded flingPart (anti mati) dan durasi 2 detik\n- Menambahkan tombol Kebal (God Mode) & Health Monitor di Quick Tools\n- Mengoptimalkan lag Part Scanner dengan cache player dan penelusuran parent\n- Memperbarui Yeet untuk memindahkan part ke koordinat langit (99999, 9999, 99999) agar tidak reset\n- Meningkatkan radius unanchor dan yeet menjadi 1000 studs\n- Merombak Unanchor Part Scanner untuk part terlepas dan melakukan loop selama 2.5 detik\n- Perbaikan karakter terlempar saat mematikan Fly V3 dan optimasi kecepatan render awal GUI\n- Memperbaiki tombol kategori yang terlalu ke atas dengan menambahkan padding pada ScrollFrame dan UtilityScroll\n- Menambahkan fitur Fling Aura dan Orbit Fling pada kategori Rusuh dan Quick Tools\n- Menambahkan perintah ;flingaura dan ;orbitfling ke Command Bar/List" },
     ["CL_340"] = { EN = "- Added Spectator Player List Search & Alphabetical Sorting\n- Fixed Physics bugs on Fly V1\n- Fixed Player List Send Part integration\n- Added Quick Tools Mini Panel (Fly V3, Bring Part & Noclip)\n- UI/UX Improvements (Glow removal, Color fixes)\n- Added Invite Button to Friend List (Top bar only)\n- Re-positioned Speed Trails to Feet\n- Combined Spectator Search box into the Player List GUI\n- Fixed Spectator red highlight getting stuck on target change", ID = "- Penambahan Pencarian & Pengurutan Abjad Player List Spectator\n- Perbaikan bug fisik terpelanting pada Fly V1\n- Perbaikan Send Part yang tidak merespon di Player List\n- Penambahan Mini Panel Quick Tools (Fly V3, Bring Part & Noclip)\n- Peningkatan UI/UX (Hapus glow, Perbaikan warna)\n- Perambahan tombol Invite di Friend List (Hanya di top bar)\n- Perbaikan posisi Speed Trail ke Kaki\n- Menggabungkan kotak pencarian Spectator ke dalam GUI daftar pemain\n- Perbaikan sorotan merah Spectator yang tersangkut saat ganti target" },
@@ -336,7 +337,9 @@ function updateLanguage(lang)
     for _, item in ipairs(translatableElements) do
         if item.element then
             pcall(function()
-                if item.prop == "Text" then
+                if item.customUpdate then
+                    item.customUpdate()
+                elseif item.prop == "Text" then
                     item.element.Text = item.prefix .. tr(item.key)
                 elseif item.prop == "PlaceholderText" then
                     item.element.PlaceholderText = item.prefix .. tr(item.key)
@@ -538,7 +541,7 @@ VersionLabel.TextSize = 11
 VersionLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 VersionLabel.TextXAlignment = Enum.TextXAlignment.Right
 VersionLabel.TextYAlignment = Enum.TextYAlignment.Bottom
-VersionLabel.Text = "v3.6.0"
+VersionLabel.Text = "v3.7.0"
 VersionLabel.ZIndex = 15
 VersionLabel.Parent = MainFrame
 
@@ -719,6 +722,13 @@ ShortcutsFrame.Size = UDim2.new(1, 0, 1, 0)
 ShortcutsFrame.Visible = false
 ShortcutsFrame.BackgroundTransparency = 1
 ShortcutsFrame.Parent = ButtonsFrame
+
+InfoFrame = Instance.new("Frame")
+InfoFrame.Name = "InfoFrame"
+InfoFrame.Size = UDim2.new(1, 0, 1, 0)
+InfoFrame.Visible = false
+InfoFrame.BackgroundTransparency = 1
+InfoFrame.Parent = ButtonsFrame
 
 -- Left quick panel under profile picture
 do
@@ -952,10 +962,10 @@ do
             moveToUtil(clickBtn, 1); moveToUtil(tpBox, 2)
             moveToUtil(freeBtn, 3);  moveToUtil(fcBox, 4)
             moveToUtil(spdBtn, 5);   moveToUtil(spdBox, 6)
-            moveToUtil(swpBtn, 7);   moveToUtil(swpBox, 8)
-            moveToUtil(tweenBtn, 9)
-            moveToUtil(btoolsBtn, 10)
-            moveToUtil(jumpBtn, 11); moveToUtil(jumpBox, 12)
+            moveToUtil(jumpBtn, 7);  moveToUtil(jumpBox, 8)
+            moveToUtil(swpBtn, 9);   moveToUtil(swpBox, 10)
+            moveToUtil(tweenBtn, 11)
+            moveToUtil(btoolsBtn, 12)
             moveToUtil(tptoolBtn, 13)
             moveToUtil(invisBtn, 14)
             moveToUtil(visBtn, 15)
@@ -1057,6 +1067,7 @@ do
                 ChangelogsFrame.Visible = false
                 ConfigFrame.Visible = false
                 ShortcutsFrame.Visible = false
+                InfoFrame.Visible = false
             elseif cat == "Credits" then
                 ScrollFrame.Visible = false
                 CmdsFrame.Visible = false
@@ -1064,6 +1075,7 @@ do
                 ChangelogsFrame.Visible = false
                 ConfigFrame.Visible = false
                 ShortcutsFrame.Visible = false
+                InfoFrame.Visible = false
             elseif cat == "Config" then
                 ScrollFrame.Visible = false
                 CmdsFrame.Visible = false
@@ -1071,6 +1083,7 @@ do
                 ChangelogsFrame.Visible = false
                 ConfigFrame.Visible = true
                 ShortcutsFrame.Visible = false
+                InfoFrame.Visible = false
             elseif cat == "Changelogs" then
                 ScrollFrame.Visible = false
                 CmdsFrame.Visible = false
@@ -1078,6 +1091,7 @@ do
                 ChangelogsFrame.Visible = true
                 ConfigFrame.Visible = false
                 ShortcutsFrame.Visible = false
+                InfoFrame.Visible = false
             elseif cat == "Shortcuts" then
                 ScrollFrame.Visible = false
                 CmdsFrame.Visible = false
@@ -1085,12 +1099,22 @@ do
                 ChangelogsFrame.Visible = false
                 ConfigFrame.Visible = false
                 ShortcutsFrame.Visible = true
+                InfoFrame.Visible = false
+            elseif cat == "Info" then
+                ScrollFrame.Visible = false
+                CmdsFrame.Visible = false
+                CreditsFrame.Visible = false
+                ChangelogsFrame.Visible = false
+                ConfigFrame.Visible = false
+                ShortcutsFrame.Visible = false
+                InfoFrame.Visible = true
             else
                 CmdsFrame.Visible = false
                 CreditsFrame.Visible = false
                 ChangelogsFrame.Visible = false
                 ConfigFrame.Visible = false
                 ShortcutsFrame.Visible = false
+                InfoFrame.Visible = false
                 ScrollFrame.Visible = true
             end
         end
@@ -1128,7 +1152,7 @@ do
             local jumpBtn = findButtonByText("Jump Power")
             local jumpBox = ScrollFrame:FindFirstChild("JumpPowerBox")
             local tptoolBtn = findButtonByText("TP Tool")
-            local ordered = {clickBtn, tpBox, freeBtn, fcBox, spdBtn, spdBox, swpBtn, swpBox, tweenBtn, btoolsBtn, jumpBtn, jumpBox, tptoolBtn}
+            local ordered = {clickBtn, tpBox, freeBtn, fcBox, spdBtn, spdBox, jumpBtn, jumpBox, swpBtn, swpBox, tweenBtn, btoolsBtn, tptoolBtn}
             local keep = {}
             local order = 1
             for _, inst in ipairs(ordered) do
@@ -1576,6 +1600,115 @@ do
         refreshConfigsUI()
     end
 
+    createInfoWindow = function()
+        if InfoFrame:FindFirstChild("InfoScroll") then return end
+        
+        local scrollFrame = Instance.new("ScrollingFrame")
+        scrollFrame.Name = "InfoScroll"
+        scrollFrame.Size = UDim2.new(1, -10, 1, -10)
+        scrollFrame.Position = UDim2.new(0, 5, 0, 5)
+        scrollFrame.BackgroundTransparency = 1
+        scrollFrame.ScrollBarThickness = 4
+        scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255)
+        scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+        scrollFrame.Parent = InfoFrame
+
+        local listLayout = Instance.new("UIListLayout")
+        listLayout.Padding = UDim.new(0, 10)
+        listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+        listLayout.Parent = scrollFrame
+
+        listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            scrollFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 20)
+        end)
+
+        local infos = {
+            { titleEN = "Fly V1 (Raycast)", titleID = "Terbang V1 (Aman)", descEN = "Safe flying mechanism with auto ground collision detection so you won't get stuck.", descID = "Sistem terbang aman yang punya sensor daratan, dijamin karakter nggak bakal nyangkut di tanah pas dimatikan." },
+            { titleEN = "Fly V3 & Quick Fly", titleID = "Terbang V3 & Cepat", descEN = "Physics-based flying that acts like a jet/plane. Highly maneuverable.", descID = "Terbang menggunakan physics BodyMover, lebih lincah dan mulus kayak pesawat jet." },
+            { titleEN = "Noclip", titleID = "Tembus Tembok", descEN = "Allows you to walk through solid walls and objects like a ghost.", descID = "Bikin karakter lu bisa jalan nembus dinding dan benda padat layaknya hantu." },
+            { titleEN = "Airwalk", titleID = "Jalan di udara", descEN = "Spawns an invisible platform below your feet preventing you from falling.", descID = "Bikin pijakan platform transparan di bawah kaki lu biar lu bisa jalan/berdiri di udara." },
+            { titleEN = "Click TP", titleID = "Klik TP", descEN = "Hold CTRL and Left-Click anywhere on your screen to instantly teleport there.", descID = "Tahan tombol CTRL lalu klik kiri di mana aja, karakter lu bakal langsung teleport ke titik itu." },
+            { titleEN = "Tween TP", titleID = "Tween TP", descEN = "Teleports smoothly avoiding anti-cheats instead of instantly blinking.", descID = "Teleport secara perlahan (terbang lurus) menuju target biar nggak gampang terdeteksi anti-cheat." },
+            { titleEN = "Save WP", titleID = "Simpan Lokasi", descEN = "Saves your current location so you can easily teleport back anytime.", descID = "Nyimpen posisi lu berdiri saat ini, biar nanti gampang teleport balik ke tempat yang sama." },
+            { titleEN = "Jump Power & Speed", titleID = "Jump Power & Kecepatan", descEN = "Adjust how fast and high you can go. Can be configured in the Utility Tab.", descID = "Bisa diatur di Tab Utility buat ngubah seberapa kencang lari lu dan setinggi apa lu bisa lompat." },
+            { titleEN = "ESP & ESP Team", titleID = "ESP & ESP Team", descEN = "Wallhack that highlights all players (or team only) displaying their names, health, and distance.", descID = "Fitur wallhack (tembus dinding) yang nampilin nama, darah, dan jarak pemain lain/tim." },
+            { titleEN = "Hitbox Expander", titleID = "Hitbox", descEN = "Expands the hitbox (HumanoidRootPart) of all other players making it extremely easy to hit them.", descID = "Membesarkan ukuran hitbox (badan) pemain lain, bikin serangan/tembakan lu pasti kena walau meleset dikit." },
+            { titleEN = "Aimbot (Silent Aim)", titleID = "Aimbot", descEN = "Automatically locks your camera to the closest player. Best used for shooting games.", descID = "Otomatis ngunci arah kamera lu ke pemain terdekat. Sangat cocok buat main game tembak-tembakan FPS." },
+            { titleEN = "Part Scanner", titleID = "Part Scanner", descEN = "Scans all parts in the map and allows you to Unanchor, Yeet, or Bring them.", descID = "Mendeteksi semua objek/part di map, lalu ngasih lu opsi buat Unanchor, Yeet (buang ke void), atau Bring (tarik ke lu)." },
+            { titleEN = "Bring Part & Unanchor", titleID = "Tarik Objek & Lepas Kunci", descEN = "Pulls all unanchored parts towards you like a blackhole. Turn on Unanchor to detach buildings.", descID = "Naruh lubang hitam di karakter lu buat narik semua part. Gunakan Unanchor untuk ngelepas bangunan yang menempel." },
+            { titleEN = "BTools", titleID = "BTools", descEN = "Gives you creator building tools to delete unanchored parts from the map.", descID = "Ngasi lu item alat bangun (Hammer) biar lu bisa ngapus objek/bangunan orang lain di map." },
+            { titleEN = "Fling (Kick)", titleID = "Putar Badan", descEN = "Glitch your character physics to forcefully knock other players into the sky.", descID = "Nge-glitch physics lu, jadi kalau lu nabrak orang lain, orang itu bakal mental ke bulan/terpental sangat jauh." },
+            { titleEN = "Fling Aura & Orbit", titleID = "Fling Aura & Orbit", descEN = "Aura automatically kicks nearby players. Orbit rapidly spins around a target.", descID = "Aura menendang pemain yang ngedeket otomatis. Orbit ngelilingin target dengan cepat biar dia kena tabrak fling." },
+            { titleEN = "Spectate", titleID = "Penonton", descEN = "Switch your camera to view what another player is currently seeing/doing.", descID = "Pindah sudut pandang kamera lu ke pemain lain buat mantau layar/aktivitas dia diem-diem." },
+            { titleEN = "Free Cam", titleID = "Kamera Bebas", descEN = "Detaches the camera from your body so you can fly around the map invisibly.", descID = "Ngelepas kamera lu dari karakter, jadi lu bisa jalan-jalan liat map pake kamera tanpa ketahuan." },
+            { titleEN = "Anti Lag", titleID = "Anti Lag", descEN = "Lowers graphics, water physics, and lighting to massively boost your FPS.", descID = "Nurunin setingan grafik, menghapus tekstur air, dan bayangan buat ngurangin lag secara drastis." },
+            { titleEN = "Server Hop", titleID = "Pindah Server", descEN = "Quickly scans for a different server lobby and teleports you into it.", descID = "Cari lobi server lain yang beda ping/pemain, lalu otomatis mindahin lu ke server itu." },
+            { titleEN = "Clone Avatar", titleID = "Kloning Avatar", descEN = "Copies the outfits, hats, and accessories of another player instantly.", descID = "Nge-copy dan makaian kostum, aksesoris, serta avatar pemain lain langsung di karakter lu." },
+            { titleEN = "Emote Bypass", titleID = "Emote Bypass", descEN = "Plays specific internal Roblox dances/emotes regardless of game settings.", descID = "Maksa muter animasi joget (dance) tersembunyi yang biasanya dilarang di game tersebut." },
+            { titleEN = "Chat Logs", titleID = "Chat Logs", descEN = "Saves everyone's chat messages, even if they delete them from the chatbox.", descID = "Nyimpen jejak chat semua pemain. Kalau ada yang ngirim pesan terus dihapus/nge-clear chat, bakal tetep kebaca di sini." },
+            { titleEN = "DEX Explorer", titleID = "DEX Explorer", descEN = "An advanced tool used to inspect the internal files and scripts of the game.", descID = "Alat khusus sekelas developer (Dark Dex) buat membongkar isi file map dan script yang ada di dalam game." },
+            { titleEN = "Command Bar", titleID = "Command Bar", descEN = "Draggable bar at the bottom. Type commands like ;speed 100, ;fly, ;jp 500.", descID = "Kolom perintah di bawah layar. Ketik perintah chat kayak ;speed 100, ;fly, atau ;hitbox 50." }
+        }
+
+        for idx, info in ipairs(infos) do
+            local itemFrame = Instance.new("Frame")
+            itemFrame.Name = "InfoItem"
+            itemFrame.Size = UDim2.new(1, -10, 0, 100)
+            itemFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+            itemFrame.BorderSizePixel = 0
+            itemFrame.LayoutOrder = idx
+            itemFrame.Parent = scrollFrame
+
+            local corner = Instance.new("UICorner")
+            corner.CornerRadius = UDim.new(0, 8)
+            corner.Parent = itemFrame
+
+            local titleLbl = Instance.new("TextLabel")
+            titleLbl.Size = UDim2.new(1, -20, 0, 30)
+            titleLbl.Position = UDim2.new(0, 10, 0, 5)
+            titleLbl.BackgroundTransparency = 1
+            titleLbl.Font = Enum.Font.GothamBold
+            titleLbl.TextSize = 16
+            titleLbl.TextColor3 = Color3.fromRGB(255, 80, 80)
+            titleLbl.TextXAlignment = Enum.TextXAlignment.Left
+            titleLbl.Text = currentLanguage == "EN" and info.titleEN or info.titleID
+            titleLbl.Parent = itemFrame
+
+            local descLbl = Instance.new("TextLabel")
+            descLbl.Size = UDim2.new(1, -20, 1, -40)
+            descLbl.Position = UDim2.new(0, 10, 0, 35)
+            descLbl.BackgroundTransparency = 1
+            descLbl.Font = Enum.Font.Gotham
+            descLbl.TextSize = 13
+            descLbl.TextColor3 = Color3.fromRGB(220, 220, 220)
+            descLbl.TextXAlignment = Enum.TextXAlignment.Left
+            descLbl.TextYAlignment = Enum.TextYAlignment.Top
+            descLbl.TextWrapped = true
+            descLbl.Text = currentLanguage == "EN" and info.descEN or info.descID
+            descLbl.Parent = itemFrame
+
+            table.insert(translatableElements, {
+                element = titleLbl,
+                customUpdate = function()
+                    titleLbl.Text = currentLanguage == "EN" and info.titleEN or info.titleID
+                end
+            })
+
+            table.insert(translatableElements, {
+                element = descLbl,
+                customUpdate = function()
+                    descLbl.Text = currentLanguage == "EN" and info.descEN or info.descID
+                end
+            })
+            
+            -- Adjust height
+            local tService = game:GetService("TextService")
+            local bounds = tService:GetTextSize(descLbl.Text, descLbl.TextSize, descLbl.Font, Vector2.new(280, 9999))
+            itemFrame.Size = UDim2.new(1, -10, 0, math.max(80, 45 + bounds.Y))
+        end
+    end
+
     local createShortcutsWindow = function()
         if ShortcutsFrame:FindFirstChild("ShortcutsScroll") then return end
         
@@ -1653,6 +1786,7 @@ do
         listLayout.Parent = scrollFrame
 
         local changelogs = {
+            { title = "v3.7.0 (Premium Combat & UI Update)", key = "CL_370" },
             { title = "v3.6.0 (Shortcuts & UX Update)", key = "CL_360" },
             { title = "v3.5.0 (Quick Tools Update)", key = "CL_350" },
             { title = "v3.4.0 (Spectate & Bug Fixes)", key = "CL_340" },
@@ -1787,6 +1921,12 @@ do
     btnShortcuts.MouseButton1Click:Connect(function()
         createShortcutsWindow()
         setCategory("Shortcuts")
+    end)
+    
+    local btnInfo = makeSmallBtn("Info", 9)
+    btnInfo.MouseButton1Click:Connect(function()
+        createInfoWindow()
+        setCategory("Info")
     end)
 
     local btnChangelogs = makeSmallBtn("Changelogs", 9)
@@ -6888,6 +7028,86 @@ AntiFlingBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ===================================
+-- HITBOX EXPANDER & SILENT AIM
+-- ===================================
+HitboxBtn = createButton("", "Hitbox")
+HitboxBtn.Name = "HitboxBtn"
+hitboxActive = false
+hitboxConnection = nil
+hitboxSize = 20
+
+function toggleHitbox(state)
+    if state == nil then hitboxActive = not hitboxActive else hitboxActive = state end
+    setButtonActive(HitboxBtn, hitboxActive)
+    
+    if hitboxActive then
+        hitboxConnection = RunService.RenderStepped:Connect(function()
+            for _, p in ipairs(game.Players:GetPlayers()) do
+                if p ~= Player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                    local hrp = p.Character.HumanoidRootPart
+                    hrp.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+                    hrp.Transparency = 0.7
+                    hrp.BrickColor = BrickColor.new("Bright red")
+                    hrp.Material = Enum.Material.Neon
+                    hrp.CanCollide = false
+                end
+            end
+        end)
+    else
+        if hitboxConnection then hitboxConnection:Disconnect() hitboxConnection = nil end
+        for _, p in ipairs(game.Players:GetPlayers()) do
+            if p ~= Player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                local hrp = p.Character.HumanoidRootPart
+                hrp.Size = Vector3.new(2, 2, 1)
+                hrp.Transparency = 1
+                hrp.CanCollide = false
+            end
+        end
+    end
+end
+HitboxBtn.MouseButton1Click:Connect(function() toggleHitbox() end)
+
+AimbotBtn = createButton("", "Aimbot")
+AimbotBtn.Name = "AimbotBtn"
+aimbotActive = false
+aimbotConnection = nil
+
+function toggleAimbot(state)
+    if state == nil then aimbotActive = not aimbotActive else aimbotActive = state end
+    setButtonActive(AimbotBtn, aimbotActive)
+    
+    if aimbotActive then
+        aimbotConnection = RunService.RenderStepped:Connect(function()
+            local char = Player.Character
+            if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+            local myPos = char.HumanoidRootPart.Position
+            local cam = Workspace.CurrentCamera
+            
+            local closestPlayer = nil
+            local shortestDistance = math.huge
+            
+            for _, p in ipairs(game.Players:GetPlayers()) do
+                if p ~= Player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
+                    local pos = p.Character.HumanoidRootPart.Position
+                    local dist = (pos - myPos).Magnitude
+                    if dist < shortestDistance then
+                        shortestDistance = dist
+                        closestPlayer = p
+                    end
+                end
+            end
+            
+            if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                cam.CFrame = CFrame.new(cam.CFrame.Position, closestPlayer.Character.HumanoidRootPart.Position)
+            end
+        end)
+    else
+        if aimbotConnection then aimbotConnection:Disconnect() aimbotConnection = nil end
+    end
+end
+AimbotBtn.MouseButton1Click:Connect(function() toggleAimbot() end)
+
+-- ===================================
 -- FLING AURA & ORBIT FLING (RUSUH COMBO)
 -- ===================================
 FlingAuraBtn = createButton("", "Fling Aura")
@@ -7356,6 +7576,7 @@ setupAnimator(humanoid)
 
 local flying = false
 local flySpeed = 2
+local currentFlySpeed = 2
 local pressed = {Up=false,Down=false,Left=false,Right=false}
 local moving = false
 local savedOrientation = nil
@@ -7418,6 +7639,7 @@ function enableFly()
     flying = true
     DPad.Visible = true
     humanoid.PlatformStand = true
+    noclipActive = true
     noclip(true)
     Workspace.Gravity = 0
     
@@ -7435,6 +7657,7 @@ function disableFly()
     DPad.Visible = false
     humanoid.PlatformStand = false
     if not blackHoleActive then
+        noclipActive = false
         noclip(false)
     end
     Workspace.Gravity = oldGravity
@@ -7443,7 +7666,21 @@ function disableFly()
     if root then
         root.AssemblyLinearVelocity = Vector3.zero
         root.AssemblyAngularVelocity = Vector3.zero
-        root.CFrame = root.CFrame + Vector3.new(0, 1.5, 0)
+        
+        local rayOrigin = root.Position
+        local rayDirection = Vector3.new(0, -500, 0)
+        local raycastParams = RaycastParams.new()
+        raycastParams.FilterDescendantsInstances = {Player.Character, Workspace.CurrentCamera}
+        raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+        
+        local rayResult = Workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+        if rayResult then
+            local hip = humanoid.HipHeight > 0 and humanoid.HipHeight or 2
+            root.CFrame = CFrame.new(rayResult.Position + Vector3.new(0, hip + (root.Size.Y / 2) + 0.1, 0))
+        else
+            root.CFrame = root.CFrame + Vector3.new(0, 1.5, 0)
+        end
+        
         pcall(function() humanoid:ChangeState(Enum.HumanoidStateType.GettingUp) end)
     end
     
@@ -7467,6 +7704,8 @@ UserInputService.InputBegan:Connect(function(input, gpe)
 	if input.KeyCode == Enum.KeyCode.S then pressed.Down = true end
 	if input.KeyCode == Enum.KeyCode.A then pressed.Left = true end
 	if input.KeyCode == Enum.KeyCode.D then pressed.Right = true end
+	if input.KeyCode == Enum.KeyCode.Space then pressed.Space = true end
+	if input.KeyCode == Enum.KeyCode.LeftControl then pressed.Ctrl = true end
 end)
 
 UserInputService.InputEnded:Connect(function(input)
@@ -7474,6 +7713,8 @@ UserInputService.InputEnded:Connect(function(input)
 	if input.KeyCode == Enum.KeyCode.S then pressed.Down = false end
 	if input.KeyCode == Enum.KeyCode.A then pressed.Left = false end
 	if input.KeyCode == Enum.KeyCode.D then pressed.Right = false end
+	if input.KeyCode == Enum.KeyCode.Space then pressed.Space = false end
+	if input.KeyCode == Enum.KeyCode.LeftControl then pressed.Ctrl = false end
 end)
 
 RunService.Heartbeat:Connect(function(dt)
@@ -7491,15 +7732,23 @@ RunService.Heartbeat:Connect(function(dt)
     if pressed.Down then dir -= lookVec end
     if pressed.Left then dir -= rightVec end
     if pressed.Right then dir += rightVec end
+    if pressed.Space then dir += Vector3.new(0, 1, 0) end
+    if pressed.Ctrl then dir -= Vector3.new(0, 1, 0) end
 
     if dir.Magnitude > 0 then
         moving = true
-        frozenPos = root.Position + dir.Unit * flySpeed * dt * 60
+        if pressed.Up then
+            currentFlySpeed = math.min(currentFlySpeed + (dt * 3), flySpeed * 3)
+        else
+            currentFlySpeed = flySpeed
+        end
+        frozenPos = root.Position + dir.Unit * currentFlySpeed * dt * 60
         root.CFrame = CFrame.new(frozenPos, frozenPos + lookVec)
     else
         moving = false
-        if frozenPos and savedOrientation then
-            root.CFrame = CFrame.new(frozenPos) * savedOrientation
+        currentFlySpeed = flySpeed
+        if frozenPos then
+            root.CFrame = CFrame.new(frozenPos, frozenPos + lookVec)
         end
     end
 
@@ -8762,6 +9011,7 @@ EmoteBtn = createButton("", "Emotes")
 CloneAvatarBtn = createButton("", "Clone Avatar")
 FlyV2Btn = createButton("", "Fly V2")
 FlyV3Btn = createButton("", "Quick Tools")
+RealFlyV3Btn = createButton("", "Fly V3")
 ServerHopBtn = createButton("", "Server Hop")
 DexBtn = createButton("", "Dex Explorer")
 
@@ -12062,21 +12312,21 @@ do
     MiniContent.BackgroundTransparency = 1
     
     local buttonsData = {
-        {name = "MiniFlyV3Btn", text = "Fly V3: OFF  [E]"},
         {name = "MiniBringBtn", text = "Bring Part: OFF"},
-        {name = "MiniScannerBtn", text = "Part Scanner: OFF"},
-        {name = "MiniNoclipBtn", text = "Noclip: OFF"},
+        {name = "MiniEspBtn", text = "ESP: OFF"},
+        {name = "MiniFlingAuraBtn", text = "Fling Aura: OFF"},
         {name = "MiniFlyTapBtn", text = "Fly (Mobile): OFF"},
+        {name = "MiniFlyV3Btn", text = "Fly PC: OFF  [E]"},
+        {name = "MiniGodBtn", text = "HP: 100"},
+        {name = "MiniNoclipBtn", text = "Noclip: OFF"},
+        {name = "MiniOrbitFlingBtn", text = "Orbit Fling: OFF"},
+        {name = "MiniScannerBtn", text = "Part Scanner: OFF"},
+        {name = "MiniPlayerListBtn", text = "Player List: OFF"},
+        {name = "MiniRefreshBtn", text = "Refresh Char"},
+        {name = "MiniSpectateBtn", text = "Spectate: OFF"},
         {name = "MiniUnanchorV1Btn", text = "Unanchor v1"},
         {name = "MiniUnanchorV2Btn", text = "Unanchor v2: OFF"},
-        {name = "MiniSpectateBtn", text = "Spectate: OFF"},
-        {name = "MiniRefreshBtn", text = "Refresh Char"},
-        {name = "MiniPlayerListBtn", text = "Player List: OFF"},
-        {name = "MiniEspBtn", text = "ESP: OFF"},
-        {name = "MiniYeetPartsBtn", text = "Yeet Parts"},
-        {name = "MiniGodBtn", text = "HP: 100"},
-        {name = "MiniFlingAuraBtn", text = "Fling Aura: OFF"},
-        {name = "MiniOrbitFlingBtn", text = "Orbit Fling: OFF"}
+        {name = "MiniYeetPartsBtn", text = "Yeet Parts"}
     }
     
     MiniButtons = {}
@@ -12121,7 +12371,11 @@ do
     MiniFlingAuraBtn = MiniButtons["MiniFlingAuraBtn"]
     MiniOrbitFlingBtn = MiniButtons["MiniOrbitFlingBtn"]
  
-    MiniFlyV3Btn.MouseButton1Click:Connect(function() toggleFlyV3Permission() end)
+    flyV1PCEnabled = false
+    MiniFlyV3Btn.MouseButton1Click:Connect(function()
+        flyV1PCEnabled = not flyV1PCEnabled
+        if not flyV1PCEnabled and flying then disableFly() end
+    end)
     MiniBringBtn.MouseButton1Click:Connect(function() toggleBringPart() end)
     MiniYeetPartsBtn.MouseButton1Click:Connect(function() yeetAllParts() end)
     MiniGodBtn.MouseButton1Click:Connect(function() toggleGodMode() end)
@@ -12279,6 +12533,11 @@ do
         end
     end)
     
+    RealFlyV3Btn.MouseButton1Click:Connect(function()
+        toggleFlyV3()
+        setButtonActive(RealFlyV3Btn, flyV3Active)
+    end)
+    
     isMinPanelMinimized = false
     MiniMinimizeBtn.MouseButton1Click:Connect(function()
         isMinPanelMinimized = not isMinPanelMinimized
@@ -12300,19 +12559,19 @@ do
 
     FlyV3ShortcutConn = UserInputService.InputBegan:Connect(function(input, gpe)
         if gpe then return end
-        if input.KeyCode == Enum.KeyCode.E and flyV3Enabled then
-            toggleFlyV3()
+        if input.KeyCode == Enum.KeyCode.E and flyV1PCEnabled then
+            if flying then disableFly() else enableFly() end
         end
     end)
     
     task.spawn(function()
         while ScreenGui and ScreenGui.Parent and task.wait(0.1) do
             pcall(function()
-                if flyV3Enabled then
-                    MiniFlyV3Btn.Text = "Fly V3: ON  [E]"
+                if flyV1PCEnabled then
+                    MiniFlyV3Btn.Text = "Fly PC: ON  [E]"
                     MiniFlyV3Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
                 else
-                    MiniFlyV3Btn.Text = "Fly V3: OFF  [E]"
+                    MiniFlyV3Btn.Text = "Fly PC: OFF  [E]"
                     MiniFlyV3Btn.TextColor3 = Color3.fromRGB(255, 50, 50)
                 end
                 
@@ -12480,9 +12739,9 @@ task.spawn(function()
     local btns = {
         AirwalkBtn, ESPBtn, ESPTeamBtn, LampBtn, JumpBtn, SpeedBtn, NoclipBtn, FlingBtn, FlyBtn,
         UnanchorBtn, BringPartBtn, AntiLagBtn, SpectatorBtn,
-        AnimasiBtn, CloneAvatarBtn, EmoteBtn, FlyV2Btn, FlyV3Btn, ClickTPBtn, FreeCamBtn, TweenTPBtn, ServerHopBtn, SWPBtn, DexBtn, CmdBarBtn,
+        AnimasiBtn, CloneAvatarBtn, EmoteBtn, FlyV2Btn, FlyV3Btn, RealFlyV3Btn, ClickTPBtn, FreeCamBtn, TweenTPBtn, ServerHopBtn, SWPBtn, DexBtn, CmdBarBtn,
         BToolsBtn, ShiftLockBtn, JumpPowerBtn, TPToolBtn, ChatLogsBtn,
-        WalkFlingBtn, AntiFlingBtn, FlingAuraBtn, OrbitFlingBtn
+        WalkFlingBtn, AntiFlingBtn, FlingAuraBtn, OrbitFlingBtn, HitboxBtn, AimbotBtn
     }
     local list = {}
     for _,b in ipairs(btns) do
@@ -12752,6 +13011,7 @@ local success, err = pcall(function()
         { name = "rusuh", aliases = {}, desc = "Menampilkan kategori Rusuh (trolling).", usage = "" },
         { name = "utility", aliases = {"utils"}, desc = "Menampilkan kategori Utility.", usage = "" },
         { name = "fullbright", aliases = {"fb"}, desc = "Aktifkan/nonaktifkan Fullbright.", usage = "" },
+        { name = "hitbox", aliases = {"hb"}, desc = "Atur ukuran hitbox musuh atau aktifkan/nonaktifkan.", usage = " [ukuran]" },
         { name = "aimbot", aliases = {"aim"}, desc = "Aktifkan/nonaktifkan Aimbot.", usage = "" },
         { name = "invisible", aliases = {"invis"}, desc = "Membuat karakter menjadi transparan (invisible lokal).", usage = "" },
         { name = "visible", aliases = {"vis"}, desc = "Membuat karakter kembali terlihat.", usage = "" },
@@ -13426,6 +13686,20 @@ local success, err = pcall(function()
                 toggleAimbot()
             end
             
+        elseif cmd == "hitbox" or cmd == "hb" then
+            if #args > 0 then
+                local size = tonumber(args[1])
+                if size then
+                    hitboxSize = size
+                    if hitboxActive then
+                        toggleHitbox(false)
+                        toggleHitbox(true)
+                    end
+                end
+            else
+                if toggleHitbox then toggleHitbox() end
+            end
+            
         elseif cmd == "players" or cmd == "playerlist" or cmd == "plist" then
             if togglePlayerListWindow then
                 togglePlayerListWindow()
@@ -13500,6 +13774,43 @@ local success, err = pcall(function()
     CmdBarFrame.Active = true
     CmdBarFrame.Parent = CmdBarGui
     CmdBarFrame:GetPropertyChangedSignal("Visible"):Connect(updateExternalCursorVisibility)
+    
+    -- Make Command Bar Draggable
+    local dragging = false
+    local dragInput = nil
+    local dragStart = nil
+    local startPos = nil
+
+    local function updateDrag(input)
+        local delta = input.Position - dragStart
+        CmdBarFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+
+    CmdBarFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = CmdBarFrame.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    CmdBarFrame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            updateDrag(input)
+        end
+    end)
 
     local cmdCorner = Instance.new("UICorner")
     cmdCorner.CornerRadius = UDim.new(0, 10)
