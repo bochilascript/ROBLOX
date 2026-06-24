@@ -61,6 +61,7 @@ local LangDict = {
     ["Lampu"] = { EN = "Lampu", ID = "Lampu" },
     ["Fly V2"] = { EN = "Fly V2", ID = "Fly V2" },
     ["Fly V3"] = { EN = "Fly V3", ID = "Fly V3" },
+    ["Max Zoom"] = { EN = "Max Zoom", ID = "Max Zoom" },
     ["Quick Tools"] = { EN = "Quick Tools", ID = "Quick Tools" },
     ["Animasi"] = { EN = "Animasi", ID = "Animasi" },
     ["Emotes"] = { EN = "Emotes", ID = "Emote" },
@@ -588,7 +589,7 @@ local userId = Player.UserId
 
 function loadThumbnailWithFallbacks()
     local success1, result1 = pcall(function()
-        return game:GetService("Players"):GetUserThumbnailAsync(userId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
+        return "rbxthumb://type=AvatarHeadShot&id=" .. tostring(userId) .. "&w=420&h=420"
     end)
     
     if success1 and result1 and result1 ~= "" then
@@ -3770,11 +3771,7 @@ local function promptClone()
                     img.Parent = row
                     Instance.new("UICorner", img).CornerRadius = UDim.new(0, 6)
                     
-                    task.spawn(function()
-                        pcall(function()
-                            img.Image = game.Players:GetUserThumbnailAsync(p.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size48x48)
-                        end)
-                    end)
+                    img.Image = "rbxthumb://type=AvatarHeadShot&id=" .. tostring(p.UserId) .. "&w=48&h=48"
                     
                     local nameLabel = Instance.new("TextLabel")
                     nameLabel.Size = UDim2.new(0.5, -40, 0, 18)
@@ -7108,6 +7105,37 @@ end
 AimbotBtn.MouseButton1Click:Connect(function() toggleAimbot() end)
 
 -- ===================================
+-- MAX ZOOM BYPASS
+-- ===================================
+MaxZoomBtn = nil
+maxZoomActive = false
+maxZoomConnection = nil
+
+function toggleMaxZoom(state)
+    if state == nil then maxZoomActive = not maxZoomActive else maxZoomActive = state end
+    if MaxZoomBtn then
+        setButtonActive(MaxZoomBtn, maxZoomActive)
+    end
+    
+    if maxZoomActive then
+        Player.CameraMaxZoomDistance = 100000
+        if not maxZoomConnection then
+            maxZoomConnection = RunService.RenderStepped:Connect(function()
+                if Player.CameraMaxZoomDistance ~= 100000 then
+                    Player.CameraMaxZoomDistance = 100000
+                end
+            end)
+        end
+    else
+        if maxZoomConnection then
+            maxZoomConnection:Disconnect()
+            maxZoomConnection = nil
+        end
+        Player.CameraMaxZoomDistance = 128
+    end
+end
+
+-- ===================================
 -- FLING AURA & ORBIT FLING (RUSUH COMBO)
 -- ===================================
 FlingAuraBtn = createButton("", "Fling Aura")
@@ -7550,9 +7578,54 @@ local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local root = character:WaitForChild("HumanoidRootPart")
 
+local function resolveCatalogAnimationId(assetId)
+    local finalId = "rbxassetid://" .. tostring(assetId)
+    
+    -- Try game:GetObjects first
+    local ok, objs = pcall(function()
+        return game:GetObjects("rbxassetid://" .. tostring(assetId))
+    end)
+    
+    if ok and objs and objs[1] then
+        local obj = objs[1]
+        if obj:IsA("Animation") then
+            return obj.AnimationId
+        else
+            local subAnim = obj:FindFirstChildOfClass("Animation") or obj:FindFirstChildOfClass("Animation", true)
+            if subAnim then
+                return subAnim.AnimationId
+            end
+        end
+    end
+    
+    -- Fallback: Use HttpGet to query asset delivery API and parse the true AnimationId from the XML
+    local okHttp, content = pcall(function()
+        return game:HttpGet("https://assetdelivery.roblox.com/v1/asset/?id=" .. tostring(assetId))
+    end)
+    
+    if okHttp and content then
+        local urlPattern = "<url>(.-)</url>"
+        local foundUrl = content:match(urlPattern)
+        if foundUrl then
+            foundUrl = foundUrl:gsub("&amp;", "&")
+            if foundUrl:find("id=%d+") or foundUrl:find("rbxassetid://%d+") or foundUrl:find("roblox.com/asset") then
+                return foundUrl
+            end
+        end
+        
+        local idPattern = "id=(%d+)"
+        local foundId = content:match(idPattern)
+        if foundId then
+            return "rbxassetid://" .. foundId
+        end
+    end
+    
+    return finalId
+end
+
 local animations = {
-    Idle = 100681208320300,
-    Fly = 73980801925168,
+    Idle = 100132174228207,
+    Fly = 88952942370104,
 }
 
 local animTracks = {}
@@ -7564,9 +7637,9 @@ function setupAnimator(hum)
 
     for name, id in pairs(animations) do
         local anim = Instance.new("Animation")
-        anim.AnimationId = "rbxassetid://" .. id
+        anim.AnimationId = resolveCatalogAnimationId(id)
         local track = animator:LoadAnimation(anim)
-        track.Priority = Enum.AnimationPriority.Action
+        track.Priority = Enum.AnimationPriority.Action4
         track.Looped = true
         animTracks[name] = track
     end
@@ -7640,7 +7713,7 @@ function enableFly()
     DPad.Visible = true
     humanoid.PlatformStand = true
     noclipActive = true
-    noclip(true)
+    if enableNoclip then enableNoclip() else noclip(true) end
     Workspace.Gravity = 0
     
     setButtonActive(FlyBtn, true)
@@ -7658,7 +7731,7 @@ function disableFly()
     humanoid.PlatformStand = false
     if not blackHoleActive then
         noclipActive = false
-        noclip(false)
+        if disableNoclip then disableNoclip() else noclip(false) end
     end
     Workspace.Gravity = oldGravity
     frozenPos = nil
@@ -8029,6 +8102,8 @@ function ForcePart(v)
 		if v:GetAttribute("ScannerStopped") then return end
 		if v:FindFirstChild("BringAlign") then return end
 
+		v.CanCollide = false
+
 		-- Teleport part close to player once to claim network ownership from any distance!
 		local char = LocalPlayer.Character
 		local hrp = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
@@ -8045,8 +8120,6 @@ function ForcePart(v)
 		if v:FindFirstChild("BringAttachment") then v:FindFirstChild("BringAttachment"):Destroy() end
 		if v:FindFirstChild("BringAlign") then v:FindFirstChild("BringAlign"):Destroy() end
 		if v:FindFirstChild("BringTorque") then v:FindFirstChild("BringTorque"):Destroy() end
-
-		v.CanCollide = false
 		local Torque = Instance.new("Torque", v)
 		Torque.Name = "BringTorque"
 		Torque.Torque = Vector3.new(100000, 100000, 100000)
@@ -9014,6 +9087,9 @@ FlyV3Btn = createButton("", "Quick Tools")
 RealFlyV3Btn = createButton("", "Fly V3")
 ServerHopBtn = createButton("", "Server Hop")
 DexBtn = createButton("", "Dex Explorer")
+MaxZoomBtn = createButton("", "Max Zoom")
+MaxZoomBtn.Name = "MaxZoomBtn"
+MaxZoomBtn.MouseButton1Click:Connect(function() toggleMaxZoom() end)
 
 CmdBarBtn = createButton("", "Command Bar")
 CmdBarBtn.MouseButton1Click:Connect(function()
@@ -10025,50 +10101,7 @@ SpectatorBtn.MouseButton1Click:Connect(launchSpectator)
 
 ServerHopBtn.MouseButton1Click:Connect(serverhop)
 
-local function resolveCatalogAnimationId(assetId)
-    local finalId = "rbxassetid://" .. tostring(assetId)
-    
-    -- Try game:GetObjects first
-    local ok, objs = pcall(function()
-        return game:GetObjects("rbxassetid://" .. tostring(assetId))
-    end)
-    
-    if ok and objs and objs[1] then
-        local obj = objs[1]
-        if obj:IsA("Animation") then
-            return obj.AnimationId
-        else
-            local subAnim = obj:FindFirstChildOfClass("Animation") or obj:FindFirstChildOfClass("Animation", true)
-            if subAnim then
-                return subAnim.AnimationId
-            end
-        end
-    end
-    
-    -- Fallback: Use HttpGet to query asset delivery API and parse the true AnimationId from the XML
-    local okHttp, content = pcall(function()
-        return game:HttpGet("https://assetdelivery.roblox.com/v1/asset/?id=" .. tostring(assetId))
-    end)
-    
-    if okHttp and content then
-        local urlPattern = "<url>(.-)</url>"
-        local foundUrl = content:match(urlPattern)
-        if foundUrl then
-            foundUrl = foundUrl:gsub("&amp;", "&")
-            if foundUrl:find("id=%d+") or foundUrl:find("rbxassetid://%d+") or foundUrl:find("roblox.com/asset") then
-                return foundUrl
-            end
-        end
-        
-        local idPattern = "id=(%d+)"
-        local foundId = content:match(idPattern)
-        if foundId then
-            return "rbxassetid://" .. foundId
-        end
-    end
-    
-    return finalId
-end
+-- resolveCatalogAnimationId moved to top to prevent initialization order issues with setupAnimator
 
 function launchAnimasi()
     local success, err = pcall(function()
@@ -11790,6 +11823,11 @@ function launchFlyV2()
 	local nowe = false
 	local noclipConnectionFly2 = nil
 
+    local flyV1CustomIdleId = "102256275785620"
+    local flyV1CustomFlyId = "100132174228207"
+    local flyV1IdleTrack = nil
+    local flyV1FlyTrack = nil
+
 	game:GetService("StarterGui"):SetCore("SendNotification", { 
 		Title = "GUI TERBANG V3";
 		Text = "by Mannn";
@@ -11808,6 +11846,9 @@ function launchFlyV2()
 				noclipConnectionFly2:Disconnect()
 				noclipConnectionFly2 = nil
 			end
+			
+			if flyV1IdleTrack then pcall(function() flyV1IdleTrack:Stop() end) end
+			if flyV1FlyTrack then pcall(function() flyV1FlyTrack:Stop() end) end
 
 			speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing,true)
 			speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown,true)
@@ -11864,6 +11905,70 @@ tpwalking = true
 			for i,v in next, Hum:GetPlayingAnimationTracks() do
 				v:AdjustSpeed(0)
 			end
+			
+			-- Load custom Fly V1 animations
+			task.spawn(function()
+				local animator = Hum:FindFirstChildOfClass("Animator")
+				if Hum and not animator then
+					animator = Instance.new("Animator")
+					animator.Parent = Hum
+				end
+				if animator then
+					local idleUrl = resolveCatalogAnimationId(flyV1CustomIdleId)
+					local flyUrl = resolveCatalogAnimationId(flyV1CustomFlyId)
+					
+					if idleUrl == "rbxassetid://" .. flyV1CustomIdleId then
+					    game:GetService("StarterGui"):SetCore("SendNotification", {Title="Animasi Info", Text="Gagal resolve ID Idle dari catalog. Pastikan itu ID Animasi yg valid."})
+					end
+					if flyUrl == "rbxassetid://" .. flyV1CustomFlyId then
+					    game:GetService("StarterGui"):SetCore("SendNotification", {Title="Animasi Info", Text="Gagal resolve ID Fly dari catalog. Pastikan itu ID Animasi yg valid."})
+					end
+
+					if idleUrl and nowe then
+						local anim = Instance.new("Animation")
+						anim.AnimationId = idleUrl
+						flyV1IdleTrack = animator:LoadAnimation(anim)
+						flyV1IdleTrack.Priority = Enum.AnimationPriority.Action4
+						flyV1IdleTrack:Play(0.1)
+					end
+					if flyUrl and nowe then
+						local anim = Instance.new("Animation")
+						anim.AnimationId = flyUrl
+						flyV1FlyTrack = animator:LoadAnimation(anim)
+						flyV1FlyTrack.Priority = Enum.AnimationPriority.Action4
+					end
+					
+					-- Sync animation loop
+					while nowe do
+						task.wait(0.1)
+						if animator then
+						    for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
+						        if track ~= flyV1IdleTrack and track ~= flyV1FlyTrack then
+						            track:Stop()
+						        end
+						    end
+						end
+						
+						if not flyV1IdleTrack or not flyV1FlyTrack then continue end
+						
+						local isMoving = false
+						local bv = Char:FindFirstChildOfClass("BodyVelocity", true)
+						if bv then
+						    isMoving = (bv.Velocity.Magnitude > 1)
+						else
+						    isMoving = (Char.PrimaryPart and Char.PrimaryPart.AssemblyLinearVelocity.Magnitude > 2)
+						end
+						
+						if isMoving then
+							if not flyV1FlyTrack.IsPlaying then flyV1FlyTrack:Play(0.2) end
+							if flyV1IdleTrack.IsPlaying then flyV1IdleTrack:Stop(0.2) end
+						else
+							if not flyV1IdleTrack.IsPlaying then flyV1IdleTrack:Play(0.2) end
+							if flyV1FlyTrack.IsPlaying then flyV1FlyTrack:Stop(0.2) end
+						end
+					end
+				end
+			end)
 			speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing,false)
 			speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown,false)
 			speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Flying,false)
@@ -12326,7 +12431,7 @@ do
         {name = "MiniSpectateBtn", text = "Spectate: OFF"},
         {name = "MiniUnanchorV1Btn", text = "Unanchor v1"},
         {name = "MiniUnanchorV2Btn", text = "Unanchor v2: OFF"},
-        {name = "MiniYeetPartsBtn", text = "Yeet Parts"}
+        {name = "MiniYeetPartsBtn", text = "Yeet All Parts"}
     }
     
     MiniButtons = {}
@@ -12701,6 +12806,17 @@ do
                 velocity -= Vector3.yAxis
             end
             
+            -- Mobile Support (Thumbstick / MoveDirection)
+            local isPC = UserInputService:IsKeyDown(Enum.KeyCode.W) or UserInputService:IsKeyDown(Enum.KeyCode.S) or UserInputService:IsKeyDown(Enum.KeyCode.A) or UserInputService:IsKeyDown(Enum.KeyCode.D)
+            if not isPC then
+                local hum = char and char:FindFirstChild("Humanoid")
+                if hum and hum.MoveDirection.Magnitude > 0 then
+                    local localMove = camCFrame:VectorToObjectSpace(hum.MoveDirection)
+                    velocity += (camCFrame.LookVector * -localMove.Z) + (camCFrame.RightVector * localMove.X)
+                    rotation *= CFrame.Angles(math.rad(-40 * -localMove.Z), 0, math.rad(-40 * localMove.X))
+                end
+            end
+            
             local tweenInfo = TweenInfo.new(0.5)
             TweenService:Create(bodyVelocity, tweenInfo, { Velocity = velocity * 50 * 4.5 }):Play()
             bodyVelocity.Parent = primaryPart
@@ -12741,7 +12857,7 @@ task.spawn(function()
         UnanchorBtn, BringPartBtn, AntiLagBtn, SpectatorBtn,
         AnimasiBtn, CloneAvatarBtn, EmoteBtn, FlyV2Btn, FlyV3Btn, RealFlyV3Btn, ClickTPBtn, FreeCamBtn, TweenTPBtn, ServerHopBtn, SWPBtn, DexBtn, CmdBarBtn,
         BToolsBtn, ShiftLockBtn, JumpPowerBtn, TPToolBtn, ChatLogsBtn,
-        WalkFlingBtn, AntiFlingBtn, FlingAuraBtn, OrbitFlingBtn, HitboxBtn, AimbotBtn
+        WalkFlingBtn, AntiFlingBtn, FlingAuraBtn, OrbitFlingBtn, HitboxBtn, AimbotBtn, MaxZoomBtn
     }
     local list = {}
     for _,b in ipairs(btns) do
@@ -13016,7 +13132,8 @@ local success, err = pcall(function()
         { name = "invisible", aliases = {"invis"}, desc = "Membuat karakter menjadi transparan (invisible lokal).", usage = "" },
         { name = "visible", aliases = {"vis"}, desc = "Membuat karakter kembali terlihat.", usage = "" },
         { name = "fps", aliases = {"fpsmonitor"}, desc = "Tampilkan/sembunyikan monitor FPS.", usage = "" },
-        { name = "chatlogs", aliases = {"logs", "clogs", "clog"}, desc = "Menampilkan/menyembunyikan catatan chat (Chat Logs).", usage = "" }
+        { name = "chatlogs", aliases = {"logs", "clogs", "clog"}, desc = "Menampilkan/menyembunyikan catatan chat (Chat Logs).", usage = "" },
+        { name = "maxzoom", aliases = {"mz"}, desc = "Bypass batas jarak zoom kamera.", usage = "" }
     }
 
     table.sort(commandsList, function(a, b)
@@ -13684,6 +13801,11 @@ local success, err = pcall(function()
         elseif cmd == "aimbot" or cmd == "aim" then
             if toggleAimbot then
                 toggleAimbot()
+            end
+            
+        elseif cmd == "maxzoom" or cmd == "mz" then
+            if toggleMaxZoom then
+                toggleMaxZoom()
             end
             
         elseif cmd == "hitbox" or cmd == "hb" then
