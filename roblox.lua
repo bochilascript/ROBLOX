@@ -4117,7 +4117,7 @@ function createPlayerRow(targetPlayer, index)
     dispLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     dispLabel.TextXAlignment = Enum.TextXAlignment.Left
     
-    local prefix = "âš« "
+    local prefix = "⚫ "
     pcall(function()
         local lp = game:GetService("Players").LocalPlayer
         local lpPos = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") and lp.Character.HumanoidRootPart.Position
@@ -4125,9 +4125,9 @@ function createPlayerRow(targetPlayer, index)
         if tHrp then
             if lpPos then
                 local dist = math.floor((lpPos - tHrp.Position).Magnitude)
-                prefix = "ðŸŸ¢ [" .. dist .. "m] "
+                prefix = "🟢 [" .. dist .. "m] "
             else
-                prefix = "ðŸŸ¢ "
+                prefix = "🟢 "
             end
         end
     end)
@@ -8152,11 +8152,19 @@ function YeetPart(v)
 	if v:IsA("BasePart") then
 		task.spawn(function()
 			pcall(function()
-				v.CanCollide = false
-				v.Anchored = false
-				
+				-- Create YeetedParts folder if not exists
+				local yeetFolder = workspace:FindFirstChild("YeetedParts")
+				if not yeetFolder then
+					yeetFolder = Instance.new("Folder", workspace)
+					yeetFolder.Name = "YeetedParts"
+				end
+
+				-- Claim network ownership (tanpa teleport)
+				pcall(function() sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge) end)
+
+				-- Break joints
 				pcall(function() v:BreakJoints() end)
-				for _, x in ipairs(v:GetDescendants()) do
+				for _, x in ipairs(v:GetChildren()) do
 					if x:IsA("Weld") or x:IsA("WeldConstraint") or x:IsA("ManualWeld") or x:IsA("Motor6D")
 						or x:IsA("Constraint") or x:IsA("Attachment")
 						or x:IsA("BodyMover") or x:IsA("RocketPropulsion")
@@ -8164,23 +8172,25 @@ function YeetPart(v)
 						pcall(function() x:Destroy() end)
 					end
 				end
-				local char = LocalPlayer.Character
-				local hrp = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
-				if hrp then
-					v.CFrame = hrp.CFrame * CFrame.new(math.random(-3, 3), 5 + math.random(-2, 2), math.random(-3, 3))
-					v.AssemblyLinearVelocity = Vector3.zero
-				end
-			end)
-			
-			task.wait(0.35)
-			
-			pcall(function()
-				if v and v.Parent then
-					v.CFrame = CFrame.new(v.Position.X, -99999, v.Position.Z)
-					v.AssemblyLinearVelocity = Vector3.new(0, -1000, 0)
-					v.Anchored = true
-					v.CanCollide = false
-				end
+
+				v.CanCollide = false
+				v.Anchored = false
+
+				-- Set velocity random seperti OneTimeUnanchor (tanpa teleport)
+				v.AssemblyLinearVelocity = Vector3.new(
+					math.random(-50, 50),
+					math.random(20, 100),
+					math.random(-50, 50)
+				)
+
+				-- Move to YeetedParts folder
+				v.Parent = yeetFolder
+
+				-- Wait sebentar
+				task.wait(0.2)
+
+				-- Destroy permanen
+				v:Destroy()
 			end)
 		end)
 	end
@@ -14509,6 +14519,56 @@ function refreshPartScanner()
                 end)
                 task.delay(0.2, function() refreshPartScanner() end)
             end)
+
+            -- DESTROY: permanen delete part dari workspace (anti-visual)
+            local destroyBtn = makeBtn("Destroy", Color3.fromRGB(150, 0, 0), 50, Color3.fromRGB(255, 50, 50))
+            destroyBtn.MouseButton1Click:Connect(function()
+                if scannerBroughtPart == part then
+                    StopScannerBring()
+                end
+                pcall(function()
+                    -- Create YeetedParts folder if not exists
+                    local yeetFolder = workspace:FindFirstChild("YeetedParts")
+                    if not yeetFolder then
+                        yeetFolder = Instance.new("Folder", workspace)
+                        yeetFolder.Name = "YeetedParts"
+                    end
+
+                    -- Claim network ownership (tanpa teleport)
+                    pcall(function() sethiddenproperty(game.Players.LocalPlayer, "SimulationRadius", math.huge) end)
+
+                    -- Break joints
+                    pcall(function() part:BreakJoints() end)
+                    for _, x in ipairs(part:GetChildren()) do
+                        if x:IsA("Weld") or x:IsA("WeldConstraint") or x:IsA("ManualWeld") or x:IsA("Motor6D")
+                            or x:IsA("Constraint") or x:IsA("Attachment")
+                            or x:IsA("BodyMover") or x:IsA("RocketPropulsion")
+                        then
+                            pcall(function() x:Destroy() end)
+                        end
+                    end
+
+                    part.CanCollide = false
+                    part.Anchored = false
+
+                    -- Set velocity random seperti OneTimeUnanchor (tanpa teleport)
+                    part.AssemblyLinearVelocity = Vector3.new(
+                        math.random(-50, 50),
+                        math.random(20, 100),
+                        math.random(-50, 50)
+                    )
+
+                    -- Move to YeetedParts folder
+                    part.Parent = yeetFolder
+
+                    -- Wait sebentar
+                    task.wait(0.2)
+
+                    -- Destroy permanen
+                    part:Destroy()
+                end)
+                task.delay(0.1, function() refreshPartScanner() end)
+            end)
         end
         isScanning = false
     end)
@@ -14781,4 +14841,3 @@ do
 end
 -- Klik kiri saat Part Scanner terbuka â†’ bagian di list di-scroll & di-highlight
 -- ==============================================
-
