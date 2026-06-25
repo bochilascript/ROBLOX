@@ -1253,7 +1253,7 @@ do
         devRole.Size = UDim2.new(1, -20, 0, 20)
         devRole.Position = UDim2.new(0, 10, 0, 10)
         devRole.BackgroundTransparency = 1
-        devRole.Text = "👑 OWNER & DEVELOPER"
+        devRole.Text = "ðŸ‘‘ OWNER & DEVELOPER"
         devRole.TextColor3 = Color3.fromRGB(255, 200, 50)
         devRole.Font = Enum.Font.GothamBold
         devRole.TextSize = 11
@@ -1287,7 +1287,7 @@ do
         discTitle.Position = UDim2.new(0, 10, 0, 8)
         discTitle.BackgroundTransparency = 1
         discTitle.Text = "⚠️ DISCLAIMER"
-        discTitle.TextColor3 = Color3.fromRGB(255, 80, 80)
+        discTitle.TextColor3 = Color3.fromRGB(255, 100, 100)
         discTitle.Font = Enum.Font.GothamBold
         discTitle.TextSize = 11
         discTitle.TextXAlignment = Enum.TextXAlignment.Left
@@ -1298,7 +1298,7 @@ do
         discText.Position = UDim2.new(0, 10, 0, 26)
         discText.BackgroundTransparency = 1
         discText.Text = "Use this script responsibly. We are not responsible for any actions taken against your Roblox account."
-        discText.TextColor3 = Color3.fromRGB(200, 150, 150)
+        discText.TextColor3 = Color3.fromRGB(255, 200, 200)
         discText.Font = Enum.Font.Gotham
         discText.TextSize = 9
         discText.TextWrapped = true
@@ -4117,7 +4117,7 @@ function createPlayerRow(targetPlayer, index)
     dispLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     dispLabel.TextXAlignment = Enum.TextXAlignment.Left
     
-    local prefix = "⚫ "
+    local prefix = "âš« "
     pcall(function()
         local lp = game:GetService("Players").LocalPlayer
         local lpPos = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") and lp.Character.HumanoidRootPart.Position
@@ -4125,9 +4125,9 @@ function createPlayerRow(targetPlayer, index)
         if tHrp then
             if lpPos then
                 local dist = math.floor((lpPos - tHrp.Position).Magnitude)
-                prefix = "🟢 [" .. dist .. "m] "
+                prefix = "ðŸŸ¢ [" .. dist .. "m] "
             else
-                prefix = "🟢 "
+                prefix = "ðŸŸ¢ "
             end
         end
     end)
@@ -5507,7 +5507,7 @@ function createFriendListWindow()
 
                     if setclipboard then
                         pcall(function() setclipboard(joinUrl) end)
-                        joinBtn.Text = "Link ✓"
+                        joinBtn.Text = "Link âœ“"
                         joinBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
                         task.delay(2.5, function()
                             if joinBtn and joinBtn.Parent then
@@ -8050,12 +8050,27 @@ TargetPart.CanCollide = false
 TargetPart.Transparency = 1
 Attachment1 = Instance.new("Attachment", TargetPart)
 
+local YeetFolder = Instance.new("Folder", Workspace)
+YeetFolder.Name = "YeetPartFolder"
+local YeetTargetPart = Instance.new("Part", YeetFolder)
+YeetTargetPart.Name = "YeetTargetPart"
+YeetTargetPart.Anchored = true
+YeetTargetPart.CanCollide = false
+YeetTargetPart.Transparency = 1
+YeetTargetPart.CFrame = CFrame.new(0, -9999, 0)
+local YeetAttachment = Instance.new("Attachment", YeetTargetPart)
+YeetAttachment.Name = "YeetAttachment"
+
 RunService.RenderStepped:Connect(function()
 	if blackHoleActive or scannerBroughtPart or plistSendPartTarget then
 		local char = plistSendPartTarget and plistSendPartTarget.Character or LocalPlayer.Character
-		local target = char and (char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart"))
+		local target = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("Head"))
 		if target then
-			Attachment1.WorldCFrame = target.CFrame * CFrame.new(0, 10, 0)
+			if plistSendPartTarget then
+				Attachment1.WorldCFrame = target.CFrame
+			else
+				Attachment1.WorldCFrame = target.CFrame * CFrame.new(0, 10, 0)
+			end
 		end
 	end
 end)
@@ -8108,14 +8123,10 @@ function ForcePart(v)
 		local char = LocalPlayer.Character
 		local hrp = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
 		if hrp then
-			v.CFrame = hrp.CFrame * CFrame.new(0, 10, 0)
+			v.CFrame = Attachment1.WorldCFrame
 		end
 
-		for _, x in ipairs(v:GetChildren()) do
-			if x:IsA("BodyMover") or x:IsA("RocketPropulsion") then
-				x:Destroy()
-			end
-		end
+
 
 		if v:FindFirstChild("BringAttachment") then v:FindFirstChild("BringAttachment"):Destroy() end
 		if v:FindFirstChild("BringAlign") then v:FindFirstChild("BringAlign"):Destroy() end
@@ -8134,6 +8145,44 @@ function ForcePart(v)
 		AlignPosition.Attachment0 = Attachment2
 		AlignPosition.Attachment1 = Attachment1
 		v:SetAttribute("WasBrought", true)
+	end
+end
+
+function YeetPart(v)
+	if v:IsA("BasePart") then
+		task.spawn(function()
+			pcall(function()
+				v.CanCollide = false
+				v.Anchored = false
+				
+				pcall(function() v:BreakJoints() end)
+				for _, x in ipairs(v:GetDescendants()) do
+					if x:IsA("Weld") or x:IsA("WeldConstraint") or x:IsA("ManualWeld") or x:IsA("Motor6D")
+						or x:IsA("Constraint") or x:IsA("Attachment")
+						or x:IsA("BodyMover") or x:IsA("RocketPropulsion")
+					then
+						pcall(function() x:Destroy() end)
+					end
+				end
+				local char = LocalPlayer.Character
+				local hrp = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
+				if hrp then
+					v.CFrame = hrp.CFrame * CFrame.new(math.random(-3, 3), 5 + math.random(-2, 2), math.random(-3, 3))
+					v.AssemblyLinearVelocity = Vector3.zero
+				end
+			end)
+			
+			task.wait(0.35)
+			
+			pcall(function()
+				if v and v.Parent then
+					v.CFrame = CFrame.new(v.Position.X, -99999, v.Position.Z)
+					v.AssemblyLinearVelocity = Vector3.new(0, -1000, 0)
+					v.Anchored = true
+					v.CanCollide = false
+				end
+			end)
+		end)
 	end
 end
 
@@ -8204,133 +8253,15 @@ local function yeetAllParts()
     -- Keep network active
     EnableNetwork()
 
-    local char = LocalPlayer.Character
-    local hrp = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
-    local lpPos = hrp and hrp.Position
-    
-    -- Kumpulkan semua karakter pemain untuk di-exclude
-    local charSet = {}
-    for _, plr in ipairs(game.Players:GetPlayers()) do
-        if plr.Character then
-            charSet[plr.Character] = true
-        end
-    end
-
-    local function isMapAsset(o)
-        local name = string.lower(o.Name)
-        if name == "baseplate" or name == "terrain" or name == "road" or name == "sidewalk" 
-           or name == "floor" or name == "wall" or name == "glass" or name == "window" 
-           or name == "roof" or name == "ceiling" or name == "door" or name == "stairs" 
-           or name == "pillar" or name == "support" or name == "building" or name == "house"
-           or name == "rock" or name == "stone" or name == "batu" or name == "tree" 
-           or name == "leaf" or name == "leaves" or name == "trunk" or name == "branch" 
-           or name == "grass" or name == "hill" or name == "mountain" or name == "water" then
-            return true
-        end
-        local p = o.Parent
-        if p and p:IsA("Model") then
-            local pName = string.lower(p.Name)
-            if pName:find("map") or pName:find("lobby") or pName:find("terrain") 
-               or pName:find("city") or pName:find("building") or pName:find("tree") 
-               or pName:find("rock") or pName:find("stone") or pName:find("batu") 
-               or pName:find("nature") or pName:find("environment") or pName:find("road") then
-                return true
-            end
-        end
-        return false
-    end
-
-    local partsToYeet = {}
-    local allDescendants = Workspace:GetDescendants()
-    
-    -- We chunk the scan to prevent any stutter
-    for i, obj in ipairs(allDescendants) do
-        if i % 1000 == 0 then
-            task.wait() -- yield to next frame to keep game running smoothly
-        end
-        if obj:IsA("BasePart") then
-            -- 1. Clean up any active bring constraints
-            local torq = obj:FindFirstChild("BringTorque") or obj:FindFirstChild("ScannerBringTorque")
-            local align = obj:FindFirstChild("BringAlign") or obj:FindFirstChild("ScannerBringAlign")
-            local att = obj:FindFirstChild("BringAttachment") or obj:FindFirstChild("ScannerBringAttachment")
-            if torq then pcall(function() torq:Destroy() end) end
-            if align then pcall(function() align:Destroy() end) end
-            if att then pcall(function() att:Destroy() end) end
-
-            -- 2. Check filters (exclude players, NPCs, baseplate, handle, map assets)
-            local isChar = false
-            local p = obj.Parent
-            while p and p ~= Workspace do
-                if charSet[p] or p:FindFirstChildOfClass("Humanoid") then
-                    isChar = true
-                    break
-                end
-                p = p.Parent
-            end
-
-            if not isChar and string.lower(obj.Name) ~= "baseplate" and obj.Name ~= "Handle" and not isMapAsset(obj) then
-                local shouldYeet = false
-                
-                -- If it was anchored, try to unanchor if close to player
-                if obj.Anchored then
-                    if lpPos and (obj.Position - lpPos).Magnitude <= 1000 then
-                        obj.Anchored = false
-                        shouldYeet = true
-                    end
-                else
-                    shouldYeet = true
-                end
-
-                if shouldYeet then
-                    table.insert(partsToYeet, obj)
-                end
-            end
-        end
-    end
+    local partsToYeet = scanParts()
 
     if #partsToYeet > 0 then
         task.spawn(function()
-            local chunkSize = 40
-            
-            -- Yeet phase: drop them down to void
-            for i, part in ipairs(partsToYeet) do
-                pcall(function()
-                    if part and part.Parent then
-                        part:BreakJoints()
-                        for _, x in ipairs(part:GetDescendants()) do
-                            if x:IsA("Weld") or x:IsA("WeldConstraint") or x:IsA("ManualWeld") or x:IsA("Motor6D")
-                                or x:IsA("BodyMover") or x:IsA("RocketPropulsion") or x:IsA("AlignPosition") or x:IsA("Torque") or x:IsA("Attachment")
-                                or x:IsA("Constraint")
-                            then
-                                pcall(function() x:Destroy() end)
-                            end
-                        end
-                        part.CanCollide = false
-                        part.Anchored = false
-                        part.AssemblyLinearVelocity = Vector3.new(0, 10000, 0)
-                    end
+            for _, part in ipairs(partsToYeet) do
+                task.spawn(function()
+                    YeetPart(part)
                 end)
-                if i % chunkSize == 0 then
-                    task.wait()
-                end
             end
-
-            task.wait(1.5)
-
-            -- Re-anchor
-            for i, part in ipairs(partsToYeet) do
-                pcall(function()
-                    if part and part.Parent then
-                        part.Anchored = true
-                        part.CanCollide = true
-                    end
-                end)
-                if i % chunkSize == 0 then
-                    task.wait()
-                end
-            end
-
-            DisableNetwork()
         end)
     end
 end
@@ -8360,6 +8291,7 @@ function toggleBringPart(state)
 	if blackHoleActive then
 		setButtonActive(BringPartBtn, true)
 		EnableNetwork()
+		if enableNoclip then enableNoclip() end
 
 		character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 		humanoidRootPart = character:WaitForChild("HumanoidRootPart")
@@ -8404,6 +8336,9 @@ function toggleBringPart(state)
 		if DescendantAddedConnection then
 			DescendantAddedConnection:Disconnect()
 			DescendantAddedConnection = nil
+		end
+		if not noclipActive and not flying and disableNoclip then
+			disableNoclip()
 		end
 		-- Bersihkan constraints SAMBIL masih punya network ownership
 		-- DisableNetwork dipanggil SETELAH loop, agar server tidak ambil alih part sebelum di-anchor
@@ -9563,7 +9498,7 @@ function refreshSpectatorPlayerList()
             btn.TextSize = 10
             
             -- Kalkulasi Ikon & Jarak
-            local prefix = "⚫ "
+            local prefix = "âš« "
             pcall(function()
                 local lp = game:GetService("Players").LocalPlayer
                 local lpPos = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") and lp.Character.HumanoidRootPart.Position
@@ -9571,9 +9506,9 @@ function refreshSpectatorPlayerList()
                 if tHrp then
                     if lpPos then
                         local dist = math.floor((lpPos - tHrp.Position).Magnitude)
-                        prefix = "🟢 [" .. dist .. "m] "
+                        prefix = "ðŸŸ¢ [" .. dist .. "m] "
                     else
-                        prefix = "🟢 "
+                        prefix = "ðŸŸ¢ "
                     end
                 end
             end)
@@ -12257,6 +12192,7 @@ do
             flyV3Active = state
         end
         if not flyV3Active then
+            if toggleNoclip then toggleNoclip(false) end
             for _, mover in ipairs(flyV3Movers) do
                 if mover and mover.Parent then mover:Destroy() end
             end
@@ -12272,6 +12208,7 @@ do
                 pcall(function() char.Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp) end)
             end
         else
+            if toggleNoclip then toggleNoclip(true) end
             if Player.Character and Player.Character:FindFirstChild("Humanoid") then
                 Player.Character.Humanoid.PlatformStand = true
             end
@@ -12422,6 +12359,7 @@ do
         {name = "MiniFlingAuraBtn", text = "Fling Aura: OFF"},
         {name = "MiniFlyTapBtn", text = "Fly (Mobile): OFF"},
         {name = "MiniFlyV3Btn", text = "Fly PC: OFF  [E]"},
+        {name = "MiniFlyV3SpeedBtn", text = "Fly V3: OFF  [Q]"},
         {name = "MiniGodBtn", text = "HP: 100"},
         {name = "MiniNoclipBtn", text = "Noclip: OFF"},
         {name = "MiniOrbitFlingBtn", text = "Orbit Fling: OFF"},
@@ -12461,6 +12399,7 @@ do
     end
     
     MiniFlyV3Btn = MiniButtons["MiniFlyV3Btn"]
+    MiniFlyV3SpeedBtn = MiniButtons["MiniFlyV3SpeedBtn"]
     MiniBringBtn = MiniButtons["MiniBringBtn"]
     MiniScannerBtn = MiniButtons["MiniScannerBtn"]
     MiniNoclipBtn = MiniButtons["MiniNoclipBtn"]
@@ -12480,6 +12419,10 @@ do
     MiniFlyV3Btn.MouseButton1Click:Connect(function()
         flyV1PCEnabled = not flyV1PCEnabled
         if not flyV1PCEnabled and flying then disableFly() end
+    end)
+    MiniFlyV3SpeedBtn.MouseButton1Click:Connect(function()
+        flyV3Enabled = not flyV3Enabled
+        if not flyV3Enabled and flyV3Active then toggleFlyV3(false) end
     end)
     MiniBringBtn.MouseButton1Click:Connect(function() toggleBringPart() end)
     MiniYeetPartsBtn.MouseButton1Click:Connect(function() yeetAllParts() end)
@@ -12667,6 +12610,9 @@ do
         if input.KeyCode == Enum.KeyCode.E and flyV1PCEnabled then
             if flying then disableFly() else enableFly() end
         end
+        if input.KeyCode == Enum.KeyCode.Q and flyV3Enabled then
+            toggleFlyV3()
+        end
     end)
     
     task.spawn(function()
@@ -12678,6 +12624,14 @@ do
                 else
                     MiniFlyV3Btn.Text = "Fly PC: OFF  [E]"
                     MiniFlyV3Btn.TextColor3 = Color3.fromRGB(255, 50, 50)
+                end
+                
+                if flyV3Enabled then
+                    MiniFlyV3SpeedBtn.Text = "Fly V3: ON  [Q]"
+                    MiniFlyV3SpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                else
+                    MiniFlyV3SpeedBtn.Text = "Fly V3: OFF  [Q]"
+                    MiniFlyV3SpeedBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
                 end
                 
                 if PartScannerFrame and PartScannerFrame.Visible then
@@ -13206,7 +13160,7 @@ local success, err = pcall(function()
         searchIcon.Position = UDim2.new(0, 8, 0, 0)
         searchIcon.BackgroundTransparency = 1
         searchIcon.Font = Enum.Font.Gotham
-        searchIcon.Text = "🔍"
+        searchIcon.Text = "ðŸ”"
         searchIcon.TextColor3 = Color3.fromRGB(150, 150, 150)
         searchIcon.TextSize = 14
         searchIcon.Parent = searchFrame
@@ -13970,13 +13924,13 @@ local success, err = pcall(function()
     CmdBarInput.ZIndex = 100000
     CmdBarInput.Parent = CmdBarFrame
 
-    -- Enter (⏎) button
+    -- Enter (âŽ) button
     local enterBarBtn = Instance.new("TextButton")
     enterBarBtn.Name = "EnterBarBtn"
     enterBarBtn.Size = UDim2.new(0, 36, 0, 36)
     enterBarBtn.Position = UDim2.new(1, -80, 0, 4)
     enterBarBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    enterBarBtn.Text = "⏎"
+    enterBarBtn.Text = "âŽ"
     enterBarBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
     enterBarBtn.TextSize = 16
     enterBarBtn.Font = Enum.Font.GothamBold
@@ -14417,7 +14371,7 @@ function refreshPartScanner()
             title.TextColor3 = Color3.fromRGB(200, 200, 200)
             title.TextXAlignment = Enum.TextXAlignment.Left
             title.TextTruncate = Enum.TextTruncate.AtEnd
-            title.Text = "🧱 " .. distText .. part.Name
+            title.Text = "ðŸ§± " .. distText .. part.Name
 
             local btns = Instance.new("Frame", row)
             btns.Size = UDim2.new(0, 220, 1, 0)
@@ -14445,7 +14399,7 @@ function refreshPartScanner()
                 return b
             end
 
-            -- BRING TOGGLE (pakai ForcePart — logika identik dengan BringPart utama)
+            -- BRING TOGGLE (pakai ForcePart â€” logika identik dengan BringPart utama)
             -- Cek apakah part ini sedang di-bring (tidak perlu blackHoleActive)
             local partBeingBrought = (part == scannerBroughtPart) or (part:FindFirstChild("ScannerBringAlign") ~= nil) or (part:FindFirstChild("BringAlign") ~= nil)
             local bringBtn = makeBtn(partBeingBrought and "Stop" or "Bring", partBeingBrought and Color3.fromRGB(200, 100, 0) or Color3.fromRGB(50, 120, 220), 46, partBeingBrought and Color3.fromRGB(255, 150, 50) or Color3.fromRGB(100, 180, 255))
@@ -14501,7 +14455,7 @@ function refreshPartScanner()
                 end
             end)
 
-            -- YEET: stop any active bring → fling part sejauh mungkin → anchor permanen
+            -- YEET: stop any active bring â†’ fling part sejauh mungkin â†’ anchor permanen
             local yeetBtn = makeBtn("Yeet", Color3.fromRGB(200, 40, 40), 42, Color3.fromRGB(255, 100, 100))
             yeetBtn.MouseButton1Click:Connect(function()
                 if scannerBroughtPart == part then
@@ -14667,6 +14621,72 @@ function createPartScannerWindow()
         refreshPartScanner()
     end)
 
+    local syncBtn = Instance.new("TextButton", topBar)
+    syncBtn.Size = UDim2.new(0, 22, 0, 22)
+    syncBtn.Position = UDim2.new(1, -106, 0.5, -11)
+    syncBtn.BackgroundColor3 = Color3.fromRGB(200, 150, 0)
+    syncBtn.Text = "S"
+    syncBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    syncBtn.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", syncBtn).CornerRadius = UDim.new(0, 6)
+    local syncStroke = Instance.new("UIStroke", syncBtn)
+    syncStroke.Color = Color3.fromRGB(255, 255, 255)
+    syncStroke.Thickness = 1
+    
+    syncBtn.MouseButton1Click:Connect(function()
+        pcall(function()
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "Visual Sync",
+                Text = "Menyelaraskan visual part dengan server...",
+                Duration = 1.5
+            })
+            
+            local charSet = {}
+            for _, plr in ipairs(game.Players:GetPlayers()) do
+                if plr.Character then charSet[plr.Character] = true end
+            end
+            
+            -- Reset parent lokal untuk memaksa Roblox mengambil CFrame asli dari server secara instan
+            local count = 0
+            for _, obj in ipairs(workspace:GetDescendants()) do
+                if obj:IsA("BasePart") and not obj:IsDescendantOf(workspace.CurrentCamera) then
+                    local isChar = false
+                    local p = obj.Parent
+                    while p and p ~= workspace do
+                        if charSet[p] or p:FindFirstChildOfClass("Humanoid") then
+                            isChar = true
+                            break
+                        end
+                        p = p.Parent
+                    end
+                    
+                    if not isChar and string.lower(obj.Name) ~= "baseplate" and obj.Name ~= "Handle" then
+                        pcall(function()
+                            local originalParent = obj.Parent
+                            if originalParent then
+                                obj.Parent = nil
+                                obj.Parent = originalParent
+                                count = count + 1
+                            end
+                        end)
+                    end
+                end
+                -- Yield occasionally if too many parts to prevent frame spikes
+                if count % 1000 == 0 then
+                    task.wait()
+                end
+            end
+            
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "Visual Sync",
+                Text = "Visual sinkron selesai!",
+                Duration = 1.5
+            })
+            
+            pcall(refreshPartScanner)
+        end)
+    end)
+
     PartScannerScroll = Instance.new("ScrollingFrame", PartScannerFrame)
     PartScannerScroll.Size = UDim2.new(1, -16, 1, -42)
     PartScannerScroll.Position = UDim2.new(0, 8, 0, 38)
@@ -14701,8 +14721,8 @@ function createPartScannerWindow()
 end
 
 -- ==============================================
--- FITUR KLIK PART DI DUNIA → AUTO HIGHLIGHT DI PART SCANNER
--- Klik kiri saat Part Scanner terbuka → bagian di list di-scroll & di-highlight
+-- FITUR KLIK PART DI DUNIA â†’ AUTO HIGHLIGHT DI PART SCANNER
+-- Klik kiri saat Part Scanner terbuka â†’ bagian di list di-scroll & di-highlight
 -- ==============================================
 do
     local Mouse = game:GetService("Players").LocalPlayer:GetMouse()
@@ -14759,6 +14779,6 @@ do
         end
     end)
 end
--- Klik kiri saat Part Scanner terbuka → bagian di list di-scroll & di-highlight
+-- Klik kiri saat Part Scanner terbuka â†’ bagian di list di-scroll & di-highlight
 -- ==============================================
 
