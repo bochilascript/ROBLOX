@@ -1,5 +1,14 @@
 local Player = game.Players.LocalPlayer
-local PlayerGui = Player:WaitForChild("PlayerGui")
+local function getSafeGuiParent()
+    if gethui then
+        local s, h = pcall(gethui)
+        if s and h then return h end
+    end
+    local s, c = pcall(function() return game:GetService("CoreGui") end)
+    if s and c then return c end
+    return Player:FindFirstChild("PlayerGui") or Player:WaitForChild("PlayerGui", 5) or Player:WaitForChild("PlayerGui")
+end
+local PlayerGui = getSafeGuiParent()
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -19,11 +28,10 @@ MainGuiToggleConn = nil
 ShiftLockShortcutConn = nil
 SpeedShortcutConn = nil
 FlyV3ShortcutConn = nil
-
+FreecamShortcutConn = nil
+MiniFrameToggleConn = nil
 local currentLanguage = "EN"
-
 local LangDict = {
-    -- Categories
     ["Menu"] = { EN = "Menu", ID = "Menu" },
     ["Rusuh"] = { EN = "Combat", ID = "Rusuh" },
     ["Utility"] = { EN = "Utility", ID = "Utilitas" },
@@ -33,8 +41,6 @@ local LangDict = {
     ["Friends"] = { EN = "Friends", ID = "Teman" },
     ["Credits"] = { EN = "Credits", ID = "Kredit" },
     ["Changelogs"] = { EN = "Changelogs", ID = "Riwayat" },
-    
-    -- Feature Buttons
     ["Click TP"] = { EN = "Click TP", ID = "Klik TP" },
     ["TP Tool"] = { EN = "TP Tool", ID = "TP Tool" },
     ["Free Cam"] = { EN = "Free Cam", ID = "Kamera Bebas" },
@@ -91,20 +97,23 @@ local LangDict = {
     ["Orbit Fling"] = { EN = "Orbit Fling", ID = "Orbit Fling" },
     ["Walk Fling"] = { EN = "Walk Fling", ID = "Walk Fling" },
     ["Anti Fling"] = { EN = "Anti Fling", ID = "Anti Fling" },
-    
-    -- Inputs
-    ["SearchCmds"] = { EN = "Search commands...", ID = "Cari perintah..." },
+    ["Touch Fling"] = { EN = "Touch Fling", ID = "Fling Sentuhan" },
+    ["Part Inspector"] = { EN = "Part Inspector", ID = "Inspektur Objek" },
+    ["Collision"] = { EN = "Collision Status", ID = "Status Tabrakan" },
+    ["Anchored"] = { EN = "Anchored", ID = "Kunci Posisi" },
+    ["PartName"] = { EN = "Part Name", ID = "Nama Objek" },
+    ["ClassName"] = { EN = "Class Name", ID = "Tipe Objek" },
+    ["ToggleCollision"] = { EN = "Toggle Collision", ID = "Ubah Tabrakan (CanCollide)" },
+    ["SearchCmds"] = { EN = "🔍 Search commands...", ID = "🔍 Cari perintah..." },
+    ["Click Yeet"] = { EN = "Click Yeet", ID = "Klik Lempar" },
+    ["Crash Server"] = { EN = "Crash Server", ID = "Lag Server" },
     ["SearchPlayers"] = { EN = "Search players...", ID = "Cari pemain..." },
     ["SearchWP"] = { EN = "Search waypoint...", ID = "Cari Waypoint..." },
     ["CmdBarPH"] = { EN = "Type command... (ex: swp name)", ID = "Ketik perintah... (cth: swp nama)" },
     ["FriendList"] = { EN = "Friend List", ID = "Daftar Teman" },
-    
-    -- Shortcuts & Keybinds
     ["ShortcutsKey"] = { EN = "Shortcuts", ID = "Shortcut PC" },
-    ["ShortcutsDesc"] = { EN = "<b><font color=\"rgb(255, 60, 60)\">[</font></b>  - Open / Close GUI\n<b><font color=\"rgb(255, 60, 60)\">]</font></b>  - Toggle Speed Hack\n<b><font color=\"rgb(255, 60, 60)\">\\</font></b>  - Toggle Jump Power\n<b><font color=\"rgb(255, 60, 60)\">'</font></b>  - Open Command Bar\n\n*Note for <b>\\</b>: Disable 'UI Navigation Toggle' in Roblox Settings for it to work properly.", ID = "<b><font color=\"rgb(255, 60, 60)\">[</font></b>  - Buka / Tutup GUI\n<b><font color=\"rgb(255, 60, 60)\">]</font></b>  - Aktif / Matikan Speed Hack\n<b><font color=\"rgb(255, 60, 60)\">\\</font></b>  - Aktif / Matikan Jump Power\n<b><font color=\"rgb(255, 60, 60)\">'</font></b>  - Buka Command Bar\n\n*Catatan untuk <b>\\</b>: Matikan 'Tombol Navigasi UI' di Pengaturan Roblox agar pintasan berfungsi." },
-
-    -- Changelogs
-    ["CL_370"] = { EN = "- Massive UI update: Mobile draggable sliders for Speed & Jump Power\n- Safe Raycast landing algorithm for Fly V1 to prevent clipping\n- Draggable Mobile Command Bar\n- Added Config System (Auto-saves your settings locally)\n- Tab Rusuh Expansion: Added Hitbox Expander & Silent Aim\n- Custom Keybind Settings (Change hotkeys dynamically)\n- Incremented version to v3.7.0", ID = "- Pembaruan UI Masif: Slider Mobile yang bisa digeser untuk Speed & Jump Power\n- Algoritma pendaratan aman Raycast untuk Fly V1 agar tidak nyangkut\n- Command Bar Mobile yang bisa di-drag\n- Sistem Config (Otomatis save settingan script)\n- Ekspansi Tab Rusuh: Menambahkan Hitbox Expander & Silent Aim\n- Kustomisasi Tombol/Keybind (Ganti pintasan sesuka hati)\n- Menaikkan versi script menjadi v3.7.0" },
+    ["ShortcutsDesc"] = { EN = "<b><font color=\"rgb(255, 60, 60)\">[</font></b>  - Open / Close GUI\n<b><font color=\"rgb(255, 60, 60)\">]</font></b>  - Toggle Speed Hack\n<b><font color=\"rgb(255, 60, 60)\">\\</font></b>  - Toggle Jump Power\n<b><font color=\"rgb(255, 60, 60)\">'</font></b>  - Open Command Bar\n<b><font color=\"rgb(255, 60, 60)\">T</font></b>  - Toggle Free Cam\n<b><font color=\"rgb(255, 60, 60)\">RightCtrl</font></b>  - Toggle Floating Logo\n\n*Note for <b>\\</b>: Disable 'UI Navigation Toggle' in Roblox Settings for it to work properly.", ID = "<b><font color=\"rgb(255, 60, 60)\">[</font></b>  - Buka / Tutup GUI\n<b><font color=\"rgb(255, 60, 60)\">]</font></b>  - Aktif / Matikan Speed Hack\n<b><font color=\"rgb(255, 60, 60)\">\\</font></b>  - Aktif / Matikan Jump Power\n<b><font color=\"rgb(255, 60, 60)\">'</font></b>  - Buka Command Bar\n<b><font color=\"rgb(255, 60, 60)\">T</font></b>  - Aktif / Matikan Free Cam\n<b><font color=\"rgb(255, 60, 60)\">RightCtrl</font></b>  - Sembunyikan Logo\n\n*Catatan untuk <b>\\</b>: Matikan 'Tombol Navigasi UI' di Pengaturan Roblox agar pintasan berfungsi." },
+    ["CL_370"] = { EN = "- Massive UI update: Mobile draggable sliders for Speed & Jump Power\n- Safe Raycast landing algorithm for Fly V1 to prevent clipping\n- Draggable Mobile Command Bar\n- Added Config System (Auto-saves your settings locally)\n- Tab Rusuh Expansion: Added Hitbox Expander & Silent Aim\n- Custom Keybind Settings (Change hotkeys dynamically)\n- Added Free Cam shortcut (T), Hide Logo (RightCtrl) & Max Zoom noclip\n- Incremented version to v3.7.0", ID = "- Pembaruan UI Masif: Slider Mobile yang bisa digeser untuk Speed & Jump Power\n- Algoritma pendaratan aman Raycast untuk Fly V1 agar tidak nyangkut\n- Command Bar Mobile yang bisa di-drag\n- Sistem Config (Otomatis save settingan script)\n- Ekspansi Tab Rusuh: Menambahkan Hitbox Expander & Silent Aim\n- Kustomisasi Tombol/Keybind (Ganti pintasan sesuka hati)\n- Menambahkan shortcut Free Cam (T), Hide Logo (RightCtrl) & noclip Max Zoom\n- Menaikkan versi script menjadi v3.7.0" },
     ["CL_360"] = { EN = "- Added Shortcuts PC category to easily view keybinds\n- Added \\ shortcut to toggle Jump Power on/off\n- Improved Jump Trail size to be smaller and sleeker\n- Fixed active features cleanup not working properly when closing the GUI\n- Incremented version to v3.6.0", ID = "- Menambahkan kategori Shortcut PC untuk melihat pintasan keyboard\n- Menambahkan shortcut tombol \\ untuk mengaktifkan/mematikan Jump Power\n- Memperbaiki ukuran trail lompat agar lebih kecil dan ramping\n- Memperbaiki pembersihan fitur yang aktif saat GUI utama ditutup agar langsung mati\n- Menaikkan versi script menjadi v3.6.0" },
     ["CL_350"] = { EN = "- Renamed Fly V3 button in main GUI to Quick Tools\n- Added Spectate and Refresh buttons to Quick Tools\n- Switched Mobile Fly in Quick Tools to Fly V1 (better compatibility)\n- Fixed active Send Part button overlay color in Player List\n- Fixed Noclip movement bugs when disabling fly/noclip\n- Fixed Bring Part getting stuck after Send Part finishes\n- Changed Send Part to continuous loop mode\n- Updated Refresh button in Quick Tools to use refresh instead of respawn\n- Fixed local register limit error in Quick Tools\n- Added Fling (one-shot instant fling) to Spectate and Player List\n- Optimized Player List layout and removed redundant Kick button\n- Added joint-breaking to Part Scanner Bring to prevent map damage\n- Kept currently brought part at the top of the Part Scanner list\n- Improved Yeet in Part Scanner to instantly fling and vanish the part\n- Added ;ifling, ;walkfling, and ;antifling commands to Command Bar/List\n- Fixed Spectate & Player List flings by welding separate flingPart (preventing self-fling) and extending duration to 2s\n- Added God Mode (Kebal) & Health Monitor button to Quick Tools\n- Optimized Part Scanner lag by caching players and walking parent trees\n- Improved Yeet to teleport parts to sky boundary (99999, 9999, 99999) to bypass anti-void resets\n- Increased unanchor and yeet radius to 1000 studs\n- Reworked Part Scanner Unanchor to target unanchored parts and loop for 2.5s\n- Fixed Fly V3 fling when turning off and optimized main GUI startup rendering speed\n- Fixed top-clipped category buttons by adding padding to ScrollFrame and UtilityScroll\n- Added Fling Aura and Orbit Fling features to Combat category and Quick Tools\n- Added ;flingaura and ;orbitfling commands to Command Bar/List", ID = "- Mengubah tombol Fly V3 di GUI utama menjadi Quick Tools\n- Menambahkan tombol Spectate dan Refresh ke Quick Tools\n- Mengubah tombol Terbang mobile di Quick Tools menjadi Fly V1 (lebih kompatibel)\n- Memperbaiki warna tombol aktif Send Part pada Player List agar tidak menyatu/putih polos\n- Perbaikan bug gerakan Noclip setelah mematikan fly/noclip\n- Perbaikan Bring Part tersangkut setelah Send Part selesai\n- Mengubah Send Part menjadi mode loop terus-menerus\n- Memperbarui tombol Refresh di Quick Tools menggunakan metode refresh asli, bukan respawn\n- Memperbaiki error limit register lokal pada Quick Tools\n- Menambahkan Fling (instant fling sekali jalan) pada Spectate dan Player List\n- Mengoptimalkan tata letak Player List dan menghapus tombol Kick\n- Menambahkan pemutusan sambungan objek (BreakJoints) pada Bring Part Scanner agar map tidak rusak\n- Mengunci posisi part yang sedang di-bring di baris teratas Part Scanner\n- Memperbarui fungsi Yeet di Part Scanner agar langsung terlempar dan hilang seketika\n- Menambahkan perintah ;ifling, ;walkfling, dan ;antifling ke Command Bar/List\n- Memperbaiki Fling Spectate & Player List menggunakan metode welded flingPart (anti mati) dan durasi 2 detik\n- Menambahkan tombol Kebal (God Mode) & Health Monitor di Quick Tools\n- Mengoptimalkan lag Part Scanner dengan cache player dan penelusuran parent\n- Memperbarui Yeet untuk memindahkan part ke koordinat langit (99999, 9999, 99999) agar tidak reset\n- Meningkatkan radius unanchor dan yeet menjadi 1000 studs\n- Merombak Unanchor Part Scanner untuk part terlepas dan melakukan loop selama 2.5 detik\n- Perbaikan karakter terlempar saat mematikan Fly V3 dan optimasi kecepatan render awal GUI\n- Memperbaiki tombol kategori yang terlalu ke atas dengan menambahkan padding pada ScrollFrame dan UtilityScroll\n- Menambahkan fitur Fling Aura dan Orbit Fling pada kategori Rusuh dan Quick Tools\n- Menambahkan perintah ;flingaura dan ;orbitfling ke Command Bar/List" },
     ["CL_340"] = { EN = "- Added Spectator Player List Search & Alphabetical Sorting\n- Fixed Physics bugs on Fly V1\n- Fixed Player List Send Part integration\n- Added Quick Tools Mini Panel (Fly V3, Bring Part & Noclip)\n- UI/UX Improvements (Glow removal, Color fixes)\n- Added Invite Button to Friend List (Top bar only)\n- Re-positioned Speed Trails to Feet\n- Combined Spectator Search box into the Player List GUI\n- Fixed Spectator red highlight getting stuck on target change", ID = "- Penambahan Pencarian & Pengurutan Abjad Player List Spectator\n- Perbaikan bug fisik terpelanting pada Fly V1\n- Perbaikan Send Part yang tidak merespon di Player List\n- Penambahan Mini Panel Quick Tools (Fly V3, Bring Part & Noclip)\n- Peningkatan UI/UX (Hapus glow, Perbaikan warna)\n- Perambahan tombol Invite di Friend List (Hanya di top bar)\n- Perbaikan posisi Speed Trail ke Kaki\n- Menggabungkan kotak pencarian Spectator ke dalam GUI daftar pemain\n- Perbaikan sorotan merah Spectator yang tersangkut saat ganti target" },
@@ -114,16 +123,11 @@ local LangDict = {
     ["CL_300"] = { EN = "- Reconstructed Anti Lag (0% Idle CPU, event-driven lighting/water lock, 0.1s streaming pause)\n- Added BTools Feature (Hammer, Move, Grab, Clone)\n- Added Mobile Shift Lock (Shoulder view + body movement)\n- Added ESP Customization (Independent Chams, Name, Tracer toggle)\n- Added Changelog & Script Version Tab", ID = "- Rekonstruksi Anti Lag (0% Idle CPU, event-driven pengunci cahaya/air, jeda streaming 0.1s)\n- Penambahan Fitur BTools (Hammer, Move, Grab, Clone)\n- Penambahan Mobile Shift Lock (Sudut pandang bahu + pergerakan tubuh)\n- Penambahan Kustomisasi ESP (Toggle Chams, Name, Tracer independen)\n- Penambahan Tab Changelog & Versi Script" },
     ["CL_250"] = { EN = "- Added Enter confirmation button to Command Bar\n- Auto alphabetical sorting for Command List on startup\n- Fixed Luau compiler 200 register limit\n- Added Friend List Window (Join & Auto Re-execute)", ID = "- Pengurutan abjad Command List otomatis saat startup\n- Perbaikan register limit 200 Luau compiler\n- Penambahan Window Friend List (Join & Auto Re-execute)" },
     ["CL_200"] = { EN = "- ESP billboard with health bar & distance indicator\n- Fixed unlimited ESP distance bug (math.huge)", ID = "- ESP billboard dengan health bar & indikator jarak\n- Perbaikan bug jarak ESP tidak terbatas (math.huge)" },
-    
-    -- Notifications
     ["Invisible_On"] = { EN = "Invisible Mode Activated!", ID = "FE Invisible Aktif!" },
     ["Visible_On"] = { EN = "Visible Mode Activated!", ID = "Karakter terlihat kembali!" },
     ["Teleporting"] = { EN = "Teleporting...", ID = "Melakukan Teleport..." },
 }
-
 local translatableElements = {}
-
--- ========== COMPLETE SEND PART FUNCTION ==========
 local function OneTimeUnanchor()
     if _G.__JSY_UnanchorCooldown then return end
     _G.__JSY_UnanchorCooldown = true
@@ -139,7 +143,6 @@ local function OneTimeUnanchor()
                     if p1 and p1:IsA("BasePart") then p1.Anchored = false end
                 end
             end
-
             for _, part in ipairs(Workspace:GetDescendants()) do
                 if part:IsA("BasePart") and not part.Anchored then
                     local isCharPart = false
@@ -156,13 +159,11 @@ local function OneTimeUnanchor()
                     end
                 end
             end
-
             task.wait(0.2)
         end
         _G.__JSY_UnanchorCooldown = false
     end)
 end
-
 local function GetAllPartsRecursive(parent)
     local parts = {}
     for _, obj in ipairs(parent:GetChildren()) do
@@ -176,7 +177,6 @@ local function GetAllPartsRecursive(parent)
     end
     return parts
 end
-
 local function EnableNetworkStabilizer()
     if NetworkConnection then return end
     pcall(function()
@@ -189,108 +189,59 @@ local function EnableNetworkStabilizer()
         end)
     end)
 end
-
 local function DisableNetworkStabilizer()
     if NetworkConnection then
         NetworkConnection:Disconnect()
         NetworkConnection = nil
     end
 end
-
 local function sendUnanchoredPartsToTarget(target)
     if not target or not target.Character then return end
     local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
     if not targetHRP then return end
-
     EnableNetworkStabilizer()
-    OneTimeUnanchor()
-
-    local folder = Workspace:FindFirstChild("JSY_SendPartFolder") or Instance.new("Folder", Workspace)
-    folder.Name = "JSY_SendPartFolder"
-
-    local targetPart = folder:FindFirstChild("TargetPart") or Instance.new("Part", folder)
-    targetPart.Name = "TargetPart"
-    targetPart.Anchored = true
-    targetPart.CanCollide = false
-    targetPart.Transparency = 1
-    targetPart.Size = Vector3.new(1,1,1)
-    targetPart.CFrame = targetHRP.CFrame
-    local attach1 = targetPart:FindFirstChild("Attachment") or Instance.new("Attachment", targetPart)
-
+    local attach1 = targetHRP:FindFirstChild("JSY_SendPartAttach") or Instance.new("Attachment", targetHRP)
+    attach1.Name = "JSY_SendPartAttach"
     local function SendForcePart(v)
         if not v:IsA("BasePart") then return end
         if v.Anchored then return end
         if v.Parent and v.Parent:FindFirstChildOfClass("Humanoid") then return end
         if v.Name == "Handle" then return end
-
-        local originalCFrame = v.CFrame
-        local originalAnchored = v.Anchored
         local originalCanCollide = v.CanCollide
-
         for _, x in ipairs(v:GetChildren()) do
             if x:IsA("BodyMover") or x:IsA("AlignPosition") or x:IsA("Torque") or x:IsA("RocketPropulsion") or x:IsA("AlignOrientation") then
                 pcall(function() x:Destroy() end)
             end
         end
-
         v.CanCollide = false
-
         local torque = Instance.new("Torque")
         torque.Parent = v
         torque.Torque = Vector3.new(100000,100000,100000)
-
         local align = Instance.new("AlignPosition")
         align.Parent = v
         align.MaxForce = math.huge
         align.MaxVelocity = math.huge
         align.Responsiveness = 200
-
         local attach2 = Instance.new("Attachment", v)
         torque.Attachment0 = attach2
         align.Attachment0 = attach2
         align.Attachment1 = attach1
-
         task.spawn(function()
-            local started = tick()
-            while tick() - started < 2 do
-                if not v or not v.Parent then break end
-                task.wait(0.05)
-            end
-
+            task.wait(2)
             pcall(function()
                 if v and v:IsA("BasePart") then
                     v.AssemblyLinearVelocity = Vector3.zero
                     v.AssemblyAngularVelocity = Vector3.zero
                 end
-
                 if align and align.Parent then align:Destroy() end
                 if torque and torque.Parent then torque:Destroy() end
-                
-                for _, child in ipairs(v:GetChildren()) do
-                    if child:IsA("Attachment") then
-                        if child ~= attach1 then
-                            pcall(function() child:Destroy() end)
-                        end
-                    end
-                end
-
+                if attach2 and attach2.Parent then attach2:Destroy() end
                 if v and v.Parent then
-                    pcall(function()
-                        v.CanCollide = originalCanCollide
-                        v.Anchored = originalAnchored
-                        task.wait(0.05)
-                        if not blackHoleActive then
-                            v.CFrame = originalCFrame
-                        end
-                        if blackHoleActive and typeof(ForcePart) == "function" then
-                            ForcePart(v)
-                        end
-                    end)
+                    pcall(function() v.CanCollide = originalCanCollide end)
                 end
             end)
         end)
     end
-
     local parts = GetAllPartsRecursive(Workspace)
     for _, p in ipairs(parts) do
         pcall(function()
@@ -299,25 +250,77 @@ local function sendUnanchoredPartsToTarget(target)
             end
         end)
     end
-
-    task.spawn(function()
-        local duration = 5
-        local start = tick()
-        while tick() - start < duration do
-            if attach1 and targetHRP then
-                pcall(function()
-                    attach1.WorldCFrame = targetHRP.CFrame
-                    targetPart.CFrame = targetHRP.CFrame
-                end)
-            end
-            task.wait()
-        end
-        pcall(function() folder:Destroy() end)
-        DisableNetworkStabilizer()
-    end)
 end
 
-
+function executeInstantFling(targetPlayer)
+    if not targetPlayer then return end
+    local lp = Players.LocalPlayer
+    local myChar = lp and lp.Character
+    local myHrp = myChar and (myChar:FindFirstChild("HumanoidRootPart") or myChar:FindFirstChild("Torso"))
+    if not myHrp then return end
+    local tChar = targetPlayer.Character
+    local tHrp = tChar and (tChar:FindFirstChild("HumanoidRootPart") or tChar:FindFirstChild("Torso"))
+    if not tHrp then return end
+    task.spawn(function()
+        local origCF = myHrp.CFrame
+        local origGrav = workspace.Gravity
+        workspace.Gravity = 0
+        local flingPart = Instance.new("Part")
+        flingPart.Anchored = false
+        flingPart.CanCollide = false
+        flingPart.Transparency = 1
+        flingPart.Size = Vector3.new(1, 1, 1)
+        flingPart.CFrame = myHrp.CFrame
+        flingPart.Parent = workspace
+        local flingWeld = Instance.new("WeldConstraint")
+        flingWeld.Part0 = flingPart
+        flingWeld.Part1 = myHrp
+        flingWeld.Parent = flingPart
+        local BV = Instance.new("BodyVelocity")
+        BV.Parent = flingPart
+        BV.Velocity = Vector3.new(9e8, 9e8, 9e8)
+        BV.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        local myHum = myChar:FindFirstChildOfClass("Humanoid")
+        if myHum then
+            myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+        end
+        local startFling = tick()
+        local angle = 0
+        while tick() - startFling < 2.0 and tHrp and tHrp.Parent do
+            angle = angle + 100
+            pcall(function()
+                local offset = CFrame.new(0, 0.5, 0)
+                if angle % 400 == 0 then
+                    offset = CFrame.new(0, 1.5, 0)
+                elseif angle % 400 == 100 then
+                    offset = CFrame.new(0, -1.5, 0)
+                elseif angle % 400 == 200 then
+                    offset = CFrame.new(2.25, 1.5, -2.25)
+                elseif angle % 400 == 300 then
+                    offset = CFrame.new(-2.25, -1.5, 2.25)
+                end
+                myHrp.CFrame = tHrp.CFrame * offset * CFrame.Angles(math.rad(angle), 0, 0)
+                flingPart.AssemblyLinearVelocity = Vector3.new(9e7, 9e8, 9e7)
+                flingPart.AssemblyAngularVelocity = Vector3.new(9e8, 9e8, 9e8)
+            end)
+            RunService.Heartbeat:Wait()
+        end
+        task.wait(0.1)
+        workspace.Gravity = origGrav
+        if myHum then
+            myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+        end
+        pcall(function() flingPart:Destroy() end)
+        pcall(function()
+            myHrp.Anchored = true
+            myHrp.AssemblyLinearVelocity = Vector3.zero
+            myHrp.AssemblyAngularVelocity = Vector3.zero
+            myHrp.CFrame = origCF
+            task.wait(0.1)
+            myHrp.Anchored = false
+        end)
+    end)
+end
 function tr(key)
     local entry = LangDict[key]
     if entry then
@@ -325,14 +328,12 @@ function tr(key)
     end
     return key
 end
-
 function addTranslatable(guiElement, key, propertyName, prefix)
     propertyName = propertyName or "Text"
     prefix = prefix or ""
     table.insert(translatableElements, {element = guiElement, key = key, prop = propertyName, prefix = prefix})
     pcall(function() guiElement[propertyName] = prefix .. tr(key) end)
 end
-
 function updateLanguage(lang)
     currentLanguage = lang
     for _, item in ipairs(translatableElements) do
@@ -349,7 +350,6 @@ function updateLanguage(lang)
         end
     end
 end
-
 function makeSmoothDraggable(frame, dragHandle)
     local dragging, dragInput, dragStart, startPos
     dragHandle.InputBegan:Connect(function(input)
@@ -376,13 +376,11 @@ function makeSmoothDraggable(frame, dragHandle)
         end
     end)
 end
-
 currentCategory = "Menu"
 customWaypoints = {}
 customWPButtons = {}
 currentPlaceId = tostring(game.PlaceId)
-
-function saveCustomWaypoints()  
+function saveCustomWaypoints()
     pcall(function()
         if writefile then
             local allData = {}
@@ -400,7 +398,6 @@ function saveCustomWaypoints()
         end
     end)
 end
-
 function loadCustomWaypoints()
     customWaypoints = {}
     local success, content = pcall(function()
@@ -442,12 +439,10 @@ function loadCustomWaypoints()
         end
     end
 end
-
 local existingGui = PlayerGui:FindFirstChild("CHCheatGUI")
 if existingGui then
     pcall(function() existingGui:Destroy() end)
 end
-
 pcall(function()
     local coreGui = game:GetService("CoreGui")
     local gethui = (gethui or function() return nil end)
@@ -464,19 +459,16 @@ pcall(function()
         end
     end
 end)
-
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = PlayerGui
 ScreenGui.Enabled = true
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Name = "CHCheatGUI"
-
 ScreenGui.IgnoreGuiInset = true
 local LightingContainer = Instance.new("Frame")
 LightingContainer.Size = UDim2.new(1, 0, 1, 0)
 LightingContainer.BackgroundTransparency = 1
 LightingContainer.Parent = ScreenGui
-
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 600, 0, 340)
 MainFrame.Position = UDim2.new(0.5, -300, 0.5, -170)
@@ -486,7 +478,6 @@ MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
-
 local ModalFix = Instance.new("TextButton")
 ModalFix.Name = "ModalFix"
 ModalFix.Size = UDim2.new(0, 0, 0, 0)
@@ -494,17 +485,14 @@ ModalFix.BackgroundTransparency = 1
 ModalFix.Text = ""
 ModalFix.Modal = true
 ModalFix.Parent = MainFrame
--- Hotkey toggle (left bracket) untuk show/hide GUI - bekerja bahkan saat game punya kontrol cursor
 MainGuiToggleConn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if UserInputService:GetFocusedTextBox() then return end
     if input.KeyCode == Enum.KeyCode.LeftBracket then
         if MainFrame.Visible then
-            -- Sembunyikan dengan animasi
             local tw = TweenService:Create(MainFrame, TweenInfo.new(0.25), {Size = UDim2.new(0,0,0,0)})
             tw:Play()
             tw.Completed:Connect(function() MainFrame.Visible = false end)
         else
-            -- Tampilkan dengan animasi
             MainFrame.Visible = true
             MainFrame.Size = UDim2.new(0, 0, 0, 0)
             TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 600, 0, 340)}):Play()
@@ -512,27 +500,22 @@ MainGuiToggleConn = UserInputService.InputBegan:Connect(function(input, gameProc
         end
     end
 end)
-
 local mainCorner = Instance.new("UICorner")
 mainCorner.CornerRadius = UDim.new(0, 12)
 mainCorner.Parent = MainFrame
-
 local glassEffect = Instance.new("Frame")
 glassEffect.Size = UDim2.new(1, 0, 1, 0)
 glassEffect.BackgroundColor3 = Color3.fromRGB(0, 80, 255)
 glassEffect.BackgroundTransparency = 0.95
 glassEffect.Parent = MainFrame
-
 local glassCorner = Instance.new("UICorner")
 glassCorner.CornerRadius = UDim.new(0, 12)
 glassCorner.Parent = glassEffect
-
 local mainStroke = Instance.new("UIStroke")
 mainStroke.Color = Color3.fromRGB(255, 255, 255)
 mainStroke.Thickness = 2
 mainStroke.Transparency = 0
 mainStroke.Parent = MainFrame
-
 local VersionLabel = Instance.new("TextLabel")
 VersionLabel.Size = UDim2.new(0, 100, 0, 20)
 VersionLabel.Position = UDim2.new(1, -110, 1, -25)
@@ -545,76 +528,57 @@ VersionLabel.TextYAlignment = Enum.TextYAlignment.Bottom
 VersionLabel.Text = "v3.7.0"
 VersionLabel.ZIndex = 15
 VersionLabel.Parent = MainFrame
-
 local Container = Instance.new("Frame")
 Container.Size = UDim2.new(1, 0, 1, -30)
 Container.Position = UDim2.new(0, 0, 0, 30)
 Container.BackgroundTransparency = 1
 Container.Parent = MainFrame
-
 local ProfileFrame = Instance.new("Frame")
 ProfileFrame.Size = UDim2.new(0, 170, 1, -2)
 ProfileFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
 ProfileFrame.BackgroundTransparency = 0
 ProfileFrame.Parent = Container
-
 local profileCorner = Instance.new("UICorner")
 profileCorner.CornerRadius = UDim.new(0, 8)
 profileCorner.Parent = ProfileFrame
-
 local ProfileContent = Instance.new("Frame")
 ProfileContent.Size = UDim2.new(1, -10, 1, -10)
 ProfileContent.Position = UDim2.new(0, 5, 0, 5)
 ProfileContent.BackgroundTransparency = 1
 ProfileContent.Parent = ProfileFrame
-
 local ProfilePicture = Instance.new("ImageLabel")
 ProfilePicture.Size = UDim2.new(0, 80, 0, 80)
--- move a bit upward so it doesn't overlap the quick menu
 ProfilePicture.Position = UDim2.new(0.5, -40, 0, 12)
 ProfilePicture.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 ProfilePicture.BorderSizePixel = 0
 ProfilePicture.Parent = ProfileContent
-
 local pictureCorner = Instance.new("UICorner")
 pictureCorner.CornerRadius = UDim.new(0, 40)
 pictureCorner.Parent = ProfilePicture
-
 local pictureStroke = Instance.new("UIStroke")
 pictureStroke.Color = Color3.fromRGB(255, 255, 255)
 pictureStroke.Thickness = 2
 pictureStroke.Parent = ProfilePicture
-
 local userId = Player.UserId
-
 function loadThumbnailWithFallbacks()
     local success1, result1 = pcall(function()
         return "rbxthumb://type=AvatarHeadShot&id=" .. tostring(userId) .. "&w=420&h=420"
     end)
-    
     if success1 and result1 and result1 ~= "" then
         ProfilePicture.Image = result1
         return
     end
-    
     local success2 = pcall(function()
         ProfilePicture.Image = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. userId .. "&width=150&height=150&format=png"
     end)
-    
     if success2 then
         return
     end
-    
     ProfilePicture.Image = "rbxasset://textures/ui/avatar_placeholder.png"
 end
-
--- (blok Fixed Waypoints dipindah setelah createButton/setButtonActive)
-
 ProfilePicture.Image = "rbxasset://textures/ui/avatar_placeholder.png"
-
 task.spawn(loadThumbnailWithFallbacks)
 task.delay(3, loadThumbnailWithFallbacks)
-
 local Divider = Instance.new("Frame")
 Divider.Size = UDim2.new(0, 2, 1, 0)
 Divider.Position = UDim2.new(0, 170, 0, 0)
@@ -622,18 +586,15 @@ Divider.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 Divider.BackgroundTransparency = 0
 Divider.BorderSizePixel = 0
 Divider.Parent = Container
-
 local dividerCorner = Instance.new("UICorner")
 dividerCorner.CornerRadius = UDim.new(1, 0)
 dividerCorner.Parent = Divider
-
 local ButtonsFrame = Instance.new("Frame")
 ButtonsFrame.Size = UDim2.new(1, -190, 1, -30)
 ButtonsFrame.Position = UDim2.new(0, 180, 0, 15)
 ButtonsFrame.BackgroundTransparency = 1
 ButtonsFrame.ClipsDescendants = true
 ButtonsFrame.Parent = Container
-
 local ScrollFrame = Instance.new("ScrollingFrame")
 ScrollFrame.Size = UDim2.new(1, 0, 1, 0)
 ScrollFrame.BackgroundTransparency = 1
@@ -643,21 +604,16 @@ ScrollFrame.ScrollBarImageTransparency = 0.5
 ScrollFrame.ScrollingDirection = Enum.ScrollingDirection.Y
 ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 ScrollFrame.Parent = ButtonsFrame
-
 local ScrollPadding = Instance.new("UIPadding")
 ScrollPadding.PaddingTop = UDim.new(0, 10)
 ScrollPadding.PaddingBottom = UDim.new(0, 10)
 ScrollPadding.Parent = ScrollFrame
-
--- Dedicated Utility container (2 columns) to keep pairs aligned
 local UtilityFrame = Instance.new("Frame")
 UtilityFrame.Name = "UtilityFrame"
 UtilityFrame.Size = UDim2.new(1, 0, 1, 0)
 UtilityFrame.Visible = false
 UtilityFrame.BackgroundTransparency = 1
 UtilityFrame.Parent = ButtonsFrame
-
--- Scrolling container for Utility items
 local UtilityScroll = Instance.new("ScrollingFrame")
 UtilityScroll.Name = "UtilityScroll"
 UtilityScroll.Size = UDim2.new(1, 0, 1, 0)
@@ -668,12 +624,10 @@ UtilityScroll.ScrollBarImageTransparency = 0.5
 UtilityScroll.ScrollingDirection = Enum.ScrollingDirection.Y
 UtilityScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 UtilityScroll.Parent = UtilityFrame
-
 local UtilityPadding = Instance.new("UIPadding")
 UtilityPadding.PaddingTop = UDim.new(0, 10)
 UtilityPadding.PaddingBottom = UDim.new(0, 10)
 UtilityPadding.Parent = UtilityScroll
-
 local UtilityGrid = Instance.new("UIGridLayout")
 UtilityGrid.CellSize = UDim2.new(0, 150, 0, 35)
 UtilityGrid.CellPadding = UDim2.new(0, 8, 0, 8)
@@ -684,54 +638,45 @@ UtilityGrid.StartCorner = Enum.StartCorner.TopLeft
 UtilityGrid.HorizontalAlignment = Enum.HorizontalAlignment.Center
 UtilityGrid.VerticalAlignment = Enum.VerticalAlignment.Top
 UtilityGrid.Parent = UtilityScroll
-
 UtilityGrid:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     UtilityScroll.CanvasSize = UDim2.new(0, 0, 0, UtilityGrid.AbsoluteContentSize.Y + 30)
 end)
-
 CmdsFrame = Instance.new("Frame")
 CmdsFrame.Name = "CmdsFrame"
 CmdsFrame.Size = UDim2.new(1, 0, 1, 0)
 CmdsFrame.Visible = false
 CmdsFrame.BackgroundTransparency = 1
 CmdsFrame.Parent = ButtonsFrame
-
 local CreditsFrame = Instance.new("Frame")
 CreditsFrame.Name = "CreditsFrame"
 CreditsFrame.Size = UDim2.new(1, 0, 1, 0)
 CreditsFrame.Visible = false
 CreditsFrame.BackgroundTransparency = 1
 CreditsFrame.Parent = ButtonsFrame
-
     ConfigFrame = Instance.new("Frame")
     ConfigFrame.Name = "ConfigFrame"
     ConfigFrame.Size = UDim2.new(1, 0, 1, 0)
     ConfigFrame.Visible = false
     ConfigFrame.BackgroundTransparency = 1
     ConfigFrame.Parent = ButtonsFrame
-
 ChangelogsFrame = Instance.new("Frame")
 ChangelogsFrame.Name = "ChangelogsFrame"
 ChangelogsFrame.Size = UDim2.new(1, 0, 1, 0)
 ChangelogsFrame.Visible = false
 ChangelogsFrame.BackgroundTransparency = 1
 ChangelogsFrame.Parent = ButtonsFrame
-
 ShortcutsFrame = Instance.new("Frame")
 ShortcutsFrame.Name = "ShortcutsFrame"
 ShortcutsFrame.Size = UDim2.new(1, 0, 1, 0)
 ShortcutsFrame.Visible = false
 ShortcutsFrame.BackgroundTransparency = 1
 ShortcutsFrame.Parent = ButtonsFrame
-
 InfoFrame = Instance.new("Frame")
 InfoFrame.Name = "InfoFrame"
 InfoFrame.Size = UDim2.new(1, 0, 1, 0)
 InfoFrame.Visible = false
 InfoFrame.BackgroundTransparency = 1
 InfoFrame.Parent = ButtonsFrame
-
--- Left quick panel under profile picture
 do
     local QuickPanel = Instance.new("ScrollingFrame")
     QuickPanel.Name = "QuickPanel"
@@ -744,19 +689,15 @@ do
     QuickPanel.ScrollingDirection = Enum.ScrollingDirection.Y
     QuickPanel.CanvasSize = UDim2.new(0, 0, 0, 0)
     QuickPanel.Parent = ProfileContent
-
     local listLayout = Instance.new("UIListLayout")
     listLayout.FillDirection = Enum.FillDirection.Vertical
     listLayout.SortOrder = Enum.SortOrder.LayoutOrder
     listLayout.Padding = UDim.new(0, 6)
     listLayout.Parent = QuickPanel
-
     listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         QuickPanel.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 10)
     end)
-
     local categoryButtons = {}
-
     local function makeSmallBtn(textKey, order)
         local btn = Instance.new("TextButton")
         btn.Size = UDim2.new(1, -6, 0, 24)
@@ -768,7 +709,6 @@ do
         btn.Parent = QuickPanel
         addTranslatable(btn, textKey, "Text")
         categoryButtons[textKey] = btn
-
         btn.MouseEnter:Connect(function()
             if currentCategory ~= textKey then
                 TweenService:Create(btn, TweenInfo.new(0.15), {TextColor3 = Color3.fromRGB(255, 100, 100)}):Play()
@@ -781,35 +721,31 @@ do
         end)
         return btn
     end
-
     local function scrollToLabel(labelText)
         if not ScrollFrame or not ScrollFrame:FindFirstChildOfClass("UIGridLayout") then return end
         for _, child in ipairs(ScrollFrame:GetChildren()) do
             if child:IsA("TextButton") and string.find(string.lower(child.Text), string.lower(labelText), 1, true) then
-                task.wait() -- ensure AbsolutePosition is ready
+                task.wait()
                 local targetY = child.AbsolutePosition.Y - ScrollFrame.AbsolutePosition.Y + ScrollFrame.CanvasPosition.Y - 10
                 ScrollFrame.CanvasPosition = Vector2.new(0, math.max(targetY, 0))
                 break
             end
         end
     end
-
-    local rusuhKeywords = {"bringpart", "tarik objek", "spectator", "penonton", "noclip", "tembus tembok", "tendang", "unanchor", "lepas kunci", "fly", "terbang", "esp", "esp team", "quick tools", "quick", "anti fling", "antifling", "fling aura", "aura fling", "orbit fling", "orbit"}
-    local utilityKeywords = {"free cam", "freecam", "kamera bebas", "click tp", "clicktp", "klik tp", "speed", "kecepatan", "save wp", "savewp", "swp", "simpan lokasi", "btools", "tween tp", "tweentp", "jump power", "jumppower", "jp", "tp tool", "tptool", "invisible", "tak terlihat", "visible", "terlihat", "fps & ping", "chat logs", "chatlogs"}
+    local rusuhKeywords = {"bringpart", "tarik objek", "spectator", "penonton", "noclip", "tembus tembok", "tendang", "unanchor", "lepas kunci", "fly", "terbang", "esp", "esp team", "quick tools", "quick", "anti fling", "antifling", "fling aura", "aura fling", "orbit fling", "orbit", "click yeet", "crash server", "touch fling", "touchfling", "vehicle fly", "terbang kendaraan", "auto clicker", "autoclicker", "spam click"}
+    local utilityKeywords = {"free cam", "freecam", "kamera bebas", "click tp", "clicktp", "klik tp", "speed", "kecepatan", "save wp", "savewp", "swp", "simpan lokasi", "btools", "tween tp", "tweentp", "jump power", "jumppower", "jp", "tp tool", "tptool", "invisible", "tak terlihat", "visible", "terlihat", "fps & ping", "chat logs", "chatlogs", "part inspector", "inspektur objek"}
     local function matchesAny(text, keywords)
         local lower = string.lower(text or "")
         for _, k in ipairs(keywords) do
-            if string.find(lower, k, 1, true) then 
+            if string.find(lower, k, 1, true) then
                 if k == "esp" and string.find(lower, "respawn", 1, true) then
-                    -- skip 'esp' matching 'respawn'
                 else
-                    return true 
+                    return true
                 end
             end
         end
         return false
     end
-
     local function getChunks(s)
         local chunks = {}
         local pos = 1
@@ -830,14 +766,11 @@ do
         end
         return chunks
     end
-
     local function naturalCompare(aStr, bStr)
         local aName, bName = tostring(aStr):lower(), tostring(bStr):lower()
         if aName == bName then return tostring(aStr) < tostring(bStr) end
-        
         local aChunks = getChunks(aName)
         local bChunks = getChunks(bName)
-        
         for i = 1, math.min(#aChunks, #bChunks) do
             local ac, bc = aChunks[i], bChunks[i]
             if typeof(ac) ~= typeof(bc) then
@@ -848,7 +781,6 @@ do
         end
         return #aChunks < #bChunks
     end
-
     setCategory = function(cat)
         currentCategory = cat
         for name, btn in pairs(categoryButtons) do
@@ -862,11 +794,9 @@ do
                 }):Play()
             end
         end
-
         for _, child in ipairs(ScrollFrame:GetChildren()) do
             if child:IsA("TextButton") then
                 if cat == "Menu" then
-                    -- show only items that are NOT in Rusuh or Utility
                     child.Visible = (not matchesAny(child.Text, rusuhKeywords))
                     and (not matchesAny(child.Text, utilityKeywords))
                     and (child:GetAttribute("IsFixedWP") ~= true)
@@ -879,8 +809,6 @@ do
                 child.Visible = false
             end
         end
-
-        -- Alphabetically sort Menu buttons for clarity
         if cat == "Menu" then
             local btns = {}
             for _, ch in ipairs(ScrollFrame:GetChildren()) do
@@ -897,8 +825,6 @@ do
                 b.LayoutOrder = i
             end
         end
-
-        -- Build paired rows for Utility to guarantee alignment
         local function ensureRow(index)
             local name = "UtilityRow"..tostring(index)
             local row = ScrollFrame:FindFirstChild(name)
@@ -918,9 +844,7 @@ do
             end
             return row
         end
-
         if cat == "Utility" then
-            -- Show UtilityFrame and hide ScrollFrame/CmdsFrame
             ScrollFrame.Visible = false
             CmdsFrame.Visible = false
             UtilityFrame.Visible = true
@@ -933,7 +857,6 @@ do
                 end
                 return nil
             end
-            -- Prefer finding by Name to be robust (gunakan UtilityScroll agar bisa scroll)
             local clickBtn = UtilityScroll:FindFirstChild("ClickTPBtn") or ScrollFrame:FindFirstChild("ClickTPBtn") or findBtn("Click TP")
             local tpBox    = UtilityScroll:FindFirstChild("TPBox")     or ScrollFrame:FindFirstChild("TPBox")
             local freeBtn  = UtilityScroll:FindFirstChild("FreeCamBtn") or ScrollFrame:FindFirstChild("FreeCamBtn") or findBtn("Free Cam")
@@ -956,7 +879,7 @@ do
             local visBtn = UtilityScroll:FindFirstChild("VisibleBtn") or ScrollFrame:FindFirstChild("VisibleBtn") or findBtn("Visible")
             local fpsBtn = UtilityScroll:FindFirstChild("FPSPingBtn") or ScrollFrame:FindFirstChild("FPSPingBtn") or findBtn("FPS & Ping")
             local chatLogsBtn = UtilityScroll:FindFirstChild("ChatLogsBtn") or ScrollFrame:FindFirstChild("ChatLogsBtn") or findBtn("Chat Logs")
-
+            local partInspectorBtn = UtilityScroll:FindFirstChild("PartInspectorBtn") or ScrollFrame:FindFirstChild("PartInspectorBtn") or findBtn("Part Inspector")
             local function moveToUtil(child, order)
                 if child then child.Parent = UtilityScroll child.Visible = true child.LayoutOrder = order end
             end
@@ -965,15 +888,14 @@ do
             moveToUtil(spdBtn, 5);   moveToUtil(spdBox, 6)
             moveToUtil(jumpBtn, 7);  moveToUtil(jumpBox, 8)
             moveToUtil(swpBtn, 9);   moveToUtil(swpBox, 10)
-            moveToUtil(tweenBtn, 11)
-            moveToUtil(btoolsBtn, 12)
-            moveToUtil(tptoolBtn, 13)
+            moveToUtil(btoolsBtn, 11)
+            moveToUtil(chatLogsBtn, 12)
+            moveToUtil(fpsBtn, 13)
             moveToUtil(invisBtn, 14)
-            moveToUtil(visBtn, 15)
-            moveToUtil(fpsBtn, 16)
-            moveToUtil(chatLogsBtn, 17)
-            -- juga pindahkan tombol waypoint tetap (urut A->Z)
-            -- jangan tampilkan tombol waypoint tetap di Utility
+            moveToUtil(tptoolBtn, 15)
+            moveToUtil(tweenBtn, 16)
+            moveToUtil(visBtn, 17)
+            moveToUtil(partInspectorBtn, 18)
             for _, ch in ipairs(UtilityScroll:GetChildren()) do
                 if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
                     ch.Parent = ScrollFrame
@@ -985,20 +907,9 @@ do
                     ch.Visible = false
                 end
             end
-            -- -- also move fixed waypoint buttons if present
-            -- local nextOrder = 7
-            -- for _, ch in ipairs(ScrollFrame:GetChildren()) do
-            --     if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
-            --         moveToUtil(ch, nextOrder)
-            --         nextOrder += 1
-            --     end
-            -- end
             elseif cat == "Waypoints" then
-            -- Tampilkan khusus tombol waypoint tetap (IsFixedWP) di UtilityScroll
             ScrollFrame.Visible = false
             UtilityFrame.Visible = true
-
-            -- Singkirkan item non-waypoint dari UtilityScroll
             for _, ch in ipairs(UtilityScroll:GetChildren()) do
                 if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") ~= true then
                     ch.Parent = ScrollFrame
@@ -1008,8 +919,6 @@ do
                     ch.Visible = false
                 end
             end
-
-            -- Kumpulkan tombol waypoint tetap dari kedua parent
             local fixed = {}
             for _, ch in ipairs(ScrollFrame:GetChildren()) do
                 if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
@@ -1021,13 +930,9 @@ do
                     table.insert(fixed, ch)
                 end
             end
-
-            -- Urutkan dengan natural sort (abjad & nomor berurutan)
             table.sort(fixed, function(a, b)
                 return naturalCompare(a.Text or "", b.Text or "")
             end)
-
-            -- Tempatkan berurutan dari atas
             local order = 1
             for _, ch in ipairs(fixed) do
                 ch.Parent = UtilityScroll
@@ -1036,7 +941,6 @@ do
                 order = order + 1
             end
         else
-            -- Leaving Utility: move items back to ScrollFrame and hide UtilityFrame
             if UtilityFrame.Visible then
                 local function restore(nameOrBtn)
                     local inst
@@ -1048,14 +952,12 @@ do
                     if inst then inst.Parent = ScrollFrame inst.Visible = false end
                 end
                 restore("TPBox"); restore("FCBox"); restore("SpeedBox"); restore("SWPBox")
-                -- restore fixed waypoint buttons
                 for _, ch in ipairs(UtilityScroll:GetChildren()) do
                     if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
                         ch.Parent = ScrollFrame
                         ch.Visible = false
                     end
                 end
-                -- buttons may not have unique names; find by text
                 for _, ch in ipairs(UtilityScroll:GetChildren()) do
                     if ch:IsA("TextButton") then ch.Parent = ScrollFrame ch.Visible = false end
                 end
@@ -1119,7 +1021,6 @@ do
                 ScrollFrame.Visible = true
             end
         end
-        -- enforce Utility ordering so each button is beside its textbox
         if cat == "Utility" then
             local function findButtonByText(txt)
                 local needle = string.lower(txt)
@@ -1172,22 +1073,18 @@ do
                 end
             end
         end
-        -- also toggle SpeedBox (in case it's not parented directly to ScrollFrame yet in some executors)
         if typeof(SpeedBox) == "Instance" then
             SpeedBox.Visible = (cat == "Utility")
         end
         if typeof(JumpPowerBox) == "Instance" then
             JumpPowerBox.Visible = (cat == "Utility")
         end
-        -- ensure layout recalculates
         task.defer(function()
             ScrollFrame.CanvasPosition = Vector2.new(0, 0)
         end)
     end
-
     createCreditsWindow = function()
         if CreditsFrame:FindFirstChild("CreditsScroll") then return end
-        
         local scrollFrame = Instance.new("ScrollingFrame")
         scrollFrame.Name = "CreditsScroll"
         scrollFrame.Size = UDim2.new(1, -10, 1, -10)
@@ -1197,18 +1094,14 @@ do
         scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255)
         scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
         scrollFrame.Parent = CreditsFrame
-
         local listLayout = Instance.new("UIListLayout")
         listLayout.Padding = UDim.new(0, 10)
         listLayout.SortOrder = Enum.SortOrder.LayoutOrder
         listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
         listLayout.Parent = scrollFrame
-
         listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
             scrollFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 20)
         end)
-
-        -- Header Banner
         local header = Instance.new("Frame")
         header.Size = UDim2.new(1, -10, 0, 80)
         header.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
@@ -1218,7 +1111,6 @@ do
         local hStroke = Instance.new("UIStroke", header)
         hStroke.Color = Color3.fromRGB(40, 40, 50)
         hStroke.Thickness = 1
-
         local title = Instance.new("TextLabel")
         title.Size = UDim2.new(1, 0, 0.6, 0)
         title.BackgroundTransparency = 1
@@ -1227,7 +1119,6 @@ do
         title.Font = Enum.Font.GothamBlack
         title.TextSize = 20
         title.Parent = header
-
         local subtitle = Instance.new("TextLabel")
         subtitle.Size = UDim2.new(1, 0, 0.4, 0)
         subtitle.Position = UDim2.new(0, 0, 0.6, 0)
@@ -1237,8 +1128,6 @@ do
         subtitle.Font = Enum.Font.GothamMedium
         subtitle.TextSize = 11
         subtitle.Parent = header
-
-        -- Staff Card
         local staffCard = Instance.new("Frame")
         staffCard.Size = UDim2.new(1, -10, 0, 70)
         staffCard.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
@@ -1248,18 +1137,16 @@ do
         local sStroke = Instance.new("UIStroke", staffCard)
         sStroke.Color = Color3.fromRGB(40, 40, 50)
         sStroke.Thickness = 1
-
         local devRole = Instance.new("TextLabel")
         devRole.Size = UDim2.new(1, -20, 0, 20)
         devRole.Position = UDim2.new(0, 10, 0, 10)
         devRole.BackgroundTransparency = 1
-        devRole.Text = "ðŸ‘‘ OWNER & DEVELOPER"
+        devRole.Text = "👑 OWNER & DEVELOPER"
         devRole.TextColor3 = Color3.fromRGB(255, 200, 50)
         devRole.Font = Enum.Font.GothamBold
         devRole.TextSize = 11
         devRole.TextXAlignment = Enum.TextXAlignment.Left
         devRole.Parent = staffCard
-
         local devName = Instance.new("TextLabel")
         devName.Size = UDim2.new(1, -20, 0, 30)
         devName.Position = UDim2.new(0, 10, 0, 28)
@@ -1270,8 +1157,6 @@ do
         devName.TextSize = 18
         devName.TextXAlignment = Enum.TextXAlignment.Left
         devName.Parent = staffCard
-
-        -- Disclaimer Card
         local disclaimerCard = Instance.new("Frame")
         disclaimerCard.Size = UDim2.new(1, -10, 0, 75)
         disclaimerCard.BackgroundColor3 = Color3.fromRGB(25, 15, 15)
@@ -1281,7 +1166,6 @@ do
         local discStroke = Instance.new("UIStroke", disclaimerCard)
         discStroke.Color = Color3.fromRGB(100, 40, 40)
         discStroke.Thickness = 1
-
         local discTitle = Instance.new("TextLabel")
         discTitle.Size = UDim2.new(1, -20, 0, 20)
         discTitle.Position = UDim2.new(0, 10, 0, 8)
@@ -1292,7 +1176,6 @@ do
         discTitle.TextSize = 11
         discTitle.TextXAlignment = Enum.TextXAlignment.Left
         discTitle.Parent = disclaimerCard
-
         local discText = Instance.new("TextLabel")
         discText.Size = UDim2.new(1, -20, 0, 40)
         discText.Position = UDim2.new(0, 10, 0, 26)
@@ -1306,14 +1189,11 @@ do
         discText.TextYAlignment = Enum.TextYAlignment.Top
         discText.Parent = disclaimerCard
     end
-
-
     local function syncToggle(currentActive, targetState, toggleFunc)
         if targetState ~= nil and currentActive ~= targetState then
             pcall(toggleFunc)
         end
     end
-
     local function getConfigsList()
         local list = {}
         if isfile("PIXECUTE_CONFIG/configs_index.json") then
@@ -1327,14 +1207,12 @@ do
         end
         return list
     end
-
     local function saveConfigsList(list)
         pcall(function()
             if not isfolder("PIXECUTE_CONFIG") then makefolder("PIXECUTE_CONFIG") end
             writefile("PIXECUTE_CONFIG/configs_index.json", game:GetService("HttpService"):JSONEncode(list))
         end)
     end
-
     local function SaveConfig(name)
         if not name or name == "" then return end
         local HttpService = game:GetService("HttpService")
@@ -1363,7 +1241,6 @@ do
         if success then
             if not isfolder("PIXECUTE_CONFIG") then makefolder("PIXECUTE_CONFIG") end
             writefile("PIXECUTE_CONFIG/" .. name .. ".json", json)
-            
             local list = getConfigsList()
             local found = false
             for _, v in ipairs(list) do
@@ -1373,15 +1250,12 @@ do
                 table.insert(list, name)
                 saveConfigsList(list)
             end
-
             writefile("PIXECUTE_CONFIG/autoload.txt", name)
-
             if refreshConfigsUI then
                 refreshConfigsUI()
             end
         end
     end
-
     local function LoadConfig(name)
         if not name or name == "" then return end
         local HttpService = game:GetService("HttpService")
@@ -1410,21 +1284,18 @@ do
                 syncToggle(isJumpActive, result.jumpPower, toggleJumpPower)
                 syncToggle(tptoolActive, result.tptool, toggleTPTool)
                 syncToggle(shiftLockActive, result.shiftLock, toggleShiftLock)
-
                 pcall(function()
                     writefile("PIXECUTE_CONFIG/autoload.txt", name)
                 end)
             end
         end
     end
-
     local function DeleteConfig(name)
         if not name or name == "" then return end
         local filePath = "PIXECUTE_CONFIG/" .. name .. ".json"
         if isfile(filePath) then
             pcall(function() delfile(filePath) end)
         end
-        
         local list = getConfigsList()
         for i, v in ipairs(list) do
             if v == name then
@@ -1433,22 +1304,18 @@ do
             end
         end
         saveConfigsList(list)
-
         if isfile("PIXECUTE_CONFIG/autoload.txt") then
             local success, auto = pcall(function() return readfile("PIXECUTE_CONFIG/autoload.txt") end)
             if success and auto == name then
                 pcall(function() delfile("PIXECUTE_CONFIG/autoload.txt") end)
             end
         end
-
         if refreshConfigsUI then
             refreshConfigsUI()
         end
     end
-
     createConfigWindow = function()
         if ConfigFrame:FindFirstChild("ConfigScroll") then return end
-        
         local scrollFrame = Instance.new("ScrollingFrame")
         scrollFrame.Name = "ConfigScroll"
         scrollFrame.Size = UDim2.new(1, -10, 1, -10)
@@ -1458,17 +1325,14 @@ do
         scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255)
         scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 300)
         scrollFrame.Parent = ConfigFrame
-
         local listLayout = Instance.new("UIListLayout")
         listLayout.Padding = UDim.new(0, 8)
         listLayout.SortOrder = Enum.SortOrder.LayoutOrder
         listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
         listLayout.Parent = scrollFrame
-
         listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
             scrollFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 20)
         end)
-
         local title = Instance.new("TextLabel")
         title.Size = UDim2.new(1, 0, 0, 25)
         title.BackgroundTransparency = 1
@@ -1478,7 +1342,6 @@ do
         title.TextSize = 15
         title.LayoutOrder = 1
         title.Parent = scrollFrame
-
         local nameInput = Instance.new("TextBox")
         nameInput.Name = "ConfigNameInput"
         nameInput.Size = UDim2.new(0, 200, 0, 32)
@@ -1492,7 +1355,6 @@ do
         nameInput.LayoutOrder = 2
         Instance.new("UICorner", nameInput).CornerRadius = UDim.new(0, 6)
         nameInput.Parent = scrollFrame
-
         local saveBtn = Instance.new("TextButton")
         saveBtn.Size = UDim2.new(0, 200, 0, 30)
         saveBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
@@ -1503,7 +1365,6 @@ do
         saveBtn.LayoutOrder = 3
         Instance.new("UICorner", saveBtn).CornerRadius = UDim.new(0, 6)
         saveBtn.Parent = scrollFrame
-
         saveBtn.MouseButton1Click:Connect(function()
             local text = nameInput.Text
             text = string.gsub(text, "[^%w%-_]", "")
@@ -1512,7 +1373,6 @@ do
                 nameInput.Text = ""
             end
         end)
-
         local listTitle = Instance.new("TextLabel")
         listTitle.Size = UDim2.new(1, 0, 0, 20)
         listTitle.BackgroundTransparency = 1
@@ -1522,28 +1382,23 @@ do
         listTitle.TextSize = 12
         listTitle.LayoutOrder = 4
         listTitle.Parent = scrollFrame
-
         configListItemsFrame = Instance.new("Frame")
         configListItemsFrame.Name = "ItemsFrame"
         configListItemsFrame.Size = UDim2.new(1, 0, 0, 0)
         configListItemsFrame.BackgroundTransparency = 1
         configListItemsFrame.LayoutOrder = 5
         configListItemsFrame.Parent = scrollFrame
-
         refreshConfigsUI = function()
             if not configListItemsFrame then return end
             configListItemsFrame:ClearAllChildren()
-            
             local itemsLayout = Instance.new("UIListLayout")
             itemsLayout.Padding = UDim.new(0, 6)
             itemsLayout.SortOrder = Enum.SortOrder.Name
             itemsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
             itemsLayout.Parent = configListItemsFrame
-
             itemsLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
                 configListItemsFrame.Size = UDim2.new(1, 0, 0, itemsLayout.AbsoluteContentSize.Y + 5)
             end)
-
             local configs = getConfigsList()
             for _, cfgName in ipairs(configs) do
                 local row = Instance.new("Frame")
@@ -1552,9 +1407,7 @@ do
                 row.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
                 row.BackgroundTransparency = 0.2
                 row.Parent = configListItemsFrame
-
                 Instance.new("UICorner", row).CornerRadius = UDim.new(0, 6)
-
                 local nameLbl = Instance.new("TextLabel")
                 nameLbl.Size = UDim2.new(1, -75, 1, 0)
                 nameLbl.Position = UDim2.new(0, 8, 0, 0)
@@ -1565,7 +1418,6 @@ do
                 nameLbl.TextSize = 12
                 nameLbl.TextXAlignment = Enum.TextXAlignment.Left
                 nameLbl.Parent = row
-
                 local loadButton = Instance.new("TextButton")
                 loadButton.Size = UDim2.new(0, 40, 0, 22)
                 loadButton.Position = UDim2.new(1, -66, 0.5, -11)
@@ -1576,11 +1428,9 @@ do
                 loadButton.TextSize = 10
                 Instance.new("UICorner", loadButton).CornerRadius = UDim.new(0, 4)
                 loadButton.Parent = row
-
                 loadButton.MouseButton1Click:Connect(function()
                     LoadConfig(cfgName)
                 end)
-
                 local delButton = Instance.new("TextButton")
                 delButton.Size = UDim2.new(0, 20, 0, 22)
                 delButton.Position = UDim2.new(1, -24, 0.5, -11)
@@ -1591,19 +1441,15 @@ do
                 delButton.TextSize = 10
                 Instance.new("UICorner", delButton).CornerRadius = UDim.new(0, 4)
                 delButton.Parent = row
-
                 delButton.MouseButton1Click:Connect(function()
                     DeleteConfig(cfgName)
                 end)
             end
         end
-
         refreshConfigsUI()
     end
-
     createInfoWindow = function()
         if InfoFrame:FindFirstChild("InfoScroll") then return end
-        
         local scrollFrame = Instance.new("ScrollingFrame")
         scrollFrame.Name = "InfoScroll"
         scrollFrame.Size = UDim2.new(1, -10, 1, -10)
@@ -1613,17 +1459,14 @@ do
         scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255)
         scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
         scrollFrame.Parent = InfoFrame
-
         local listLayout = Instance.new("UIListLayout")
         listLayout.Padding = UDim.new(0, 10)
         listLayout.SortOrder = Enum.SortOrder.LayoutOrder
         listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
         listLayout.Parent = scrollFrame
-
         listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
             scrollFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 20)
         end)
-
         local infos = {
             { titleEN = "Fly V1 (Raycast)", titleID = "Terbang V1 (Aman)", descEN = "Safe flying mechanism with auto ground collision detection so you won't get stuck.", descID = "Sistem terbang aman yang punya sensor daratan, dijamin karakter nggak bakal nyangkut di tanah pas dimatikan." },
             { titleEN = "Fly V3 & Quick Fly", titleID = "Terbang V3 & Cepat", descEN = "Physics-based flying that acts like a jet/plane. Highly maneuverable.", descID = "Terbang menggunakan physics BodyMover, lebih lincah dan mulus kayak pesawat jet." },
@@ -1651,7 +1494,6 @@ do
             { titleEN = "DEX Explorer", titleID = "DEX Explorer", descEN = "An advanced tool used to inspect the internal files and scripts of the game.", descID = "Alat khusus sekelas developer (Dark Dex) buat membongkar isi file map dan script yang ada di dalam game." },
             { titleEN = "Command Bar", titleID = "Command Bar", descEN = "Draggable bar at the bottom. Type commands like ;speed 100, ;fly, ;jp 500.", descID = "Kolom perintah di bawah layar. Ketik perintah chat kayak ;speed 100, ;fly, atau ;hitbox 50." }
         }
-
         for idx, info in ipairs(infos) do
             local itemFrame = Instance.new("Frame")
             itemFrame.Name = "InfoItem"
@@ -1660,11 +1502,9 @@ do
             itemFrame.BorderSizePixel = 0
             itemFrame.LayoutOrder = idx
             itemFrame.Parent = scrollFrame
-
             local corner = Instance.new("UICorner")
             corner.CornerRadius = UDim.new(0, 8)
             corner.Parent = itemFrame
-
             local titleLbl = Instance.new("TextLabel")
             titleLbl.Size = UDim2.new(1, -20, 0, 30)
             titleLbl.Position = UDim2.new(0, 10, 0, 5)
@@ -1675,7 +1515,6 @@ do
             titleLbl.TextXAlignment = Enum.TextXAlignment.Left
             titleLbl.Text = currentLanguage == "EN" and info.titleEN or info.titleID
             titleLbl.Parent = itemFrame
-
             local descLbl = Instance.new("TextLabel")
             descLbl.Size = UDim2.new(1, -20, 1, -40)
             descLbl.Position = UDim2.new(0, 10, 0, 35)
@@ -1688,31 +1527,25 @@ do
             descLbl.TextWrapped = true
             descLbl.Text = currentLanguage == "EN" and info.descEN or info.descID
             descLbl.Parent = itemFrame
-
             table.insert(translatableElements, {
                 element = titleLbl,
                 customUpdate = function()
                     titleLbl.Text = currentLanguage == "EN" and info.titleEN or info.titleID
                 end
             })
-
             table.insert(translatableElements, {
                 element = descLbl,
                 customUpdate = function()
                     descLbl.Text = currentLanguage == "EN" and info.descEN or info.descID
                 end
             })
-            
-            -- Adjust height
             local tService = game:GetService("TextService")
             local bounds = tService:GetTextSize(descLbl.Text, descLbl.TextSize, descLbl.Font, Vector2.new(280, 9999))
             itemFrame.Size = UDim2.new(1, -10, 0, math.max(80, 45 + bounds.Y))
         end
     end
-
     local createShortcutsWindow = function()
         if ShortcutsFrame:FindFirstChild("ShortcutsScroll") then return end
-        
         local scrollFrame = Instance.new("ScrollingFrame")
         scrollFrame.Name = "ShortcutsScroll"
         scrollFrame.Size = UDim2.new(1, -10, 1, -10)
@@ -1722,22 +1555,18 @@ do
         scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255)
         scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 300)
         scrollFrame.Parent = ShortcutsFrame
-
         local listLayout = Instance.new("UIListLayout")
         listLayout.Padding = UDim.new(0, 8)
         listLayout.SortOrder = Enum.SortOrder.LayoutOrder
         listLayout.Parent = scrollFrame
-
         local itemFrame = Instance.new("Frame")
         itemFrame.Name = "ShortcutsItem"
         itemFrame.Size = UDim2.new(1, -8, 0, 190)
         itemFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
         itemFrame.Parent = scrollFrame
-
         local itemCorner = Instance.new("UICorner")
         itemCorner.CornerRadius = UDim.new(0, 6)
         itemCorner.Parent = itemFrame
-
         local titleLabel = Instance.new("TextLabel")
         titleLabel.Size = UDim2.new(1, -16, 0, 22)
         titleLabel.Position = UDim2.new(0, 8, 0, 6)
@@ -1748,7 +1577,6 @@ do
         titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         titleLabel.Text = "PC Keyboard Shortcuts"
         titleLabel.Parent = itemFrame
-
         local valueLabel = Instance.new("TextLabel")
         valueLabel.Size = UDim2.new(1, -16, 1, -38)
         valueLabel.Position = UDim2.new(0, 8, 0, 34)
@@ -1762,15 +1590,12 @@ do
         addTranslatable(valueLabel, "ShortcutsDesc", "Text")
         valueLabel.TextWrapped = true
         valueLabel.Parent = itemFrame
-        
         listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
             scrollFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 10)
         end)
     end
-
     createChangelogsWindow = function()
         if ChangelogsFrame:FindFirstChild("ChangelogsScroll") then return end
-        
         local scrollFrame = Instance.new("ScrollingFrame")
         scrollFrame.Name = "ChangelogsScroll"
         scrollFrame.Size = UDim2.new(1, -10, 1, -10)
@@ -1780,12 +1605,10 @@ do
         scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255)
         scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 300)
         scrollFrame.Parent = ChangelogsFrame
-
         local listLayout = Instance.new("UIListLayout")
         listLayout.Padding = UDim.new(0, 8)
         listLayout.SortOrder = Enum.SortOrder.LayoutOrder
         listLayout.Parent = scrollFrame
-
         local changelogs = {
             { title = "v3.7.0 (Premium Combat & UI Update)", key = "CL_370" },
             { title = "v3.6.0 (Shortcuts & UX Update)", key = "CL_360" },
@@ -1798,7 +1621,6 @@ do
             { title = "v2.5.0 (Optimasi & GUI)", key = "CL_250" },
             { title = "v2.0.0 (ESP Update)", key = "CL_200" }
         }
-
         for idx, log in ipairs(changelogs) do
             local itemFrame = Instance.new("Frame")
             itemFrame.Name = "LogItem"
@@ -1806,11 +1628,9 @@ do
             itemFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
             itemFrame.LayoutOrder = idx
             itemFrame.Parent = scrollFrame
-
             local itemCorner = Instance.new("UICorner")
             itemCorner.CornerRadius = UDim.new(0, 6)
             itemCorner.Parent = itemFrame
-
             local titleLabel = Instance.new("TextLabel")
             titleLabel.Size = UDim2.new(1, -16, 0, 22)
             titleLabel.Position = UDim2.new(0, 8, 0, 4)
@@ -1821,7 +1641,6 @@ do
             titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
             titleLabel.Text = log.title
             titleLabel.Parent = itemFrame
-
             local valueLabel = Instance.new("TextLabel")
             valueLabel.Size = UDim2.new(1, -16, 0, 65)
             valueLabel.Position = UDim2.new(0, 8, 0, 26)
@@ -1835,12 +1654,10 @@ do
             valueLabel.TextWrapped = true
             valueLabel.Parent = itemFrame
         end
-        
         listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
             scrollFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 10)
         end)
     end
-
     function sendPublicChat(message)
         pcall(function()
             local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -1859,17 +1676,14 @@ do
             end
         end)
     end
-
     local btnMenu = makeSmallBtn("Menu", 1)
     btnMenu.MouseButton1Click:Connect(function()
         setCategory("Menu")
     end)
-
     local btnRusuh = makeSmallBtn("Rusuh", 2)
     btnRusuh.MouseButton1Click:Connect(function()
         setCategory("Rusuh")
     end)
-
     local btnSpeed = makeSmallBtn("Utility", 3)
     btnSpeed.MouseButton1Click:Connect(function()
         setCategory("Utility")
@@ -1882,7 +1696,6 @@ do
             setCategory("Waypoints")
         end
     end)
-
     local btnCommands = makeSmallBtn("Commands", 5)
     btnCommands.MouseButton1Click:Connect(function()
         if showCommandsWindow then
@@ -1891,56 +1704,44 @@ do
             setCategory("Commands")
         end
     end)
-
     local btnPlayers = makeSmallBtn("Players", 5.5)
     btnPlayers.MouseButton1Click:Connect(function()
         if togglePlayerListWindow then
             togglePlayerListWindow()
         end
     end)
-
     local btnFriends = makeSmallBtn("Friends", 5.7)
     btnFriends.MouseButton1Click:Connect(function()
         if toggleFriendListWindow then
             toggleFriendListWindow()
         end
     end)
-
     local btnCredits = makeSmallBtn("Credits", 6)
     btnCredits.MouseButton1Click:Connect(function()
         createCreditsWindow()
         setCategory("Credits")
     end)
-
     local btnConfig = makeSmallBtn("Config", 7)
     btnConfig.MouseButton1Click:Connect(function()
         createConfigWindow()
         setCategory("Config")
     end)
-
     local btnShortcuts = makeSmallBtn("ShortcutsKey", 8)
     btnShortcuts.MouseButton1Click:Connect(function()
         createShortcutsWindow()
         setCategory("Shortcuts")
     end)
-    
     local btnInfo = makeSmallBtn("Info", 9)
     btnInfo.MouseButton1Click:Connect(function()
         createInfoWindow()
         setCategory("Info")
     end)
-
     local btnChangelogs = makeSmallBtn("Changelogs", 9)
     btnChangelogs.MouseButton1Click:Connect(function()
         createChangelogsWindow()
         setCategory("Changelogs")
     end)
-
-
--- default to Menu
     setCategory("Menu")
-
-    -- Auto-load config on startup
     task.spawn(function()
         task.wait(1)
         if isfile("PIXECUTE_CONFIG/autoload.txt") then
@@ -1951,7 +1752,6 @@ do
         end
     end)
 end
-
 local ButtonGrid = Instance.new("UIGridLayout")
 ButtonGrid.CellSize = UDim2.new(0, 150, 0, 35)
 ButtonGrid.CellPadding = UDim2.new(0, 8, 0, 8)
@@ -1960,22 +1760,18 @@ ButtonGrid.VerticalAlignment = Enum.VerticalAlignment.Top
 ButtonGrid.SortOrder = Enum.SortOrder.LayoutOrder
 ButtonGrid.StartCorner = Enum.StartCorner.TopLeft
 ButtonGrid.Parent = ScrollFrame
-
 ButtonGrid:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, ButtonGrid.AbsoluteContentSize.Y + 30)
 end)
-
 local Navbar = Instance.new("Frame")
 Navbar.Size = UDim2.new(1, 0, 0, 30)
 Navbar.Position = UDim2.new(0, 0, 0, 0)
 Navbar.BackgroundColor3 = Color3.fromRGB(0,0,20)
 Navbar.BackgroundTransparency = 0
 Navbar.Parent = MainFrame
-
 local navCorner = Instance.new("UICorner")
 navCorner.CornerRadius = UDim.new(0, 12)
 navCorner.Parent = Navbar
-
 local TitleLabel = Instance.new("TextLabel")
 TitleLabel.Size = UDim2.new(1, -60, 1, 0)
 TitleLabel.Position = UDim2.new(0, 10, 0, 0)
@@ -1986,7 +1782,6 @@ TitleLabel.TextSize = 14
 TitleLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 TitleLabel.Parent = Navbar
-
 task.spawn(function()
     while ScreenGui and ScreenGui.Parent do
         TweenService:Create(TitleLabel, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {
@@ -1999,7 +1794,6 @@ task.spawn(function()
         task.wait(1)
     end
 end)
-
 local LangBtn = Instance.new("TextButton")
 LangBtn.Size = UDim2.new(0, 30, 0, 25)
 LangBtn.Position = UDim2.new(1, -65, 0.5, -12)
@@ -2009,17 +1803,14 @@ LangBtn.Font = Enum.Font.GothamBold
 LangBtn.TextSize = 13
 LangBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 LangBtn.Parent = Navbar
-
 local langCorner = Instance.new("UICorner")
 langCorner.CornerRadius = UDim.new(0, 6)
 langCorner.Parent = LangBtn
-
 LangBtn.MouseButton1Click:Connect(function()
     local newLang = currentLanguage == "EN" and "ID" or "EN"
     LangBtn.Text = newLang
     updateLanguage(newLang)
 end)
-
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 25, 0, 25)
 CloseBtn.Position = UDim2.new(1, -30, 0.5, -12)
@@ -2030,16 +1821,13 @@ CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.TextSize = 16
 CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 CloseBtn.Parent = Navbar
-
 local closeCorner = Instance.new("UICorner")
 closeCorner.CornerRadius = UDim.new(0, 6)
 closeCorner.Parent = CloseBtn
-
 local closeStroke = Instance.new("UIStroke")
 closeStroke.Color = Color3.fromRGB(200, 100, 100)
 closeStroke.Thickness = 1
 closeStroke.Parent = CloseBtn
-
 local MiniFrame = Instance.new("ImageButton")
 MiniFrame.Size = UDim2.new(0, 45, 0, 45)
 MiniFrame.Position = UDim2.new(0.5, -22, 0, 8)
@@ -2051,17 +1839,20 @@ MiniFrame.Visible = true
 MiniFrame.Active = true
 MiniFrame.Draggable = true
 MiniFrame.Parent = ScreenGui
-
 local miniCorner = Instance.new("UICorner")
 miniCorner.CornerRadius = UDim.new(0, 10)
 miniCorner.Parent = MiniFrame
-
 local miniStroke = Instance.new("UIStroke")
 miniStroke.Color = Color3.fromRGB(255, 255, 255)
 miniStroke.Thickness = 1.5
 miniStroke.Parent = MiniFrame
-
--- External cursor overlay to help when zoom/locked cursor hides the pointer
+MiniFrameToggleConn = UserInputService.InputBegan:Connect(function(input, gpe)
+    if not gpe and not UserInputService:GetFocusedTextBox() then
+        if input.KeyCode == Enum.KeyCode.RightControl then
+            MiniFrame.Visible = not MiniFrame.Visible
+        end
+    end
+end)
 local ExternalCursor = Instance.new("Frame")
 ExternalCursor.Name = "ExternalCursor"
 ExternalCursor.Size = UDim2.fromOffset(18, 18)
@@ -2084,7 +1875,6 @@ do
     corner.CornerRadius = UDim.new(1, 0)
     corner.Parent = dot
 end
-
 local isShiftLockActive = false
 ShiftLockShortcutConn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then
@@ -2094,7 +1884,6 @@ ShiftLockShortcutConn = UserInputService.InputBegan:Connect(function(input, game
         end
     end
 end)
-
 local mouseInPlayerList = false
 function updateExternalCursorVisibility()
     if isShiftLockActive or mouseInPlayerList then
@@ -2105,18 +1894,15 @@ function updateExternalCursorVisibility()
         ExternalCursor.Visible = (ScreenGui.Enabled == true) and ((MainFrame.Visible == true) or cmdVis)
     end
 end
-
 ScreenGui:GetPropertyChangedSignal("Enabled"):Connect(updateExternalCursorVisibility)
 MainFrame:GetPropertyChangedSignal("Visible"):Connect(updateExternalCursorVisibility)
 updateExternalCursorVisibility()
-
 RunService.RenderStepped:Connect(function()
     if ExternalCursor.Visible then
         local pos = UserInputService:GetMouseLocation()
         ExternalCursor.Position = UDim2.fromOffset(pos.X, pos.Y)
     end
 end)
--- Try to load MiniFrame image from external URL via executor APIs (if available)
 do
     local url = "https://files.catbox.moe/xuvh8s.jpg"
     local ok, data = pcall(function()
@@ -2135,8 +1921,6 @@ do
         end
     end
 end
-
--- Custom Waypoints Container (Mancing)
 do
     local function makeCustomWPBtn(name, comps)
         local btn = Instance.new("TextButton")
@@ -2146,17 +1930,15 @@ do
         btn.Text = name
         btn.TextSize = 14
         btn.Font = Enum.Font.GothamBold
-        btn.TextColor3 = Color3.fromRGB(255, 255, 255) -- Green text for custom waypoints
+        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
         btn.TextXAlignment = Enum.TextXAlignment.Left
         btn.AutoButtonColor = false
         btn:SetAttribute("IsFixedWP", true)
         btn:SetAttribute("IsCustomWP", true)
         btn.Visible = true
         btn.Parent = ScrollFrame
-        
         local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0,8); c.Parent = btn
         local p = Instance.new("UIPadding"); p.PaddingLeft = UDim.new(0,12); p.Parent = btn
-        
         btn.MouseButton1Click:Connect(function()
             local ok, cf = pcall(function() return CFrame.new(table.unpack(comps)) end)
             if ok and typeof(cf)=="CFrame" then
@@ -2169,8 +1951,6 @@ do
                 end
             end
         end)
-        
-        -- Delete button
         local del = Instance.new("TextButton")
         del.Size = UDim2.new(0, 18, 0, 18)
         del.Position = UDim2.new(1, -26, 0.5, -9)
@@ -2181,34 +1961,28 @@ do
         del.TextSize = 12
         del.ZIndex = 5
         del.Parent = btn
-        
         local delCorner = Instance.new("UICorner")
         delCorner.CornerRadius = UDim.new(0, 4)
         delCorner.Parent = del
-        
         del.MouseButton1Click:Connect(function()
             customWaypoints[name] = nil
             saveCustomWaypoints()
             btn:Destroy()
-            
             for idx, button in ipairs(customWPButtons) do
                 if button == btn then
                     table.remove(customWPButtons, idx)
                     break
                 end
             end
-            
             task.defer(function()
                 if currentCategory == "Waypoints" then
                     setCategory("Waypoints")
                 end
             end)
         end)
-        
         table.insert(customWPButtons, btn)
         return btn
     end
-
     local function refreshCustomWaypointButtons()
         for _, btn in ipairs(customWPButtons) do
             pcall(function() btn:Destroy() end)
@@ -2220,38 +1994,30 @@ do
             end
         end
     end
-    
     saveCurrentPositionAsWaypoint = function(name)
         if not name or name == "" then return end
         local lp = game:GetService("Players").LocalPlayer
         local char = lp.Character
         local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso"))
         if not root then return end
-        
         local components = {root.CFrame:GetComponents()}
         customWaypoints[name] = components
         saveCustomWaypoints()
-        
         makeCustomWPBtn(name, components)
-        
         if refreshWaypointList then
             refreshWaypointList()
         end
-        
         task.defer(function()
             if currentCategory == "Waypoints" then
                 setCategory("Waypoints")
             end
         end)
     end
-    
     loadCustomWaypoints()
     refreshCustomWaypointButtons()
 end
-
 CloseBtn.MouseButton1Click:Connect(function()
     pcall(function()
-        -- Turn off active features so they don't linger
         if speedOn then pcall(toggleSpeed) end
         if flying then pcall(disableFly) end
         if flyV3Active then pcall(toggleFlyV3, false) end
@@ -2270,24 +2036,20 @@ CloseBtn.MouseButton1Click:Connect(function()
         if antiFlingActive then pcall(toggleAntiFling, false) end
         if godModeActive then pcall(toggleGodMode, false) end
         if jumpPowerOn then pcall(toggleJumpPower, false) end
-        
-        -- Stop unanchor v2 loop if active
         unanchorV2Active = false
         unanchorV2Loop = nil
-        
-        -- Disconnect shortcuts
         if MainGuiToggleConn then pcall(function() MainGuiToggleConn:Disconnect() end) MainGuiToggleConn = nil end
         if ShiftLockShortcutConn then pcall(function() ShiftLockShortcutConn:Disconnect() end) ShiftLockShortcutConn = nil end
         if SpeedShortcutConn then pcall(function() SpeedShortcutConn:Disconnect() end) SpeedShortcutConn = nil end
         if FlyV3ShortcutConn then pcall(function() FlyV3ShortcutConn:Disconnect() end) FlyV3ShortcutConn = nil end
         if JumpPowerShortcutConn then pcall(function() JumpPowerShortcutConn:Disconnect() end) JumpPowerShortcutConn = nil end
-        
+        if FreecamShortcutConn then pcall(function() FreecamShortcutConn:Disconnect() end) FreecamShortcutConn = nil end
+        if MiniFrameToggleConn then pcall(function() MiniFrameToggleConn:Disconnect() end) MiniFrameToggleConn = nil end
         local coreGui = game:GetService("CoreGui")
         for _, guiName in ipairs({"FlyGui", "CHCmdBarGUI", "PIXECUTE SPECTATE", "FriendListFrame", "PlayerListFrame"}) do
             local g = coreGui:FindFirstChild(guiName)
             if g then pcall(function() g:Destroy() end) end
         end
-        -- tutup CmdBarFrame kalau masih aktif
         if CmdBarFrame and CmdBarFrame.Parent then
             pcall(function() CmdBarFrame.Visible = false end)
         end
@@ -2299,16 +2061,12 @@ CloseBtn.MouseButton1Click:Connect(function()
             end
         end
     end)
-    
     local tween = TweenService:Create(MainFrame, TweenInfo.new(0.2), {Size = UDim2.new(0, 0, 0, 0)})
     tween:Play()
     tween.Completed:Wait()
     ScreenGui:Destroy()
 end)
-
-MinimizeBtn = nil -- tidak dipakai lagi
-
--- Klik logo untuk toggle buka/tutup menu utama
+MinimizeBtn = nil
 MiniFrame.MouseButton1Click:Connect(function()
     if MainFrame.Visible then
         local tween = TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 0, 0, 0)})
@@ -2323,9 +2081,7 @@ MiniFrame.MouseButton1Click:Connect(function()
         tween:Play()
     end
 end)
-
 local buttonStates = {}
-
 function createButton(icon, textKey)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 150, 0, 35)
@@ -2338,20 +2094,15 @@ function createButton(icon, textKey)
     btn.TextXAlignment = Enum.TextXAlignment.Left
     btn.LayoutOrder = 0
     btn.AutoButtonColor = false
-    
     local btnCorner = Instance.new("UICorner")
     btnCorner.CornerRadius = UDim.new(0, 8)
     btnCorner.Parent = btn
-    
     local padding = Instance.new("UIPadding")
     padding.PaddingLeft = UDim.new(0, 12)
     padding.Parent = btn
-
     local defaultColor = Color3.fromRGB(15, 15, 15)
     local hoverColor = Color3.fromRGB(25, 25, 25)
-
     buttonStates[btn] = false
-
     btn.MouseEnter:Connect(function()
         if not buttonStates[btn] then
             TweenService:Create(btn, TweenInfo.new(0.2), {
@@ -2359,7 +2110,6 @@ function createButton(icon, textKey)
             }):Play()
         end
     end)
-    
     btn.MouseLeave:Connect(function()
         if not buttonStates[btn] then
             TweenService:Create(btn, TweenInfo.new(0.2), {
@@ -2367,11 +2117,9 @@ function createButton(icon, textKey)
             }):Play()
         end
     end)
-
     btn.Parent = ScrollFrame
     return btn
 end
-
 function setButtonActive(button, active)
     if not button then return end
     buttonStates[button] = active
@@ -2398,40 +2146,29 @@ function setButtonActive(button, active)
         end
     end
 end
-
--- [Optimized out duplicate] local Players = game:GetService("Players")
--- [Optimized out duplicate] local LocalPlayer = Players.LocalPlayer
--- [Optimized out duplicate] local Workspace = game:GetService("Workspace")
-
 local AirwalkActive = false
 local AirWPart = nil
 local baseY = nil
-
 AirwalkBtn = createButton("", "Jalan di udara")
-
 function StartAirwalk()
     if AirWPart then return end
     local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     local root = character:WaitForChild("HumanoidRootPart")
     local humanoid = character:WaitForChild("Humanoid")
-
     AirWPart = Instance.new("Part", Workspace)
     AirWPart.Size = Vector3.new(7, 1, 3)
     AirWPart.Anchored = true
     AirWPart.Transparency = 1
     AirWPart.CanCollide = true
     AirWPart.Name = "Airwalk"
-
     baseY = root.Position.Y - (root.Size.Y/2 + 0.5)
     AirWPart.Position = Vector3.new(root.Position.X, baseY, root.Position.Z)
-
     task.spawn(function()
         while AirwalkActive and AirWPart do
             AirWPart.Position = Vector3.new(root.Position.X, AirWPart.Position.Y, root.Position.Z)
             task.wait(0.05)
         end
     end)
-
     humanoid.StateChanged:Connect(function(_, new)
         if not AirwalkActive then return end
         if new == Enum.HumanoidStateType.Jumping then
@@ -2441,7 +2178,6 @@ function StartAirwalk()
         end
     end)
 end
-
 function StopAirwalk()
     AirwalkActive = false
     if AirWPart then
@@ -2449,7 +2185,6 @@ function StopAirwalk()
         AirWPart = nil
     end
 end
-
 function toggleAirwalk(state)
     if state == nil then
         AirwalkActive = not AirwalkActive
@@ -2464,11 +2199,9 @@ function toggleAirwalk(state)
         setButtonActive(AirwalkBtn, false)
     end
 end
-
 AirwalkBtn.MouseButton1Click:Connect(function()
     toggleAirwalk()
 end)
-
 LocalPlayer.CharacterAdded:Connect(function()
     StopAirwalk()
     setButtonActive(AirwalkBtn, false)
@@ -2482,25 +2215,16 @@ LocalPlayer.CharacterAdded:Connect(function()
         end)
     end
 end)
-
 ESPBtn = createButton("", "ESP")
 ESPTeamBtn = createButton("", "ESP Team")
-
 ESPNamesEnabled = true
-
--- [Optimized out duplicate] local Players = game:GetService("Players")
--- [Optimized out duplicate] local RunService = game:GetService("RunService")
 local COREGUI = game:GetService("CoreGui")
-
--- [Optimized out duplicate] local LocalPlayer = Players.LocalPlayer
 local ESPenabled = false
 local ESPTeamMode = false
 local espTransparency = 0.3
-
 function getRoot(char)
     return char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso"))
 end
-
 function destroyPlayerESP(name)
     pcall(function()
         for _, v in pairs(COREGUI:GetChildren()) do
@@ -2510,17 +2234,28 @@ function destroyPlayerESP(name)
         end
     end)
 end
-
 function CreateESP(plr)
     if plr == LocalPlayer then return end
     if not plr.Character or not getRoot(plr.Character) then return end
     if COREGUI:FindFirstChild(plr.Name .. "_ESP") then return end
+    if ESPTeamMode and plr.Team == LocalPlayer.Team then return end
 
     local holder = Instance.new("Folder")
     holder.Name = plr.Name .. "_ESP"
     holder.Parent = COREGUI
+    
+    local highlight = Instance.new("Highlight")
+    highlight.Adornee = plr.Character
+    highlight.Name = plr.Name .. "_HL"
+    highlight.Parent = holder
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    
+    local teamColor = plr.Team and plr.Team.TeamColor.Color or Color3.fromRGB(255, 30, 45)
+    highlight.FillColor = teamColor
+    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
 
-    -- 2. Name
     local head = plr.Character:FindFirstChild("Head")
     if head and ESPNamesEnabled then
         local billboard = Instance.new("BillboardGui")
@@ -2531,33 +2266,29 @@ function CreateESP(plr)
         billboard.StudsOffset = Vector3.new(0, 1, 0)
         billboard.AlwaysOnTop = true
         billboard.MaxDistance = math.huge
-
         local label = Instance.new("TextLabel")
         label.Parent = billboard
         label.BackgroundTransparency = 1
         label.Position = UDim2.new(0, 0, 0, -50)
         label.Size = UDim2.new(0, 100, 0, 100)
-        label.Font = Enum.Font.SourceSansSemibold
-        label.TextSize = 20
-        label.TextColor3 = Color3.new(1, 1, 1)
-        label.TextStrokeTransparency = 0
+        label.Font = Enum.Font.GothamBold
+        label.TextSize = 14
+        label.TextColor3 = teamColor
+        label.TextStrokeTransparency = 0.2
         label.TextYAlignment = Enum.TextYAlignment.Bottom
         label.ZIndex = 10
-
         local function updateLabel()
             if COREGUI:FindFirstChild(plr.Name .. "_ESP") and ESPNamesEnabled then
                 local myChar = LocalPlayer.Character
                 if plr.Character and getRoot(plr.Character) and plr.Character:FindFirstChildOfClass("Humanoid") and myChar and getRoot(myChar) then
                     local studs = math.floor((getRoot(myChar).Position - getRoot(plr.Character).Position).Magnitude)
                     local hp = plr.Character:FindFirstChildOfClass("Humanoid").Health
-                    label.Text = "Name: " .. plr.Name .. " | Health: " .. string.format("%.1f", hp) .. " | Studs: " .. studs
+                    label.Text = plr.Name .. "\nHP: " .. string.format("%.0f", hp) .. " | " .. studs .. "s"
                 end
             end
         end
-
         RunService.RenderStepped:Connect(updateLabel)
     end
-
     plr.CharacterAdded:Connect(function()
         if ESPenabled then
             destroyPlayerESP(plr.Name)
@@ -2576,7 +2307,6 @@ function CreateESP(plr)
         end
     end)
 end
-
 playerAddedConnection = nil
 function startESP()
     for _, plr in pairs(Players:GetPlayers()) do
@@ -2601,7 +2331,6 @@ function startESP()
         end)
     end
 end
-
 function stopESP()
     for _, v in pairs(COREGUI:GetChildren()) do
         if string.sub(v.Name, -4) == "_ESP" then
@@ -2620,7 +2349,6 @@ function stopESP()
         playerAddedConnection = nil
     end
 end
-
 function toggleESP(state)
     if state == nil then
         ESPenabled = not ESPenabled
@@ -2637,7 +2365,6 @@ function toggleESP(state)
         stopESP()
     end
 end
-
 function toggleESPTeam(state)
     local newState
     if state == nil then
@@ -2662,26 +2389,19 @@ function toggleESPTeam(state)
         stopESP()
     end
 end
-
 ESPBtn.MouseButton1Click:Connect(function()
     toggleESP()
 end)
-
 ESPTeamBtn.MouseButton1Click:Connect(function()
     toggleESPTeam()
 end)
-
--- [Optimized out duplicate] local Player = game.Players.LocalPlayer
-
 LampBtn = createButton("", "Lampu")
 local lampOn = false
 local headLamp = nil
-
 function addHeadLamp(char)
     local head = char:FindFirstChild("Head")
     if not head then return end
     if char:FindFirstChild("HeadLamp") then return end
-
     headLamp = Instance.new("Part")
     headLamp.Name = "HeadLamp"
     headLamp.Size = Vector3.new(0.5,0.5,0.5)
@@ -2692,26 +2412,22 @@ function addHeadLamp(char)
     headLamp.CanCollide = false
     headLamp.CFrame = head.CFrame * CFrame.new(0,0.8,0)
     headLamp.Parent = char
-
     local weld = Instance.new("WeldConstraint")
     weld.Part0 = head
     weld.Part1 = headLamp
     weld.Parent = headLamp
-
     local light = Instance.new("PointLight")
     light.Color = Color3.fromRGB(255,255,255)
     light.Range = 100
     light.Brightness = 2
     light.Parent = headLamp
 end
-
 function removeHeadLamp()
     if headLamp and headLamp.Parent then
         headLamp:Destroy()
     end
     headLamp = nil
 end
-
 function toggleLampu(state)
     if state == nil then
         lampOn = not lampOn
@@ -2727,11 +2443,9 @@ function toggleLampu(state)
         setButtonActive(LampBtn, false)
     end
 end
-
 LampBtn.MouseButton1Click:Connect(function()
     toggleLampu()
 end)
-
 Player.CharacterAdded:Connect(function(char)
     if lampOn then
         task.wait(1)
@@ -2741,34 +2455,24 @@ Player.CharacterAdded:Connect(function(char)
         setButtonActive(LampBtn, false)
     end
 end)
-
--- [Optimized out duplicate] local UserInputService = game:GetService("UserInputService")
--- [Optimized out duplicate] local RunService = game:GetService("RunService")
--- [Optimized out duplicate] local player = Players.LocalPlayer
-
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local root = character:WaitForChild("HumanoidRootPart")
-
 local infiniteJumpEnabled = false
 local jumpPowerBoost = 25
 local slowFallSpeed = -50
-
 JumpBtn = createButton("", "Infinite Jump")
-
 function updateCharacterRefs(char)
     character = char
     humanoid = char:WaitForChild("Humanoid")
     root = char:WaitForChild("HumanoidRootPart")
 end
 player.CharacterAdded:Connect(updateCharacterRefs)
-
 UserInputService.JumpRequest:Connect(function()
     if infiniteJumpEnabled and humanoid then
         humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
     end
 end)
-
 function toggleInfiniteJump(state)
     if state == nil then
         infiniteJumpEnabled = not infiniteJumpEnabled
@@ -2777,12 +2481,9 @@ function toggleInfiniteJump(state)
     end
     setButtonActive(JumpBtn, infiniteJumpEnabled)
 end
-
 JumpBtn.MouseButton1Click:Connect(function()
     toggleInfiniteJump()
 end)
-
--- Rejoin button (Menu): rejoin same server if possible, else rejoin place
 RejoinBtn = createButton("", "Rejoin")
 RejoinBtn.LayoutOrder = 1
 function rejoinServer()
@@ -2803,55 +2504,44 @@ function rejoinServer()
     end
 end
 RejoinBtn.MouseButton1Click:Connect(rejoinServer)
-
--- Refresh button (Menu): respawn the character quickly
 RefreshBtn = createButton("", "Refresh")
 RefreshBtn.Name = "RefreshBtn"
 RefreshBtn.LayoutOrder = 2
-
 RespawnBtn = createButton("", "Respawn")
 RespawnBtn.Name = "RespawnBtn"
 RespawnBtn.LayoutOrder = 3
-
--- Anti AFK (Menu)
 AntiAFKBtn = createButton("", "Anti AFK")
 AntiAFKBtn.Name = "AntiAFKBtn"
 AntiAFKBtn.LayoutOrder = 4
 local antiAFKConnection = nil
-
 function refreshCharacter(keepPosition)
     if keepPosition == nil then keepPosition = true end
     local Players = game:GetService("Players")
     local plr = Players.LocalPlayer
     if not plr then return end
-
     local char = plr.Character
     if not char then return end
-    
     local savedCFrame = nil
     if keepPosition then
         pcall(function() savedCFrame = char:GetPivot() end)
     end
-
     local hum = char:FindFirstChild("Humanoid")
-    if hum then 
-        hum.Health = 0 
+    if hum then
+        hum.Health = 0
     elseif char:FindFirstChild("HumanoidRootPart") then
         char.HumanoidRootPart:Destroy()
     end
-
     if keepPosition and savedCFrame then
         local newChar = plr.CharacterAdded:Wait()
         local hrp = newChar:WaitForChild("HumanoidRootPart", 5)
         if hrp then
-            task.wait(0.3) -- wait for roblox to teleport them to spawn first
+            task.wait(0.3)
             pcall(function() newChar:PivotTo(savedCFrame) end)
         end
     end
 end
 RefreshBtn.MouseButton1Click:Connect(function() refreshCharacter(true) end)
 RespawnBtn.MouseButton1Click:Connect(function() refreshCharacter(false) end)
-
 function toggleAntiAFK(state)
     local targetState
     if state == nil then
@@ -2885,13 +2575,10 @@ end
 AntiAFKBtn.MouseButton1Click:Connect(function()
     toggleAntiAFK()
 end)
-
 FullbrightBtn = createButton("", "Fullbright")
 FullbrightBtn.LayoutOrder = 4
-
 local fullbrightOn = false
 local lightingConns = {}
-
 function toggleFullbright(state)
     if state == nil then
         fullbrightOn = not fullbrightOn
@@ -2929,17 +2616,13 @@ function toggleFullbright(state)
         setButtonActive(FullbrightBtn, false)
     end
 end
-
 FullbrightBtn.MouseButton1Click:Connect(function()
     toggleFullbright()
 end)
-
 AimbotBtn = createButton("", "Aimbot")
 AimbotBtn.LayoutOrder = 5
-
 local aimbotEnabled = false
 local aimbotConnection = nil
-
 function getClosestPlayer()
     local closestPlayer = nil
     local shortestDistance = math.huge
@@ -2947,7 +2630,6 @@ function getClosestPlayer()
     local myChar = lplr.Character
     local myHrp = myChar and (myChar:FindFirstChild("HumanoidRootPart") or myChar:FindFirstChild("Head"))
     if not myHrp then return nil end
-    
     for _, plr in ipairs(game.Players:GetPlayers()) do
         if plr ~= lplr and plr.Character and plr.Character:FindFirstChild("Head") and plr.Character:FindFirstChildOfClass("Humanoid") and plr.Character:FindFirstChildOfClass("Humanoid").Health > 0 then
             local targetHrp = plr.Character:FindFirstChild("HumanoidRootPart") or plr.Character.Head
@@ -2960,7 +2642,6 @@ function getClosestPlayer()
     end
     return closestPlayer
 end
-
 function toggleAimbot(state)
     if state == nil then
         aimbotEnabled = not aimbotEnabled
@@ -2984,54 +2665,43 @@ function toggleAimbot(state)
         end
     end
 end
-
 AimbotBtn.MouseButton1Click:Connect(function()
     toggleAimbot()
 end)
-
 InvisibleBtn = createButton("", "Invisible")
 InvisibleBtn.Name = "InvisibleBtn"
 VisibleBtn = createButton("", "Visible")
 VisibleBtn.Name = "VisibleBtn"
 FPSPingBtn = createButton("", "FPS & Ping")
 FPSPingBtn.Name = "FPSPingBtn"
-
 local invisRunning = false
 local invisFakeChar = nil
 local invisRealChar = nil
 local invisDiedConn = nil
-
 InvisibleBtn.MouseButton1Click:Connect(function()
     if invisRunning then return end
     local plr = game:GetService("Players").LocalPlayer
     local char = plr.Character
     if not char then return end
-    
     invisRunning = true
     setButtonActive(InvisibleBtn, true)
     setButtonActive(VisibleBtn, false)
-    
     char.Archivable = true
     invisFakeChar = char:Clone()
     invisRealChar = char
-    
     local currentCFrame = char:GetPivot()
-    
     invisFakeChar.Parent = workspace
     invisFakeChar:PivotTo(currentCFrame)
     plr.Character = invisFakeChar
     workspace.CurrentCamera.CameraSubject = invisFakeChar:FindFirstChildOfClass("Humanoid")
-    
     invisRealChar:PivotTo(currentCFrame + Vector3.new(0, 10000, 0))
-    task.wait(0.05) -- Let server replicate the sky position
+    task.wait(0.05)
     invisRealChar.Parent = game:GetService("Lighting")
-    
     local anim = invisFakeChar:FindFirstChild("Animate")
     if anim then
         anim.Disabled = true
         anim.Disabled = false
     end
-    
     for _, v in ipairs(invisFakeChar:GetDescendants()) do
         if v:IsA("BasePart") then
             if v.Name == "HumanoidRootPart" then
@@ -3043,7 +2713,6 @@ InvisibleBtn.MouseButton1Click:Connect(function()
             v.Transparency = 0.5
         end
     end
-    
     local fakeHum = invisFakeChar:FindFirstChildOfClass("Humanoid")
     if fakeHum then
         invisDiedConn = fakeHum.Died:Connect(function()
@@ -3057,7 +2726,6 @@ InvisibleBtn.MouseButton1Click:Connect(function()
             if invisDiedConn then invisDiedConn:Disconnect() end
         end)
     end
-    
     pcall(function()
         game:GetService("StarterGui"):SetCore("SendNotification", {
             Title = tr("Invisible"),
@@ -3066,11 +2734,9 @@ InvisibleBtn.MouseButton1Click:Connect(function()
         })
     end)
 end)
-
 VisibleBtn.MouseButton1Click:Connect(function()
     if not invisRunning then return end
     invisRunning = false
-    
     local plr = game:GetService("Players").LocalPlayer
     if invisRealChar and invisFakeChar then
         pcall(function()
@@ -3081,7 +2747,6 @@ VisibleBtn.MouseButton1Click:Connect(function()
             plr.Character = invisRealChar
             workspace.CurrentCamera.CameraSubject = invisRealChar:FindFirstChildOfClass("Humanoid")
             if invisDiedConn then invisDiedConn:Disconnect() end
-            
             local anim = invisRealChar:FindFirstChild("Animate")
             if anim then
                 anim.Disabled = true
@@ -3094,7 +2759,6 @@ VisibleBtn.MouseButton1Click:Connect(function()
     setButtonActive(VisibleBtn, true)
     setButtonActive(InvisibleBtn, false)
     task.delay(0.5, function() setButtonActive(VisibleBtn, false) end)
-    
     pcall(function()
         game:GetService("StarterGui"):SetCore("SendNotification", {
             Title = tr("Visible"),
@@ -3103,25 +2767,21 @@ VisibleBtn.MouseButton1Click:Connect(function()
         })
     end)
 end)
-
 FPSPingBtn.MouseButton1Click:Connect(function()
     if typeof(_G.ToggleFPSPingMonitor) == "function" then
         _G.ToggleFPSPingMonitor()
     end
 end)
-
 local httpService = game:GetService("HttpService")
 local teleportService = game:GetService("TeleportService")
 local placeId = game.PlaceId
 local jobId = game.JobId
-
 local ServerHopGui = nil
 function createServerHopWindow()
     if ServerHopGui then
         ServerHopGui.Visible = not ServerHopGui.Visible
         return
     end
-
     local guiParent = nil
     local ok = pcall(function()
         if typeof(gethui) == "function" then guiParent = gethui()
@@ -3130,13 +2790,11 @@ function createServerHopWindow()
         else guiParent = PlayerGui end
     end)
     if not guiParent then guiParent = PlayerGui end
-
     local sgui = Instance.new("ScreenGui")
     sgui.Name = "ServerHopGui"
     sgui.ResetOnSpawn = false
     sgui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     sgui.Parent = guiParent
-
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "MainFrame"
     mainFrame.Size = UDim2.new(0, 340, 0, 360)
@@ -3147,42 +2805,35 @@ function createServerHopWindow()
     mainFrame.ClipsDescendants = true
     mainFrame.Parent = sgui
     ServerHopGui = mainFrame
-
     local modal = Instance.new("TextButton")
     modal.Size = UDim2.new(0, 0, 0, 0)
     modal.BackgroundTransparency = 1
     modal.Text = ""
     modal.Modal = true
     modal.Parent = mainFrame
-
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 12)
     corner.Parent = mainFrame
-    
     local mainStroke = Instance.new("UIStroke")
     mainStroke.Color = Color3.fromRGB(255, 255, 255)
     mainStroke.Thickness = 2
     mainStroke.Transparency = 0
     mainStroke.Parent = mainFrame
-
     local topBar = Instance.new("Frame")
     topBar.Name = "TopBar"
     topBar.Size = UDim2.new(1, 0, 0, 30)
     topBar.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
     topBar.BorderSizePixel = 0
     topBar.Parent = mainFrame
-    
     local topCorner = Instance.new("UICorner")
     topCorner.CornerRadius = UDim.new(0, 12)
     topCorner.Parent = topBar
-
     local topCover = Instance.new("Frame")
     topCover.Size = UDim2.new(1, 0, 0, 10)
     topCover.Position = UDim2.new(0, 0, 1, -10)
     topCover.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
     topCover.BorderSizePixel = 0
     topCover.Parent = topBar
-
     local title = Instance.new("TextLabel")
     title.Size = UDim2.new(1, -90, 1, 0)
     title.Position = UDim2.new(0, 12, 0, 0)
@@ -3193,7 +2844,6 @@ function createServerHopWindow()
     title.Font = Enum.Font.GothamBold
     title.TextXAlignment = Enum.TextXAlignment.Left
     title.Parent = topBar
-
     local closeBtn = Instance.new("TextButton")
     closeBtn.Size = UDim2.new(0, 22, 0, 22)
     closeBtn.Position = UDim2.new(1, -28, 0.5, -11)
@@ -3204,18 +2854,14 @@ function createServerHopWindow()
     closeBtn.Font = Enum.Font.GothamBold
     closeBtn.TextSize = 13
     closeBtn.Parent = topBar
-    
     local closeCorner = Instance.new("UICorner")
     closeCorner.CornerRadius = UDim.new(0, 6)
     closeCorner.Parent = closeBtn
-
     local closeStroke = Instance.new("UIStroke")
     closeStroke.Color = Color3.fromRGB(255, 255, 255)
     closeStroke.Thickness = 1.5
     closeStroke.Parent = closeBtn
-
     closeBtn.MouseButton1Click:Connect(function() mainFrame.Visible = false end)
-    
     local minBtn = Instance.new("TextButton")
     minBtn.Size = UDim2.new(0, 22, 0, 22)
     minBtn.Position = UDim2.new(1, -54, 0.5, -11)
@@ -3226,16 +2872,13 @@ function createServerHopWindow()
     minBtn.Font = Enum.Font.GothamBold
     minBtn.TextSize = 13
     minBtn.Parent = topBar
-    
     local minCorner = Instance.new("UICorner")
     minCorner.CornerRadius = UDim.new(0, 6)
     minCorner.Parent = minBtn
-
     local minStroke = Instance.new("UIStroke")
     minStroke.Color = Color3.fromRGB(255, 255, 255)
     minStroke.Thickness = 1.5
     minStroke.Parent = minBtn
-
     local isMinimized = false
     minBtn.MouseButton1Click:Connect(function()
         isMinimized = not isMinimized
@@ -3247,7 +2890,6 @@ function createServerHopWindow()
             minBtn.Text = "-"
         end
     end)
-
     local refreshBtn = Instance.new("TextButton")
     refreshBtn.Size = UDim2.new(0, 22, 0, 22)
     refreshBtn.Position = UDim2.new(1, -80, 0.5, -11)
@@ -3258,16 +2900,13 @@ function createServerHopWindow()
     refreshBtn.Font = Enum.Font.GothamBold
     refreshBtn.TextSize = 13
     refreshBtn.Parent = topBar
-    
     local refCorner = Instance.new("UICorner")
     refCorner.CornerRadius = UDim.new(0, 6)
     refCorner.Parent = refreshBtn
-
     local refStroke = Instance.new("UIStroke")
     refStroke.Color = Color3.fromRGB(255, 255, 255)
     refStroke.Thickness = 1
     refStroke.Parent = refreshBtn
-
     local infoFrame = Instance.new("Frame")
     infoFrame.Name = "InfoFrame"
     infoFrame.Size = UDim2.new(1, -20, 0, 40)
@@ -3276,11 +2915,9 @@ function createServerHopWindow()
     infoFrame.BackgroundTransparency = 0.5
     infoFrame.BorderSizePixel = 0
     infoFrame.Parent = mainFrame
-
     local infoCorner = Instance.new("UICorner")
     infoCorner.CornerRadius = UDim.new(0, 6)
     infoCorner.Parent = infoFrame
-
     local placeIdLabel = Instance.new("TextLabel")
     placeIdLabel.Size = UDim2.new(1, -10, 0, 20)
     placeIdLabel.Position = UDim2.new(0, 8, 0, 2)
@@ -3291,7 +2928,6 @@ function createServerHopWindow()
     placeIdLabel.TextXAlignment = Enum.TextXAlignment.Left
     placeIdLabel.Text = "Place ID: " .. tostring(placeId)
     placeIdLabel.Parent = infoFrame
-
     local jobIdLabel = Instance.new("TextButton")
     jobIdLabel.Size = UDim2.new(1, -10, 0, 18)
     jobIdLabel.Position = UDim2.new(0, 8, 0, 20)
@@ -3300,7 +2936,6 @@ function createServerHopWindow()
     jobIdLabel.TextSize = 10
     jobIdLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     jobIdLabel.TextXAlignment = Enum.TextXAlignment.Left
-    
     local cleanJobId = tostring(game.JobId)
     if cleanJobId ~= "" then
         if #cleanJobId > 16 then
@@ -3312,7 +2947,6 @@ function createServerHopWindow()
         jobIdLabel.Text = "Job ID (Click to Copy): Loading..."
     end
     jobIdLabel.Parent = infoFrame
-
     jobIdLabel.MouseButton1Click:Connect(function()
         if setclipboard then
             local currentJobId = tostring(game.JobId)
@@ -3332,23 +2966,19 @@ function createServerHopWindow()
             end
         end
     end)
-
     local scroll = Instance.new("ScrollingFrame")
     scroll.Size = UDim2.new(1, -20, 1, -85)
     scroll.Position = UDim2.new(0, 10, 0, 80)
     scroll.BackgroundTransparency = 1
     scroll.ScrollBarThickness = 4
     scroll.Parent = mainFrame
-
     local listLayout = Instance.new("UIListLayout")
     listLayout.Padding = UDim.new(0, 5)
     listLayout.Parent = scroll
-
     local function refreshServers()
         for _, child in ipairs(scroll:GetChildren()) do
             if child:IsA("TextButton") or child:IsA("TextLabel") then child:Destroy() end
         end
-
         local loading = Instance.new("TextLabel")
         loading.Size = UDim2.new(1, 0, 0, 30)
         loading.BackgroundTransparency = 1
@@ -3357,12 +2987,9 @@ function createServerHopWindow()
         loading.Font = Enum.Font.Gotham
         loading.TextSize = 14
         loading.Parent = scroll
-        
         task.spawn(function()
             local currentPlaceId = tostring(game.PlaceId)
             local currentJobId = tostring(game.JobId)
-
-            -- Update info labels in case JobId loaded late
             pcall(function()
                 placeIdLabel.Text = "Place ID: " .. currentPlaceId
                 if currentJobId ~= "" then
@@ -3375,17 +3002,13 @@ function createServerHopWindow()
                     jobIdLabel.Text = "Job ID (Click to Copy): Loading..."
                 end
             end)
-
             local success, result = pcall(function()
                 return game:HttpGetAsync("https://games.roblox.com/v1/games/" .. currentPlaceId .. "/servers/Public?sortOrder=Desc&limit=100")
             end)
-
             loading:Destroy()
-
             if success and result then
                 local ok, data = pcall(function() return httpService:JSONDecode(result).data end)
                 if ok and data then
-                    -- Check if our current server is in the fetched list
                     local hasCurrent = false
                     if currentJobId ~= "" then
                         for _, v in ipairs(data) do
@@ -3395,8 +3018,6 @@ function createServerHopWindow()
                             end
                         end
                     end
-                    
-                    -- If our server is not in the API list, manually insert it at the very top
                     if not hasCurrent and currentJobId ~= "" then
                         table.insert(data, 1, {
                             id = currentJobId,
@@ -3405,7 +3026,6 @@ function createServerHopWindow()
                             ping = 99
                         })
                     end
-
                     local count = 0
                     for _, v in ipairs(data) do
                         if type(v) == "table" and v.playing and v.maxPlayers and (v.id == currentJobId or v.playing < v.maxPlayers) then
@@ -3425,11 +3045,9 @@ function createServerHopWindow()
                             sBtn.Font = Enum.Font.Gotham
                             sBtn.TextSize = 12
                             sBtn.Parent = scroll
-
                             local sCorner = Instance.new("UICorner")
                             sCorner.CornerRadius = UDim.new(0, 6)
                             sCorner.Parent = sBtn
-
                             if not isCurrent then
                                 sBtn.MouseButton1Click:Connect(function()
                                     sBtn.Text = "Joining..."
@@ -3444,11 +3062,8 @@ function createServerHopWindow()
             end
         end)
     end
-
     refreshBtn.MouseButton1Click:Connect(refreshServers)
     refreshServers()
-
-    -- Basic dragging functionality
     local dragging, dragInput, dragStart, startPos
     topBar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -3474,14 +3089,9 @@ function createServerHopWindow()
         end
     end)
 end
-
 function serverhop()
     createServerHopWindow()
 end
-
--- ==========================================
--- PLAYER LIST GUI & FUNCTIONS (BY ANTIGRAVITY)
--- ==========================================
 PlayerListFrame = nil
 PlayerListScroll = nil
 PlayerListSearchBox = nil
@@ -3490,7 +3100,6 @@ expandedPlayerUserId = nil
 playerConnections = {}
 refreshPlayerList = nil
 updateCanvasSize = nil
-
 updateCanvasSize = function()
     if not PlayerListScroll then return end
     local height = 10
@@ -3501,7 +3110,6 @@ updateCanvasSize = function()
     end
     PlayerListScroll.CanvasSize = UDim2.new(0, 0, 0, height)
 end
-
 function getPlayerThumbnail(targetUserId)
     local success, result = pcall(function()
         return game:GetService("Players"):GetUserThumbnailAsync(targetUserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size48x48)
@@ -3511,23 +3119,16 @@ function getPlayerThumbnail(targetUserId)
     end
     return "rbxasset://textures/ui/avatar_placeholder.png"
 end
-
-
-
 local function cloneAvatar(targetPlayer)
     if not targetPlayer then return end
     local myChar = game.Players.LocalPlayer.Character
     if not myChar then return end
     local myHumanoid = myChar:FindFirstChildOfClass("Humanoid")
     if not myHumanoid then return end
-    
     local targetChar = targetPlayer.Character
-    
-    -- Attempt native replicated cloning via HumanoidDescription
     local successDesc, desc = pcall(function()
         return game.Players:GetHumanoidDescriptionFromUserId(targetPlayer.UserId)
     end)
-    
     local applied = false
     if successDesc and desc then
         local successApply, err = pcall(function()
@@ -3539,25 +3140,18 @@ local function cloneAvatar(targetPlayer)
             warn("ApplyDescription failed: " .. tostring(err))
         end
     end
-    
-    -- Fallback: Directly assign properties of clothes, colors, decals which naturally replicate
     if not applied and targetChar then
-        -- Clear current accessories and clothes
         for _, item in ipairs(myChar:GetChildren()) do
             if item:IsA("Accessory") or item:IsA("Shirt") or item:IsA("Pants") or item:IsA("BodyColors") or item:IsA("ShirtGraphic") or item:IsA("CharacterMesh") then
                 item:Destroy()
             end
         end
-        
-        -- Clone from target
         local myShirt = myChar:FindFirstChildOfClass("Shirt") or Instance.new("Shirt", myChar)
         local myPants = myChar:FindFirstChildOfClass("Pants") or Instance.new("Pants", myChar)
         local targetShirt = targetChar:FindFirstChildOfClass("Shirt")
         local targetPants = targetChar:FindFirstChildOfClass("Pants")
-        
         if targetShirt then myShirt.ShirtTemplate = targetShirt.ShirtTemplate else myShirt:Destroy() end
         if targetPants then myPants.PantsTemplate = targetPants.PantsTemplate else myPants:Destroy() end
-        
         local myColors = myChar:FindFirstChildOfClass("BodyColors") or Instance.new("BodyColors", myChar)
         local targetColors = targetChar:FindFirstChildOfClass("BodyColors")
         if targetColors then
@@ -3565,8 +3159,6 @@ local function cloneAvatar(targetPlayer)
                 pcall(function() myColors[prop] = targetColors[prop] end)
             end
         end
-        
-        -- Copy Face
         local myHead = myChar:FindFirstChild("Head")
         local targetHead = targetChar:FindFirstChild("Head")
         if myHead and targetHead then
@@ -3578,8 +3170,6 @@ local function cloneAvatar(targetPlayer)
                 myFace:Destroy()
             end
         end
-        
-        -- Re-add target accessories
         for _, item in ipairs(targetChar:GetChildren()) do
             if item:IsA("Accessory") or item:IsA("ShirtGraphic") or item:IsA("CharacterMesh") then
                 local oldArch = item.Archivable
@@ -3592,7 +3182,6 @@ local function cloneAvatar(targetPlayer)
             end
         end
     end
-    
     pcall(function()
         game:GetService("StarterGui"):SetCore("SendNotification", {
             Title = "Clone Avatar",
@@ -3601,22 +3190,18 @@ local function cloneAvatar(targetPlayer)
         })
     end)
 end
-
 local function promptClone()
     local old = game.Players.LocalPlayer:WaitForChild("PlayerGui"):FindFirstChild("CloneAvatarPrompt")
     if old then pcall(function() old:Destroy() end) end
-    
     local cloneGui = Instance.new("ScreenGui")
     cloneGui.Name = "CloneAvatarPrompt"
     cloneGui.ResetOnSpawn = false
-    
     local successParentPrompt, errParentPrompt = pcall(function()
         cloneGui.Parent = game:GetService("CoreGui")
     end)
     if not successParentPrompt then
         cloneGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
     end
-    
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(0, 300, 0, 320)
     frame.Position = UDim2.new(0.5, -150, 0.5, -160)
@@ -3626,12 +3211,10 @@ local function promptClone()
     frame.Parent = cloneGui
     frame.Active = true
     frame.Draggable = true
-    
     Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
     local stroke = Instance.new("UIStroke", frame)
     stroke.Color = Color3.fromRGB(255, 255, 255)
     stroke.Thickness = 2
-    
     local title = Instance.new("TextLabel")
     title.Size = UDim2.new(1, -90, 0, 40)
     title.Position = UDim2.new(0, 12, 0, 0)
@@ -3642,7 +3225,6 @@ local function promptClone()
     title.Text = "CLONE AVATAR"
     title.TextXAlignment = Enum.TextXAlignment.Left
     title.Parent = frame
-    
     local close = Instance.new("TextButton")
     close.Size = UDim2.new(0, 24, 0, 24)
     close.Position = UDim2.new(1, -30, 0, 8)
@@ -3657,7 +3239,6 @@ local function promptClone()
     closeStroke.Color = Color3.fromRGB(255, 255, 255)
     closeStroke.Thickness = 1.5
     close.MouseButton1Click:Connect(function() cloneGui:Destroy() end)
-    
     local minBtn = Instance.new("TextButton")
     minBtn.Size = UDim2.new(0, 24, 0, 24)
     minBtn.Position = UDim2.new(1, -58, 0, 8)
@@ -3671,7 +3252,6 @@ local function promptClone()
     local minStroke = Instance.new("UIStroke", minBtn)
     minStroke.Color = Color3.fromRGB(255, 255, 255)
     minStroke.Thickness = 1.5
-
     local searchFrame = Instance.new("Frame")
     searchFrame.Name = "SearchFrame"
     searchFrame.Size = UDim2.new(1, -20, 0, 32)
@@ -3683,7 +3263,6 @@ local function promptClone()
     local searchStroke = Instance.new("UIStroke", searchFrame)
     searchStroke.Color = Color3.fromRGB(255, 255, 255)
     searchStroke.Thickness = 1.5
-
     local searchBox = Instance.new("TextBox")
     searchBox.Name = "SearchBox"
     searchBox.Size = UDim2.new(1, -20, 1, 0)
@@ -3698,7 +3277,6 @@ local function promptClone()
     searchBox.TextXAlignment = Enum.TextXAlignment.Left
     searchBox.ClearTextOnFocus = false
     searchBox.Parent = searchFrame
-
     local scroll = Instance.new("ScrollingFrame")
     scroll.Size = UDim2.new(1, -20, 1, -95)
     scroll.Position = UDim2.new(0, 10, 0, 85)
@@ -3706,11 +3284,9 @@ local function promptClone()
     scroll.ScrollBarThickness = 4
     scroll.ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255)
     scroll.Parent = frame
-    
     local isMinimized = false
     local normalSize = UDim2.new(0, 300, 0, 320)
     local minimizedSize = UDim2.new(0, 300, 0, 40)
-    
     minBtn.MouseButton1Click:Connect(function()
         isMinimized = not isMinimized
         if isMinimized then
@@ -3729,27 +3305,22 @@ local function promptClone()
             end)
         end
     end)
-
     local layout = Instance.new("UIListLayout")
     layout.Padding = UDim.new(0, 6)
     layout.SortOrder = Enum.SortOrder.LayoutOrder
     layout.Parent = scroll
-    
     layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
     end)
-    
     local function populate()
         for _, child in ipairs(scroll:GetChildren()) do
             if child:IsA("Frame") then child:Destroy() end
         end
-        
         local filter = searchBox.Text:lower()
         local plist = game.Players:GetPlayers()
         table.sort(plist, function(a, b)
             return (a.DisplayName or ""):lower() < (b.DisplayName or ""):lower()
         end)
-
         local count = 0
         for _, p in ipairs(plist) do
             if p ~= game.Players.LocalPlayer then
@@ -3763,16 +3334,13 @@ local function promptClone()
                     row.LayoutOrder = count
                     row.Parent = scroll
                     Instance.new("UICorner", row).CornerRadius = UDim.new(0, 8)
-                    
                     local img = Instance.new("ImageLabel")
                     img.Size = UDim2.new(0, 36, 0, 36)
                     img.Position = UDim2.new(0, 6, 0.5, -18)
                     img.BackgroundColor3 = Color3.fromRGB(10, 10, 20)
                     img.Parent = row
                     Instance.new("UICorner", img).CornerRadius = UDim.new(0, 6)
-                    
                     img.Image = "rbxthumb://type=AvatarHeadShot&id=" .. tostring(p.UserId) .. "&w=48&h=48"
-                    
                     local nameLabel = Instance.new("TextLabel")
                     nameLabel.Size = UDim2.new(0.5, -40, 0, 18)
                     nameLabel.Position = UDim2.new(0, 48, 0.1, 0)
@@ -3783,7 +3351,6 @@ local function promptClone()
                     nameLabel.Text = p.DisplayName
                     nameLabel.TextXAlignment = Enum.TextXAlignment.Left
                     nameLabel.Parent = row
-                    
                     local userLabel = Instance.new("TextLabel")
                     userLabel.Size = UDim2.new(0.5, -40, 0, 14)
                     userLabel.Position = UDim2.new(0, 48, 0.5, 0)
@@ -3794,7 +3361,6 @@ local function promptClone()
                     userLabel.Text = "@" .. p.Name
                     userLabel.TextXAlignment = Enum.TextXAlignment.Left
                     userLabel.Parent = row
-                    
                     local cloneBtn = Instance.new("TextButton")
                     cloneBtn.Size = UDim2.new(0.3, 0, 0, 28)
                     cloneBtn.Position = UDim2.new(1, -6, 0.5, -14)
@@ -3806,7 +3372,6 @@ local function promptClone()
                     cloneBtn.TextSize = 11
                     cloneBtn.Parent = row
                     Instance.new("UICorner", cloneBtn).CornerRadius = UDim.new(0, 6)
-                    
                     cloneBtn.MouseButton1Click:Connect(function()
                         cloneAvatar(p)
                     end)
@@ -3814,34 +3379,25 @@ local function promptClone()
             end
         end
     end
-    
     populate()
-    
     searchBox:GetPropertyChangedSignal("Text"):Connect(populate)
-    
     local conn1 = game.Players.PlayerAdded:Connect(populate)
     local conn2 = game.Players.PlayerRemoving:Connect(populate)
-    
     cloneGui.Destroying:Connect(function()
         conn1:Disconnect()
         conn2:Disconnect()
     end)
 end
-
-
 function safeTeleportToPlayer(targetPlayer)
     if not targetPlayer then return end
     local char = Player.Character
     local hrp = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso"))
     if not hrp then return end
-
     local targetChar = targetPlayer.Character
     local targetHrp = targetChar and (targetChar:FindFirstChild("HumanoidRootPart") or targetChar:FindFirstChild("Torso") or targetChar:FindFirstChild("UpperTorso"))
-    
     if not targetHrp and targetChar then
         targetHrp = targetChar:FindFirstChildWhichIsA("BasePart", true)
     end
-
     if not targetHrp then
         pcall(function()
             game:GetService("StarterGui"):SetCore("SendNotification", {
@@ -3852,7 +3408,6 @@ function safeTeleportToPlayer(targetPlayer)
         end)
         return
     end
-
     local targetCFrame = targetHrp.CFrame * CFrame.new(0, 3, 0)
     if tweenTpEnabled then
         if typeof(safeTeleportToCFrame) == "function" then
@@ -3860,15 +3415,16 @@ function safeTeleportToPlayer(targetPlayer)
             return
         end
     end
-
+    local wasFlyV1Active = getgenv().tpwalking
+    if wasFlyV1Active then
+        getgenv().tpwalking = false
+        task.wait(0.1)
+    end
     local startPos = hrp.Position
     local targetPos = targetHrp.Position
     local distance = (targetPos - startPos).Magnitude
-
-    -- Langsung instant TP secara aman (jarak jauh sekalipun)
     local previousAnchored = hrp.Anchored
     hrp.Anchored = true
-    
     pcall(function()
         game:GetService("StarterGui"):SetCore("SendNotification", {
             Title = "Teleporting...",
@@ -3876,17 +3432,16 @@ function safeTeleportToPlayer(targetPlayer)
             Duration = 2
         })
     end)
-
     char:PivotTo(targetHrp.CFrame * CFrame.new(0, 3, 0))
-    
-    -- Request streaming agar map termuat
     pcall(function()
         Player:RequestStreamAroundAsync(targetPos)
     end)
-    
     task.wait(0.3)
     hrp.Anchored = previousAnchored
-
+    if wasFlyV1Active then
+        task.wait(0.1)
+        getgenv().tpwalking = true
+    end
     pcall(function()
         game:GetService("StarterGui"):SetCore("SendNotification", {
             Title = "Teleport Sukses",
@@ -3895,7 +3450,6 @@ function safeTeleportToPlayer(targetPlayer)
         })
     end)
 end
-
 local headsitActive = false
 local headsitConn = nil
 local headsitTarget = nil
@@ -3904,7 +3458,6 @@ local followConn = nil
 local followTarget = nil
 local plistSendPartTarget = nil
 local plistSendPartLoopThread = nil
-
 local function stopHeadsit()
     headsitActive = false
     headsitTarget = nil
@@ -3922,18 +3475,15 @@ local function stopHeadsit()
         hrp.CFrame = hrp.CFrame * CFrame.new(0, 3, -1)
     end
 end
-
 local function startHeadsit(targetPlayer)
     stopHeadsit()
     local myChar = game.Players.LocalPlayer.Character
     local hum = myChar and myChar:FindFirstChildOfClass("Humanoid")
     local hrp = myChar and (myChar:FindFirstChild("HumanoidRootPart") or myChar:FindFirstChild("Torso"))
     if not hum or not hrp or not targetPlayer then return end
-
     headsitActive = true
     headsitTarget = targetPlayer
     hum.Sit = true
-    
     headsitConn = RunService.Heartbeat:Connect(function()
         if not headsitActive then return end
         if not targetPlayer or not targetPlayer.Parent then
@@ -3950,7 +3500,6 @@ local function startHeadsit(targetPlayer)
         end
     end)
 end
-
 local function stopFollow()
     followActive = false
     followTarget = nil
@@ -3959,13 +3508,11 @@ local function stopFollow()
         followConn = nil
     end
 end
-
 local function startFollow(targetPlayer)
     stopFollow()
     local myChar = game.Players.LocalPlayer.Character
     local hrp = myChar and (myChar:FindFirstChild("HumanoidRootPart") or myChar:FindFirstChild("Torso"))
     if not hrp or not targetPlayer then return end
-
     followActive = true
     followTarget = targetPlayer
     followConn = RunService.Heartbeat:Connect(function()
@@ -3981,7 +3528,6 @@ local function startFollow(targetPlayer)
         end
     end)
 end
-
 local function stopPlistSendPart()
     if plistSendPartTarget then
         plistSendPartTarget = nil
@@ -4008,7 +3554,6 @@ local function stopPlistSendPart()
             end
             DisableNetwork()
         else
-            -- If Bring Part is active, make sure they remain unanchored so they return to us
             for _, v in ipairs(Workspace:GetDescendants()) do
                 if v:IsA("BasePart") then
                     local torq = v:FindFirstChild("BringTorque")
@@ -4021,21 +3566,17 @@ local function stopPlistSendPart()
         end
     end
 end
-
 local function startPlistSendPart(targetPlayer)
     stopPlistSendPart()
     plistSendPartTarget = targetPlayer
-    
     EnableNetwork()
     OneTimeUnanchor()
-    
     for _, v in ipairs(GetAllPartsRecursive(Workspace)) do
         if v:GetAttribute("WasBrought") then
             v.Anchored = false
         end
         ForcePart(v)
     end
-    
     if plistSendPartDescendantConn then plistSendPartDescendantConn:Disconnect() end
     plistSendPartDescendantConn = Workspace.DescendantAdded:Connect(function(v)
         if plistSendPartTarget and v:IsA("BasePart") then
@@ -4045,8 +3586,6 @@ local function startPlistSendPart(targetPlayer)
             ForcePart(v)
         end
     end)
-
-    -- Auto-stop after 3 seconds, matching the spectate instant fling feel!
     task.delay(3, function()
         if plistSendPartTarget == targetPlayer then
             stopPlistSendPart()
@@ -4054,8 +3593,6 @@ local function startPlistSendPart(targetPlayer)
         end
     end)
 end
-
-
 function createPlayerRow(targetPlayer, index)
     local isExpanded = (expandedPlayerUserId == targetPlayer.UserId)
     local row = Instance.new("Frame")
@@ -4066,17 +3603,13 @@ function createPlayerRow(targetPlayer, index)
     row.ClipsDescendants = true
     row.LayoutOrder = index
     row.Parent = PlayerListScroll
-
     local rowCorner = Instance.new("UICorner")
     rowCorner.CornerRadius = UDim.new(0, 6)
     rowCorner.Parent = row
-
     local rowStroke = Instance.new("UIStroke")
     rowStroke.Color = Color3.fromRGB(40, 40, 45)
     rowStroke.Thickness = 1
     rowStroke.Parent = row
-
-    -- Avatar Thumbnail
     local avatar = Instance.new("ImageButton")
     avatar.Name = "Avatar"
     avatar.Size = UDim2.new(0, 36, 0, 36)
@@ -4085,30 +3618,24 @@ function createPlayerRow(targetPlayer, index)
     avatar.BorderSizePixel = 0
     avatar.Image = "rbxasset://textures/ui/avatar_placeholder.png"
     avatar.Parent = row
-
     local avatarCorner = Instance.new("UICorner")
     avatarCorner.CornerRadius = UDim.new(1, 0)
     avatarCorner.Parent = avatar
-
     avatar.MouseButton1Click:Connect(function()
         cloneAvatar(targetPlayer)
     end)
-
     task.spawn(function()
         local img = getPlayerThumbnail(targetPlayer.UserId)
         if avatar and avatar.Parent then
             avatar.Image = img
         end
     end)
-
-    -- Player Labels Container
     local info = Instance.new("Frame")
     info.Name = "Info"
     info.Size = UDim2.new(1, -210, 0, 42)
     info.Position = UDim2.new(0, 52, 0, 4)
     info.BackgroundTransparency = 1
     info.Parent = row
-
         local dispLabel = Instance.new("TextLabel")
     dispLabel.Size = UDim2.new(1, 0, 0.5, 0)
     dispLabel.BackgroundTransparency = 1
@@ -4116,7 +3643,6 @@ function createPlayerRow(targetPlayer, index)
     dispLabel.TextSize = 12
     dispLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     dispLabel.TextXAlignment = Enum.TextXAlignment.Left
-    
     local prefix = "⚫ "
     pcall(function()
         local lp = game:GetService("Players").LocalPlayer
@@ -4131,12 +3657,8 @@ function createPlayerRow(targetPlayer, index)
             end
         end
     end)
-    
-    -- Memasukkan ikon dan nama ke dalam label
     dispLabel.Text = prefix .. targetPlayer.DisplayName
     dispLabel.Parent = info
-
-
     local userLabel = Instance.new("TextLabel")
     userLabel.Size = UDim2.new(1, 0, 0.5, 0)
     userLabel.Position = UDim2.new(0, 0, 0.5, 0)
@@ -4147,23 +3669,18 @@ function createPlayerRow(targetPlayer, index)
     userLabel.TextXAlignment = Enum.TextXAlignment.Left
     userLabel.Text = "@" .. targetPlayer.Name
     userLabel.Parent = info
-
-    -- Action Buttons Container
     local btns = Instance.new("Frame")
     btns.Name = "Buttons"
     btns.Size = UDim2.new(0, 148, 0, 26)
     btns.Position = UDim2.new(1, -154, 0, 12)
     btns.BackgroundTransparency = 1
     btns.Parent = row
-
     local listLayout = Instance.new("UIListLayout")
     listLayout.FillDirection = Enum.FillDirection.Horizontal
     listLayout.SortOrder = Enum.SortOrder.LayoutOrder
     listLayout.Padding = UDim.new(0, 4)
     listLayout.VerticalAlignment = Enum.VerticalAlignment.Center
     listLayout.Parent = btns
-
-    -- Helper to create action buttons
     local function makeActBtn(text, color, strokeColor, order, sizeX)
         if color == Color3.fromRGB(15, 15, 15) then color = Color3.fromRGB(25, 25, 25) end
         local btn = Instance.new("TextButton")
@@ -4175,17 +3692,14 @@ function createPlayerRow(targetPlayer, index)
         btn.TextColor3 = Color3.fromRGB(255, 255, 255)
         btn.LayoutOrder = order
         btn.Parent = btns
-
         local c = Instance.new("UICorner")
         c.CornerRadius = UDim.new(0, 4)
         c.Parent = btn
-
         local s = Instance.new("UIStroke")
         s.Color = strokeColor or Color3.fromRGB(40, 40, 45)
         s.Thickness = 1
         s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
         s.Parent = btn
-
         local hoverColor = Color3.new(math.min(color.R + 0.05, 1), math.min(color.G + 0.05, 1), math.min(color.B + 0.05, 1))
         btn.MouseEnter:Connect(function()
             TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = hoverColor}):Play()
@@ -4193,30 +3707,22 @@ function createPlayerRow(targetPlayer, index)
         btn.MouseLeave:Connect(function()
             TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = color}):Play()
         end)
-
         return btn
     end
-
-    -- Clone Button
     local cloneBtn = makeActBtn("Clone", Color3.fromRGB(15, 15, 15), Color3.fromRGB(255, 50, 50), 0.5, 36)
     cloneBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
     cloneBtn.MouseButton1Click:Connect(function()
         cloneAvatar(targetPlayer)
     end)
-
-    -- TP Button
     local tpBtn = makeActBtn("TP", Color3.fromRGB(15, 15, 15), Color3.fromRGB(255, 50, 50), 1, 26)
     tpBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
     tpBtn.MouseButton1Click:Connect(function()
         safeTeleportToPlayer(targetPlayer)
     end)
-    
-    -- View (Spectate) Button
     local isViewing = (currentSpectateTarget == targetPlayer)
     local viewBtnText = isViewing and "Stop" or "View"
     local viewBtnColor = isViewing and Color3.fromRGB(150, 50, 50) or Color3.fromRGB(15, 15, 15)
     local viewBtnStroke = isViewing and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(255, 50, 50)
-    
     local viewBtn = makeActBtn(viewBtnText, viewBtnColor, viewBtnStroke, 2, 34)
     if isViewing then
         viewBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -4264,13 +3770,10 @@ function createPlayerRow(targetPlayer, index)
         end
         refreshPlayerList()
     end)
-
-    -- Add Friend Button
     local isFriend = false
     pcall(function()
         isFriend = game.Players.LocalPlayer:IsFriendsWith(targetPlayer.UserId)
     end)
-
     local addBtn
     if isFriend then
         addBtn = makeActBtn("Teman", Color3.fromRGB(15, 15, 15), Color3.fromRGB(40, 40, 45), 3, 40)
@@ -4309,8 +3812,6 @@ function createPlayerRow(targetPlayer, index)
             end)
         end)
     end
-
-    -- Expanded Detail Area Frame
     local expandedFrame = Instance.new("Frame")
     expandedFrame.Name = "ExpandedArea"
     expandedFrame.Size = UDim2.new(1, -16, 0, 68)
@@ -4319,24 +3820,19 @@ function createPlayerRow(targetPlayer, index)
     expandedFrame.BorderSizePixel = 0
     expandedFrame.Visible = isExpanded
     expandedFrame.Parent = row
-
     local exCorner = Instance.new("UICorner")
     exCorner.CornerRadius = UDim.new(0, 6)
     exCorner.Parent = expandedFrame
-
     local exStroke = Instance.new("UIStroke")
     exStroke.Color = Color3.fromRGB(30, 30, 35)
     exStroke.Thickness = 1
     exStroke.Parent = expandedFrame
-
-    -- Left Details (Umur Akun & Tim)
     local detailInfo = Instance.new("Frame")
     detailInfo.Name = "DetailInfo"
     detailInfo.Size = UDim2.new(0, 100, 1, 0)
     detailInfo.Position = UDim2.new(0, 8, 0, 0)
     detailInfo.BackgroundTransparency = 1
     detailInfo.Parent = expandedFrame
-
     local ageLabel = Instance.new("TextLabel")
     ageLabel.Size = UDim2.new(1, 0, 0.5, 0)
     ageLabel.BackgroundTransparency = 1
@@ -4355,7 +3851,6 @@ function createPlayerRow(targetPlayer, index)
     end
     ageLabel.Text = "Umur: " .. ageText
     ageLabel.Parent = detailInfo
-
     local teamLabel = Instance.new("TextLabel")
     teamLabel.Size = UDim2.new(1, 0, 0.5, 0)
     teamLabel.Position = UDim2.new(0, 0, 0.5, 0)
@@ -4366,15 +3861,12 @@ function createPlayerRow(targetPlayer, index)
     teamLabel.TextXAlignment = Enum.TextXAlignment.Left
     teamLabel.Text = "Tim: " .. (targetPlayer.Team and targetPlayer.Team.Name or "Tidak ada")
     teamLabel.Parent = detailInfo
-
-    -- Right Action Buttons Row 1 (Copy, ESP)
     local exBtns = Instance.new("Frame")
     exBtns.Name = "ExtraButtons"
     exBtns.Size = UDim2.new(1, -114, 0, 26)
     exBtns.Position = UDim2.new(0, 108, 0, 6)
     exBtns.BackgroundTransparency = 1
     exBtns.Parent = expandedFrame
-
     local exListLayout = Instance.new("UIListLayout")
     exListLayout.FillDirection = Enum.FillDirection.Horizontal
     exListLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -4382,11 +3874,10 @@ function createPlayerRow(targetPlayer, index)
     exListLayout.VerticalAlignment = Enum.VerticalAlignment.Center
     exListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
     exListLayout.Parent = exBtns
-
     local function makeExActBtn(text, color, strokeColor, order, sizeX)
         if color == Color3.fromRGB(15, 15, 15) then color = Color3.fromRGB(25, 25, 25) end
         local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(0.333, -3, 0, 26) -- 3 buttons in Row 1
+        btn.Size = UDim2.new(0.333, -3, 0, 26)
         btn.BackgroundColor3 = color
         btn.Text = text
         btn.Font = Enum.Font.GothamBold
@@ -4394,17 +3885,14 @@ function createPlayerRow(targetPlayer, index)
         btn.TextColor3 = Color3.fromRGB(255, 255, 255)
         btn.LayoutOrder = order
         btn.Parent = exBtns
-
         local c = Instance.new("UICorner")
         c.CornerRadius = UDim.new(0, 4)
         c.Parent = btn
-
         local s = Instance.new("UIStroke")
         s.Color = strokeColor or Color3.fromRGB(40, 40, 45)
         s.Thickness = 1
         s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
         s.Parent = btn
-
         local hoverColor = Color3.new(math.min(color.R + 0.05, 1), math.min(color.G + 0.05, 1), math.min(color.B + 0.05, 1))
         btn.MouseEnter:Connect(function()
             TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = hoverColor}):Play()
@@ -4412,18 +3900,14 @@ function createPlayerRow(targetPlayer, index)
         btn.MouseLeave:Connect(function()
             TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = color}):Play()
         end)
-
         return btn
     end
-
-    -- Right Action Buttons Row 2 (Fling, Headsit, Follow)
     local exBtns2 = Instance.new("Frame")
     exBtns2.Name = "ExtraButtons2"
     exBtns2.Size = UDim2.new(1, -114, 0, 26)
     exBtns2.Position = UDim2.new(0, 108, 0, 36)
     exBtns2.BackgroundTransparency = 1
     exBtns2.Parent = expandedFrame
-
     local exListLayout2 = Instance.new("UIListLayout")
     exListLayout2.FillDirection = Enum.FillDirection.Horizontal
     exListLayout2.SortOrder = Enum.SortOrder.LayoutOrder
@@ -4431,11 +3915,10 @@ function createPlayerRow(targetPlayer, index)
     exListLayout2.VerticalAlignment = Enum.VerticalAlignment.Center
     exListLayout2.HorizontalAlignment = Enum.HorizontalAlignment.Left
     exListLayout2.Parent = exBtns2
-
     local function makeExActBtn2(text, color, strokeColor, order, sizeX)
         if color == Color3.fromRGB(15, 15, 15) then color = Color3.fromRGB(25, 25, 25) end
         local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(0.2, -4, 0, 26) -- 5 buttons in Row 2
+        btn.Size = UDim2.new(0.2, -4, 0, 26)
         btn.BackgroundColor3 = color
         btn.Text = text
         btn.Font = Enum.Font.GothamBold
@@ -4444,17 +3927,14 @@ function createPlayerRow(targetPlayer, index)
         btn.TextColor3 = Color3.fromRGB(255, 255, 255)
         btn.LayoutOrder = order
         btn.Parent = exBtns2
-
         local c = Instance.new("UICorner")
         c.CornerRadius = UDim.new(0, 4)
         c.Parent = btn
-
         local s = Instance.new("UIStroke")
         s.Color = strokeColor or Color3.fromRGB(40, 40, 45)
         s.Thickness = 1
         s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
         s.Parent = btn
-
         local hoverColor = Color3.new(math.min(color.R + 0.05, 1), math.min(color.G + 0.05, 1), math.min(color.B + 0.05, 1))
         btn.MouseEnter:Connect(function()
             TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = hoverColor}):Play()
@@ -4462,11 +3942,8 @@ function createPlayerRow(targetPlayer, index)
         btn.MouseLeave:Connect(function()
             TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = color}):Play()
         end)
-
         return btn
     end
-
-    -- Copy ID Button
     local copyBtn = makeExActBtn("Salin ID", Color3.fromRGB(40, 40, 45), Color3.fromRGB(60, 60, 65), 1, 50)
     copyBtn.MouseButton1Click:Connect(function()
         if setclipboard then
@@ -4480,8 +3957,6 @@ function createPlayerRow(targetPlayer, index)
             end)
         end
     end)
-
-    -- Copy User Button
     local copyUserBtn = makeExActBtn("Salin User", Color3.fromRGB(40, 40, 45), Color3.fromRGB(60, 60, 65), 2, 60)
     copyUserBtn.MouseButton1Click:Connect(function()
         if setclipboard then
@@ -4495,8 +3970,6 @@ function createPlayerRow(targetPlayer, index)
             end)
         end
     end)
-
-    -- Toggle ESP Button
     local COREGUI = game:GetService("CoreGui")
     local espBtn = makeExActBtn("ESP", Color3.fromRGB(0, 100, 150), Color3.fromRGB(0, 160, 220), 3, 36)
     if COREGUI:FindFirstChild(targetPlayer.Name .. "_ESP") then
@@ -4517,8 +3990,6 @@ function createPlayerRow(targetPlayer, index)
             if stroke then stroke.Color = Color3.fromRGB(255, 255, 255) end
         end
     end)
-
-    -- Fling Button
     local flingActive = false
     local flingBtn = makeExActBtn2("Fling", Color3.fromRGB(150, 50, 50), Color3.fromRGB(200, 100, 100), 0, 42)
     flingBtn.MouseButton1Click:Connect(function()
@@ -4526,20 +3997,16 @@ function createPlayerRow(targetPlayer, index)
         local char = lplr.Character
         local hrp = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso"))
         if not hrp then return end
-
         flingActive = not flingActive
         if flingActive then
             flingBtn.Text = "Stop"
             flingBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
             local stroke = flingBtn:FindFirstChildOfClass("UIStroke")
             if stroke then stroke.Color = Color3.fromRGB(255, 150, 50) end
-            
             task.spawn(function()
                 local oldGravity = workspace.Gravity
                 workspace.Gravity = 0
-                
                 local originalCFrame = hrp.CFrame
-                
                 pcall(function()
                     game:GetService("StarterGui"):SetCore("SendNotification", {
                         Title = "Flinging...",
@@ -4547,8 +4014,6 @@ function createPlayerRow(targetPlayer, index)
                         Duration = 3
                     })
                 end)
-
-                -- Create welded fling part to prevent self-fling (like admin3.lua)
                 local flingPart = Instance.new("Part")
                 flingPart.Anchored = false
                 flingPart.CanCollide = false
@@ -4556,34 +4021,28 @@ function createPlayerRow(targetPlayer, index)
                 flingPart.Size = Vector3.new(1, 1, 1)
                 flingPart.CFrame = hrp.CFrame
                 flingPart.Parent = workspace
-
                 local flingWeld = Instance.new("WeldConstraint")
                 flingWeld.Part0 = flingPart
                 flingWeld.Part1 = hrp
                 flingWeld.Parent = flingPart
-
                 local BV = Instance.new("BodyVelocity")
                 BV.Parent = flingPart
                 BV.Velocity = Vector3.new(9e8, 9e8, 9e8)
                 BV.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-
                 local myHum = char:FindFirstChildOfClass("Humanoid")
                 if myHum then
                     myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
                 end
-
                 while flingActive and targetPlayer and targetPlayer.Parent do
                     RunService.Heartbeat:Wait()
                     local myChar = lplr.Character
                     local myHrp = myChar and (myChar:FindFirstChild("HumanoidRootPart") or myChar:FindFirstChild("Torso") or myChar:FindFirstChild("UpperTorso"))
                     local tChar = targetPlayer.Character
                     local tHrp = tChar and (tChar:FindFirstChild("HumanoidRootPart") or tChar:FindFirstChild("Torso") or tChar:FindFirstChild("UpperTorso"))
-                    
                     if not myHrp then break end
                     if not tHrp then
                         tHrp = tChar and tChar:FindFirstChildWhichIsA("BasePart", true)
                     end
-
                     if tHrp then
                         flingPart.AssemblyLinearVelocity = Vector3.new(9e7, 9e8, 9e7)
                         flingPart.AssemblyAngularVelocity = Vector3.new(9e8, 9e8, 9e8)
@@ -4593,27 +4052,21 @@ function createPlayerRow(targetPlayer, index)
                         flingPart.AssemblyAngularVelocity = Vector3.zero
                     end
                 end
-                
                 flingActive = false
                 workspace.Gravity = oldGravity
-                
                 if myHum then
                     myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
                 end
                 pcall(function() flingPart:Destroy() end)
-                
-                -- Restore original state if loop finished naturally
                 if flingBtn and flingBtn.Parent then
                     flingBtn.Text = "Fling"
                     flingBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
                     local stroke = flingBtn:FindFirstChildOfClass("UIStroke")
                     if stroke then stroke.Color = Color3.fromRGB(200, 100, 100) end
                 end
-                
                 local myChar = lplr.Character
                 local myHrp = myChar and (myChar:FindFirstChild("HumanoidRootPart") or myChar:FindFirstChild("Torso") or myChar:FindFirstChild("UpperTorso"))
                 if myHrp and originalCFrame then
-                    -- Temporarily anchor character for 0.1s to fully stop momentum
                     local prevAnchored = myHrp.Anchored
                     myHrp.Anchored = true
                     myHrp.AssemblyLinearVelocity = Vector3.zero
@@ -4625,99 +4078,16 @@ function createPlayerRow(targetPlayer, index)
             end)
         else
             flingActive = false
-            -- Instantly update UI states on click
             flingBtn.Text = "Fling"
             flingBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
             local stroke = flingBtn:FindFirstChildOfClass("UIStroke")
             if stroke then stroke.Color = Color3.fromRGB(200, 100, 100) end
         end
     end)
-
-    -- Instant Fling Button (teleport ke player langsung lalu fling)
     local instFlingBtn = makeExActBtn2("IFling", Color3.fromRGB(180, 60, 0), Color3.fromRGB(255, 120, 50), 1, 45)
     instFlingBtn.MouseButton1Click:Connect(function()
-        local lp = Players.LocalPlayer
-        local myChar = lp and lp.Character
-        local myHrp = myChar and (myChar:FindFirstChild("HumanoidRootPart") or myChar:FindFirstChild("Torso"))
-        if not myHrp then return end
-        local tChar = targetPlayer.Character
-        local tHrp = tChar and (tChar:FindFirstChild("HumanoidRootPart") or tChar:FindFirstChild("Torso"))
-        if not tHrp then return end
-
-        task.spawn(function()
-            local origCF = myHrp.CFrame
-            local origGrav = workspace.Gravity
-            workspace.Gravity = 0
-
-            -- Create welded fling part to prevent self-fling (like admin3.lua)
-            local flingPart = Instance.new("Part")
-            flingPart.Anchored = false
-            flingPart.CanCollide = false
-            flingPart.Transparency = 1
-            flingPart.Size = Vector3.new(1, 1, 1)
-            flingPart.CFrame = myHrp.CFrame
-            flingPart.Parent = workspace
-
-            local flingWeld = Instance.new("WeldConstraint")
-            flingWeld.Part0 = flingPart
-            flingWeld.Part1 = myHrp
-            flingWeld.Parent = flingPart
-
-            local BV = Instance.new("BodyVelocity")
-            BV.Parent = flingPart
-            BV.Velocity = Vector3.new(9e8, 9e8, 9e8)
-            BV.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-
-            local myHum = myChar:FindFirstChildOfClass("Humanoid")
-            if myHum then
-                myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
-            end
-
-            -- Teleport ke target, fling selama 2.0 detik (seperti admin3.lua)
-            local startFling = tick()
-            local angle = 0
-            while tick() - startFling < 2.0 and tHrp and tHrp.Parent do
-                angle = angle + 100
-                pcall(function()
-                    local offset = CFrame.new(0, 0.5, 0)
-                    if angle % 400 == 0 then
-                        offset = CFrame.new(0, 1.5, 0)
-                    elseif angle % 400 == 100 then
-                        offset = CFrame.new(0, -1.5, 0)
-                    elseif angle % 400 == 200 then
-                        offset = CFrame.new(2.25, 1.5, -2.25)
-                    elseif angle % 400 == 300 then
-                        offset = CFrame.new(-2.25, -1.5, 2.25)
-                    end
-                    
-                    myHrp.CFrame = tHrp.CFrame * offset * CFrame.Angles(math.rad(angle), 0, 0)
-                    flingPart.AssemblyLinearVelocity = Vector3.new(9e7, 9e8, 9e7)
-                    flingPart.AssemblyAngularVelocity = Vector3.new(9e8, 9e8, 9e8)
-                end)
-                RunService.Heartbeat:Wait()
-            end
-
-            task.wait(0.1)
-            workspace.Gravity = origGrav
-            
-            if myHum then
-                myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
-            end
-            pcall(function() flingPart:Destroy() end)
-
-            -- Kembalikan ke posisi semula
-            pcall(function()
-                myHrp.Anchored = true
-                myHrp.AssemblyLinearVelocity = Vector3.zero
-                myHrp.AssemblyAngularVelocity = Vector3.zero
-                myHrp.CFrame = origCF
-                task.wait(0.1)
-                myHrp.Anchored = false
-            end)
-        end)
+        executeInstantFling(targetPlayer)
     end)
-
-    -- Headsit Button
     local isHeadsit = (headsitTarget == targetPlayer)
     local headsitBtnText = isHeadsit and "Stop" or tr("Headsit")
     local headsitBtnColor = isHeadsit and Color3.fromRGB(200, 100, 0) or Color3.fromRGB(0, 100, 150)
@@ -4738,8 +4108,6 @@ function createPlayerRow(targetPlayer, index)
             if stroke then stroke.Color = Color3.fromRGB(255, 150, 50) end
         end
     end)
-
-    -- Follow Button
     local isFollow = (followTarget == targetPlayer)
     local followBtnText = isFollow and "Stop" or tr("FollowBtn")
     local followBtnColor = isFollow and Color3.fromRGB(200, 100, 0) or Color3.fromRGB(0, 100, 150)
@@ -4760,8 +4128,6 @@ function createPlayerRow(targetPlayer, index)
             if stroke then stroke.Color = Color3.fromRGB(255, 150, 50) end
         end
     end)
-
-    -- Send Part Button
     local isSending = (plistSendPartTarget == targetPlayer)
     local sendBtnText = isSending and tr("SendingOnBtn") or tr("SendPartBtn")
     local sendBtnColor = isSending and Color3.fromRGB(200, 100, 0) or Color3.fromRGB(0, 100, 150)
@@ -4782,8 +4148,6 @@ function createPlayerRow(targetPlayer, index)
             if stroke then stroke.Color = Color3.fromRGB(255, 150, 50) end
         end
     end)
-
-    -- Expand/Collapse Interaction (Clicking info or left part)
     local toggleExpand = function()
         if expandedPlayerUserId == targetPlayer.UserId then
             expandedPlayerUserId = nil
@@ -4792,42 +4156,32 @@ function createPlayerRow(targetPlayer, index)
         end
         refreshPlayerList()
     end
-
     local clickDetector = Instance.new("TextButton")
     clickDetector.Name = "ClickDetector"
     clickDetector.Size = UDim2.new(1, -135, 0, 48)
     clickDetector.BackgroundTransparency = 1
     clickDetector.Text = ""
     clickDetector.Parent = row
-
     clickDetector.MouseButton1Click:Connect(toggleExpand)
 end
-
-
 refreshPlayerList = function()
     if not PlayerListFrame or not PlayerListFrame.Visible then return end
-    
     for _, child in ipairs(PlayerListScroll:GetChildren()) do
         if child:IsA("Frame") and child.Name == "PlayerItem" then
             child:Destroy()
         end
     end
-
     local query = string.lower(PlayerListSearchBox.Text)
     local count = 0
-
     local sortedPlayers = game:GetService("Players"):GetPlayers()
-    
     local lp = game:GetService("Players").LocalPlayer
     local lpPos = nil
     if lp and lp.Character then
         local lpHrp = lp.Character:FindFirstChild("HumanoidRootPart") or lp.Character:FindFirstChild("Torso")
         if lpHrp then lpPos = lpHrp.Position end
     end
-
     table.sort(sortedPlayers, function(a, b)
         local distA, distB = math.huge, math.huge
-        
         if lpPos then
             if a.Character then
                 local aHrp = a.Character:FindFirstChild("HumanoidRootPart") or a.Character:FindFirstChild("Torso")
@@ -4838,27 +4192,18 @@ refreshPlayerList = function()
                 if bHrp then distB = (bHrp.Position - lpPos).Magnitude end
             end
         end
-
         local aIsDetected = (distA ~= math.huge)
         local bIsDetected = (distB ~= math.huge)
-
         if aIsDetected ~= bIsDetected then
-            return aIsDetected -- Dahulukan yang terdeteksi
+            return aIsDetected
         end
-        
         if aIsDetected and bIsDetected then
-            -- Jika keduanya terdeteksi, urutkan berdasarkan JARAK TERDEKAT
             if math.abs(distA - distB) > 0.1 then
                 return distA < distB
             end
         end
-        
-        -- Jika tidak terdeteksi (atau jaraknya persis sama), urutkan abjad A-Z
         return string.lower(a.DisplayName) < string.lower(b.DisplayName)
     end)
-
-
-
     for _, plr in ipairs(sortedPlayers) do
         if plr ~= game.Players.LocalPlayer then
             local nameMatch = string.find(string.lower(plr.Name), query, 1, true)
@@ -4871,12 +4216,9 @@ refreshPlayerList = function()
     end
     updateCanvasSize()
 end
-
 function createPlayerListWindow()
     if PlayerListFrame then return end
-
     local sgui = ScreenGui
-
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "PlayerListFrame"
     mainFrame.Size = UDim2.new(0, 450, 0, 360)
@@ -4888,7 +4230,6 @@ function createPlayerListWindow()
     mainFrame.ClipsDescendants = true
     mainFrame.Parent = sgui
     PlayerListFrame = mainFrame
-
     mainFrame.MouseEnter:Connect(function()
         mouseInPlayerList = true
         pcall(function() updateExternalCursorVisibility() end)
@@ -4897,42 +4238,35 @@ function createPlayerListWindow()
         mouseInPlayerList = false
         pcall(function() updateExternalCursorVisibility() end)
     end)
-
     local modal = Instance.new("TextButton")
     modal.Size = UDim2.new(0, 0, 0, 0)
     modal.BackgroundTransparency = 1
     modal.Text = ""
     modal.Modal = true
     modal.Parent = mainFrame
-
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 12)
     corner.Parent = mainFrame
-
     local mainStroke = Instance.new("UIStroke")
     mainStroke.Color = Color3.fromRGB(255, 255, 255)
     mainStroke.Thickness = 2
     mainStroke.Transparency = 0
     mainStroke.Parent = mainFrame
-
     local topBar = Instance.new("Frame")
     topBar.Name = "TopBar"
     topBar.Size = UDim2.new(1, 0, 0, 30)
     topBar.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
     topBar.BorderSizePixel = 0
     topBar.Parent = mainFrame
-    
     local topCorner = Instance.new("UICorner")
     topCorner.CornerRadius = UDim.new(0, 12)
     topCorner.Parent = topBar
-
     local topCover = Instance.new("Frame")
     topCover.Size = UDim2.new(1, 0, 0, 10)
     topCover.Position = UDim2.new(0, 0, 1, -10)
     topCover.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
     topCover.BorderSizePixel = 0
     topCover.Parent = topBar
-
     local title = Instance.new("TextLabel")
     title.Size = UDim2.new(1, -90, 1, 0)
     title.Position = UDim2.new(0, 12, 0, 0)
@@ -4943,7 +4277,6 @@ function createPlayerListWindow()
     title.Font = Enum.Font.GothamBold
     title.TextXAlignment = Enum.TextXAlignment.Left
     title.Parent = topBar
-
     local closeBtn = Instance.new("TextButton")
     closeBtn.Size = UDim2.new(0, 22, 0, 22)
     closeBtn.Position = UDim2.new(1, -28, 0.5, -11)
@@ -4954,16 +4287,13 @@ function createPlayerListWindow()
     closeBtn.Font = Enum.Font.GothamBold
     closeBtn.TextSize = 13
     closeBtn.Parent = topBar
-    
     local closeCorner = Instance.new("UICorner")
     closeCorner.CornerRadius = UDim.new(0, 6)
     closeCorner.Parent = closeBtn
-
     local closeStroke = Instance.new("UIStroke")
     closeStroke.Color = Color3.fromRGB(255, 255, 255)
     closeStroke.Thickness = 1.5
     closeStroke.Parent = closeBtn
-
     local minBtn = Instance.new("TextButton")
     minBtn.Size = UDim2.new(0, 22, 0, 22)
     minBtn.Position = UDim2.new(1, -54, 0.5, -11)
@@ -4974,19 +4304,16 @@ function createPlayerListWindow()
     minBtn.Font = Enum.Font.GothamBold
     minBtn.TextSize = 13
     minBtn.Parent = topBar
-    
     local minCorner = Instance.new("UICorner")
     minCorner.CornerRadius = UDim.new(0, 6)
     minCorner.Parent = minBtn
-
     local minStroke = Instance.new("UIStroke")
     minStroke.Color = Color3.fromRGB(255, 255, 255)
     minStroke.Thickness = 1
     minStroke.Parent = minBtn
-
     local refreshBtn = Instance.new("TextButton")
     refreshBtn.Size = UDim2.new(0, 22, 0, 22)
-    refreshBtn.Position = UDim2.new(1, -80, 0.5, -11) -- Posisinya digeser ke kiri dari minimize (-54)
+    refreshBtn.Position = UDim2.new(1, -80, 0.5, -11)
     refreshBtn.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
     refreshBtn.BackgroundTransparency = 0.1
     refreshBtn.Text = "R"
@@ -4994,26 +4321,19 @@ function createPlayerListWindow()
     refreshBtn.Font = Enum.Font.GothamBold
     refreshBtn.TextSize = 13
     refreshBtn.Parent = topBar
-    
     local refreshCorner = Instance.new("UICorner")
     refreshCorner.CornerRadius = UDim.new(0, 6)
     refreshCorner.Parent = refreshBtn
-
     local refreshStroke = Instance.new("UIStroke")
     refreshStroke.Color = Color3.fromRGB(255, 255, 255)
     refreshStroke.Thickness = 1
     refreshStroke.Parent = refreshBtn
-
     refreshBtn.MouseButton1Click:Connect(function()
         refreshPlayerList()
     end)
-
-
     local isMinimized = false
     local normalSize = UDim2.new(0, 450, 0, 360)
     local minimizedSize = UDim2.new(0, 450, 0, 30)
-
-
     minBtn.MouseButton1Click:Connect(function()
         isMinimized = not isMinimized
         if isMinimized then
@@ -5035,7 +4355,6 @@ function createPlayerListWindow()
             end)
         end
     end)
-
     closeBtn.MouseButton1Click:Connect(function()
         mainFrame.Visible = false
         if isMinimized then
@@ -5046,7 +4365,6 @@ function createPlayerListWindow()
             scroll.Visible = true
         end
     end)
-
     local searchFrame = Instance.new("Frame")
     searchFrame.Name = "SearchFrame"
     searchFrame.Size = UDim2.new(1, -20, 0, 32)
@@ -5054,16 +4372,13 @@ function createPlayerListWindow()
     searchFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
     searchFrame.BackgroundTransparency = 0.2
     searchFrame.Parent = mainFrame
-
     local searchCorner = Instance.new("UICorner")
     searchCorner.CornerRadius = UDim.new(0, 8)
     searchCorner.Parent = searchFrame
-
     local searchStroke = Instance.new("UIStroke")
     searchStroke.Color = Color3.fromRGB(255, 255, 255)
     searchStroke.Thickness = 1.5
     searchStroke.Parent = searchFrame
-
     local searchBox = Instance.new("TextBox")
     searchBox.Name = "SearchBox"
     searchBox.Size = UDim2.new(1, -20, 1, 0)
@@ -5079,9 +4394,7 @@ function createPlayerListWindow()
     searchBox.ClearTextOnFocus = false
     searchBox.Parent = searchFrame
     PlayerListSearchBox = searchBox
-
     searchBox:GetPropertyChangedSignal("Text"):Connect(refreshPlayerList)
-
     local scroll = Instance.new("ScrollingFrame")
     scroll.Size = UDim2.new(1, -20, 1, -85)
     scroll.Position = UDim2.new(0, 10, 0, 78)
@@ -5090,17 +4403,11 @@ function createPlayerListWindow()
     scroll.ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255)
     scroll.Parent = mainFrame
     PlayerListScroll = scroll
-
     local listLayout = Instance.new("UIListLayout")
     listLayout.Padding = UDim.new(0, 5)
     listLayout.SortOrder = Enum.SortOrder.LayoutOrder
     listLayout.Parent = scroll
-
-    -- Drag logic (pakai makeSmoothDraggable sama seperti Part Scanner: smooth & tidak kena custom cursor)
     makeSmoothDraggable(mainFrame, topBar)
-
-
-    -- Dynamic Connections
     table.insert(playerConnections, game:GetService("Players").PlayerAdded:Connect(refreshPlayerList))
     table.insert(playerConnections, game:GetService("Players").PlayerRemoving:Connect(function(leavingPlr)
         if leavingPlr == currentSpectateTarget then
@@ -5113,8 +4420,6 @@ function createPlayerListWindow()
         end
         refreshPlayerList()
     end))
-
-    -- Clean up connections on frame destroy
     mainFrame.Destroying:Connect(function()
         for _, conn in ipairs(playerConnections) do
             if conn then conn:Disconnect() end
@@ -5123,7 +4428,6 @@ function createPlayerListWindow()
         currentSpectateTarget = nil
     end)
 end
-
 togglePlayerListWindow = function()
     if not PlayerListFrame then
         createPlayerListWindow()
@@ -5136,13 +4440,10 @@ end
 FriendListFrame = nil
 FriendListScroll = nil
 refreshFriendList = nil
-activeJoinConn = nil  -- track listener aktif untuk cegah double-fire TeleportInitFailed
-
+activeJoinConn = nil
 function createFriendListWindow()
     if FriendListFrame then return end
-
     local sgui = ScreenGui
-
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "FriendListFrame"
     mainFrame.Size = UDim2.new(0, 340, 0, 360)
@@ -5154,42 +4455,35 @@ function createFriendListWindow()
     mainFrame.ClipsDescendants = true
     mainFrame.Parent = sgui
     FriendListFrame = mainFrame
-
     local modal = Instance.new("TextButton")
     modal.Size = UDim2.new(0, 0, 0, 0)
     modal.BackgroundTransparency = 1
     modal.Text = ""
     modal.Modal = true
     modal.Parent = mainFrame
-
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 12)
     corner.Parent = mainFrame
-
     local mainStroke = Instance.new("UIStroke")
     mainStroke.Color = Color3.fromRGB(255, 255, 255)
     mainStroke.Thickness = 2
     mainStroke.Transparency = 0
     mainStroke.Parent = mainFrame
-
     local topBar = Instance.new("Frame")
     topBar.Name = "TopBar"
     topBar.Size = UDim2.new(1, 0, 0, 30)
     topBar.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
     topBar.BorderSizePixel = 0
     topBar.Parent = mainFrame
-    
     local topCorner = Instance.new("UICorner")
     topCorner.CornerRadius = UDim.new(0, 12)
     topCorner.Parent = topBar
-
     local topCover = Instance.new("Frame")
     topCover.Size = UDim2.new(1, 0, 0, 10)
     topCover.Position = UDim2.new(0, 0, 1, -10)
     topCover.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
     topCover.BorderSizePixel = 0
     topCover.Parent = topBar
-
     local title = Instance.new("TextLabel")
     title.Size = UDim2.new(1, -90, 1, 0)
     title.Position = UDim2.new(0, 12, 0, 0)
@@ -5200,7 +4494,6 @@ function createFriendListWindow()
     title.Font = Enum.Font.GothamBold
     title.TextXAlignment = Enum.TextXAlignment.Left
     title.Parent = topBar
-
     local closeBtn = Instance.new("TextButton")
     closeBtn.Size = UDim2.new(0, 22, 0, 22)
     closeBtn.Position = UDim2.new(1, -28, 0.5, -11)
@@ -5211,16 +4504,13 @@ function createFriendListWindow()
     closeBtn.Font = Enum.Font.GothamBold
     closeBtn.TextSize = 13
     closeBtn.Parent = topBar
-    
     local closeCorner = Instance.new("UICorner")
     closeCorner.CornerRadius = UDim.new(0, 6)
     closeCorner.Parent = closeBtn
-
     local closeStroke = Instance.new("UIStroke")
     closeStroke.Color = Color3.fromRGB(255, 255, 255)
     closeStroke.Thickness = 1.5
     closeStroke.Parent = closeBtn
-
     local minBtn = Instance.new("TextButton")
     minBtn.Size = UDim2.new(0, 22, 0, 22)
     minBtn.Position = UDim2.new(1, -54, 0.5, -11)
@@ -5231,16 +4521,13 @@ function createFriendListWindow()
     minBtn.Font = Enum.Font.GothamBold
     minBtn.TextSize = 13
     minBtn.Parent = topBar
-    
     local minCorner = Instance.new("UICorner")
     minCorner.CornerRadius = UDim.new(0, 6)
     minCorner.Parent = minBtn
-
     local minStroke = Instance.new("UIStroke")
     minStroke.Color = Color3.fromRGB(255, 255, 255)
     minStroke.Thickness = 1
     minStroke.Parent = minBtn
-
     local refreshBtn = Instance.new("TextButton")
     refreshBtn.Size = UDim2.new(0, 22, 0, 22)
     refreshBtn.Position = UDim2.new(1, -80, 0.5, -11)
@@ -5251,13 +4538,9 @@ function createFriendListWindow()
     refreshBtn.Font = Enum.Font.GothamBold
     refreshBtn.TextSize = 12
     refreshBtn.Parent = topBar
-    
     local refreshCorner = Instance.new("UICorner")
     refreshCorner.CornerRadius = UDim.new(0, 6)
     refreshCorner.Parent = refreshBtn
-
-
-
     local inviteBtn = Instance.new("TextButton")
     inviteBtn.Size = UDim2.new(0, 50, 0, 22)
     inviteBtn.Position = UDim2.new(1, -135, 0.5, -11)
@@ -5267,23 +4550,17 @@ function createFriendListWindow()
     inviteBtn.Font = Enum.Font.GothamBold
     inviteBtn.TextSize = 11
     inviteBtn.Parent = topBar
-
     local inviteCorner = Instance.new("UICorner")
     inviteCorner.CornerRadius = UDim.new(0, 6)
     inviteCorner.Parent = inviteBtn
-
-
-
     inviteBtn.MouseButton1Click:Connect(function()
         pcall(function()
             game:GetService("SocialService"):PromptGameInvite(game.Players.LocalPlayer)
         end)
     end)
-
     local isMinimized = false
     local normalSize = UDim2.new(0, 340, 0, 360)
     local minimizedSize = UDim2.new(0, 340, 0, 30)
-
     minBtn.MouseButton1Click:Connect(function()
         isMinimized = not isMinimized
         if isMinimized then
@@ -5305,7 +4582,6 @@ function createFriendListWindow()
             end)
         end
     end)
-
     closeBtn.MouseButton1Click:Connect(function()
         mainFrame.Visible = false
         if isMinimized then
@@ -5315,7 +4591,6 @@ function createFriendListWindow()
             scroll.Visible = true
         end
     end)
-
     local scroll = Instance.new("ScrollingFrame")
     scroll.Size = UDim2.new(1, -20, 1, -45)
     scroll.Position = UDim2.new(0, 10, 0, 38)
@@ -5324,17 +4599,13 @@ function createFriendListWindow()
     scroll.ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255)
     scroll.Parent = mainFrame
     FriendListScroll = scroll
-
     local listLayout = Instance.new("UIListLayout")
     listLayout.Padding = UDim.new(0, 5)
     listLayout.SortOrder = Enum.SortOrder.LayoutOrder
     listLayout.Parent = scroll
-
     listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         scroll.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 10)
     end)
-
-    -- Drag logic
     local dragging, dragInput, dragStart, startPos
     topBar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -5359,7 +4630,6 @@ function createFriendListWindow()
             mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
     end)
-
     refreshFriendList = function()
         if not FriendListScroll then return end
         for _, child in ipairs(FriendListScroll:GetChildren()) do
@@ -5367,11 +4637,9 @@ function createFriendListWindow()
                 child:Destroy()
             end
         end
-
         local success, result = pcall(function()
             return Player:GetFriendsOnline(100)
         end)
-
         if not success or type(result) ~= "table" then
             local errLabel = Instance.new("TextLabel")
             errLabel.Size = UDim2.new(1, 0, 0, 40)
@@ -5383,7 +4651,6 @@ function createFriendListWindow()
             errLabel.Parent = FriendListScroll
             return
         end
-
         if #result == 0 then
             local emptyLabel = Instance.new("TextLabel")
             emptyLabel.Size = UDim2.new(1, 0, 0, 40)
@@ -5395,12 +4662,9 @@ function createFriendListWindow()
             emptyLabel.Parent = FriendListScroll
             return
         end
-
-        -- Sort online friends by display name
         table.sort(result, function(a, b)
             return tostring(a.DisplayName):lower() < tostring(b.DisplayName):lower()
         end)
-
         for idx, friend in ipairs(result) do
             local row = Instance.new("Frame")
             row.Name = "FriendRow"
@@ -5409,11 +4673,9 @@ function createFriendListWindow()
             row.BackgroundTransparency = 0.2
             row.LayoutOrder = idx
             row.Parent = FriendListScroll
-
             local rowCorner = Instance.new("UICorner")
             rowCorner.CornerRadius = UDim.new(0, 8)
             rowCorner.Parent = row
-
             local avatar = Instance.new("ImageLabel")
             avatar.Size = UDim2.new(0, 36, 0, 36)
             avatar.Position = UDim2.new(0, 6, 0.5, -18)
@@ -5421,11 +4683,9 @@ function createFriendListWindow()
             avatar.BorderSizePixel = 0
             avatar.Image = "rbxasset://textures/ui/avatar_placeholder.png"
             avatar.Parent = row
-
             local avCorner = Instance.new("UICorner")
             avCorner.CornerRadius = UDim.new(0, 18)
             avCorner.Parent = avatar
-
             task.spawn(function()
                 local thumbSuccess, thumbResult = pcall(function()
                     return game:GetService("Players"):GetUserThumbnailAsync(friend.VisitorId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size100x100)
@@ -5434,13 +4694,11 @@ function createFriendListWindow()
                     avatar.Image = thumbResult
                 end
             end)
-
             local infoFrame = Instance.new("Frame")
             infoFrame.Size = UDim2.new(1, -110, 1, 0)
             infoFrame.Position = UDim2.new(0, 48, 0, 0)
             infoFrame.BackgroundTransparency = 1
             infoFrame.Parent = row
-
             local nameLabel = Instance.new("TextLabel")
             nameLabel.Size = UDim2.new(1, 0, 0.5, 0)
             nameLabel.Position = UDim2.new(0, 0, 0, 4)
@@ -5451,7 +4709,6 @@ function createFriendListWindow()
             nameLabel.TextSize = 11
             nameLabel.TextXAlignment = Enum.TextXAlignment.Left
             nameLabel.Parent = infoFrame
-
             local locLabel = Instance.new("TextLabel")
             locLabel.Size = UDim2.new(1, 0, 0.5, -4)
             locLabel.Position = UDim2.new(0, 0, 0.5, 0)
@@ -5463,8 +4720,6 @@ function createFriendListWindow()
             locLabel.TextXAlignment = Enum.TextXAlignment.Left
             locLabel.ClipsDescendants = true
             locLabel.Parent = infoFrame
-
-            -- Join Button (only show if they are in a real play session, not website/studio/offline)
             local isPlaying = friend.PlaceId and friend.PlaceId > 0 and friend.LastLocation ~= "Website" and friend.LastLocation ~= "Studio" and friend.LastLocation ~= "Offline"
             if isPlaying then
                 local joinBtn = Instance.new("TextButton")
@@ -5476,38 +4731,29 @@ function createFriendListWindow()
                 joinBtn.Font = Enum.Font.GothamBold
                 joinBtn.TextSize = 10
                 joinBtn.Parent = row
-
                 local joinCorner = Instance.new("UICorner")
                 joinCorner.CornerRadius = UDim.new(0, 6)
                 joinCorner.Parent = joinBtn
-
                 joinBtn.MouseEnter:Connect(function()
                     TweenService:Create(joinBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
                 end)
                 joinBtn.MouseLeave:Connect(function()
                     TweenService:Create(joinBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(25, 25, 25)}):Play()
                 end)
-
                 joinBtn.MouseButton1Click:Connect(function()
-                    -- TeleportService tidak bisa bypass cross-creator restriction (Error 773)
-                    -- Solusi: copy link join ke clipboard, buka di browser/Roblox app
                     local fPlaceId = tostring(friend.PlaceId)
                     local fJobId   = (friend.GameId and tostring(friend.GameId) ~= ""
                                       and tostring(friend.GameId) ~= "0")
                                      and tostring(friend.GameId) or nil
-
-                    -- Buat link web Roblox (karena roblox:// protocol kadang tidak jalan)
-                    -- URL ini akan membuka halaman game di browser, user tinggal klik Play
                     local joinUrl
                     if fJobId then
                         joinUrl = "https://www.roblox.com/games/" .. fPlaceId .. "?gameInstanceId=" .. fJobId
                     else
                         joinUrl = "https://www.roblox.com/games/" .. fPlaceId
                     end
-
                     if setclipboard then
                         pcall(function() setclipboard(joinUrl) end)
-                        joinBtn.Text = "Link âœ“"
+                        joinBtn.Text = "Link ✓"
                         joinBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
                         task.delay(2.5, function()
                             if joinBtn and joinBtn.Parent then
@@ -5516,7 +4762,6 @@ function createFriendListWindow()
                             end
                         end)
                     else
-                        -- Executor tidak support setclipboard
                         joinBtn.Text = "No CB"
                         joinBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
                         task.delay(2, function()
@@ -5530,13 +4775,9 @@ function createFriendListWindow()
             end
         end
     end
-
     refreshBtn.MouseButton1Click:Connect(refreshFriendList)
-    
-    -- Auto refresh on load
     refreshFriendList()
 end
-
 toggleFriendListWindow = function()
     if not FriendListFrame then
         createFriendListWindow()
@@ -5551,30 +4792,24 @@ WaypointListScroll = nil
 refreshWaypointList = nil
 toggleWaypointListWindow = nil
 tweenTpEnabled = false
-
 function safeTeleportToCFrame(cf)
     local lplr = game:GetService("Players").LocalPlayer
     local char = lplr.Character or lplr.CharacterAdded:Wait()
     local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso"))
     if not root then return end
-
     local targetPos = cf.Position
     local startPos = root.Position
     local dist = (targetPos - startPos).Magnitude
-
     if tweenTpEnabled then
         local speed = 150
         local duration = dist / speed
-        
         root.Anchored = true
         pcall(function()
             lplr:RequestStreamAroundAsync(targetPos)
         end)
-
         local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
         local tween = TweenService:Create(root, tweenInfo, {CFrame = cf})
         tween:Play()
-        
         tween.Completed:Connect(function()
             pcall(function()
                 lplr:RequestStreamAroundAsync(targetPos)
@@ -5584,14 +4819,10 @@ function safeTeleportToCFrame(cf)
         end)
     else
         root.Anchored = true
-        
-        -- Final jump to target (instan tanpa segmented delay)
         root.CFrame = cf
         pcall(function()
             lplr:RequestStreamAroundAsync(targetPos)
         end)
-        
-        -- Wait for floor collision to load before unanchoring (Raycast Check)
         task.spawn(function()
             local startTime = tick()
             local floorLoaded = false
@@ -5610,16 +4841,13 @@ function safeTeleportToCFrame(cf)
         end)
     end
 end
-
 function createWaypointListWindow()
     if WaypointListFrame then return end
-
     local sgui = ScreenGui
-
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "WaypointListFrame"
     mainFrame.Size = UDim2.new(0, 340, 0, 360)
-    mainFrame.Position = UDim2.new(0.5, -470, 0.5, -180) -- Left side of MainFrame
+    mainFrame.Position = UDim2.new(0.5, -470, 0.5, -180)
     mainFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
     mainFrame.BackgroundTransparency = 0.1
     mainFrame.BorderSizePixel = 0
@@ -5627,42 +4855,35 @@ function createWaypointListWindow()
     mainFrame.ClipsDescendants = true
     mainFrame.Parent = sgui
     WaypointListFrame = mainFrame
-
     local modal = Instance.new("TextButton")
     modal.Size = UDim2.new(0, 0, 0, 0)
     modal.BackgroundTransparency = 1
     modal.Text = ""
     modal.Modal = true
     modal.Parent = mainFrame
-
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 12)
     corner.Parent = mainFrame
-
     local mainStroke = Instance.new("UIStroke")
     mainStroke.Color = Color3.fromRGB(255, 255, 255)
     mainStroke.Thickness = 2
     mainStroke.Transparency = 0
     mainStroke.Parent = mainFrame
-
     local topBar = Instance.new("Frame")
     topBar.Name = "TopBar"
     topBar.Size = UDim2.new(1, 0, 0, 30)
     topBar.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
     topBar.BorderSizePixel = 0
     topBar.Parent = mainFrame
-    
     local topCorner = Instance.new("UICorner")
     topCorner.CornerRadius = UDim.new(0, 12)
     topCorner.Parent = topBar
-
     local topCover = Instance.new("Frame")
     topCover.Size = UDim2.new(1, 0, 0, 10)
     topCover.Position = UDim2.new(0, 0, 1, -10)
     topCover.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
     topCover.BorderSizePixel = 0
     topCover.Parent = topBar
-
     local title = Instance.new("TextLabel")
     title.Size = UDim2.new(1, -90, 1, 0)
     title.Position = UDim2.new(0, 12, 0, 0)
@@ -5673,7 +4894,6 @@ function createWaypointListWindow()
     title.Font = Enum.Font.GothamBold
     title.TextXAlignment = Enum.TextXAlignment.Left
     title.Parent = topBar
-
     local closeBtn = Instance.new("TextButton")
     closeBtn.Size = UDim2.new(0, 22, 0, 22)
     closeBtn.Position = UDim2.new(1, -28, 0.5, -11)
@@ -5684,16 +4904,13 @@ function createWaypointListWindow()
     closeBtn.Font = Enum.Font.GothamBold
     closeBtn.TextSize = 13
     closeBtn.Parent = topBar
-    
     local closeCorner = Instance.new("UICorner")
     closeCorner.CornerRadius = UDim.new(0, 6)
     closeCorner.Parent = closeBtn
-
     local closeStroke = Instance.new("UIStroke")
     closeStroke.Color = Color3.fromRGB(255, 255, 255)
     closeStroke.Thickness = 1.5
     closeStroke.Parent = closeBtn
-
     local minBtn = Instance.new("TextButton")
     minBtn.Size = UDim2.new(0, 22, 0, 22)
     minBtn.Position = UDim2.new(1, -54, 0.5, -11)
@@ -5704,21 +4921,16 @@ function createWaypointListWindow()
     minBtn.Font = Enum.Font.GothamBold
     minBtn.TextSize = 13
     minBtn.Parent = topBar
-    
     local minCorner = Instance.new("UICorner")
     minCorner.CornerRadius = UDim.new(0, 6)
     minCorner.Parent = minBtn
-
     local minStroke = Instance.new("UIStroke")
     minStroke.Color = Color3.fromRGB(255, 255, 255)
     minStroke.Thickness = 1.5
     minStroke.Parent = minBtn
-
     local isMinimized = false
     local normalSize = UDim2.new(0, 340, 0, 360)
     local minimizedSize = UDim2.new(0, 340, 0, 30)
-
-    -- Save Frame
     local saveFrame = Instance.new("Frame")
     saveFrame.Name = "SaveFrame"
     saveFrame.Size = UDim2.new(1, -20, 0, 32)
@@ -5726,16 +4938,13 @@ function createWaypointListWindow()
     saveFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
     saveFrame.BackgroundTransparency = 0.2
     saveFrame.Parent = mainFrame
-
     local saveCorner = Instance.new("UICorner")
     saveCorner.CornerRadius = UDim.new(0, 8)
     saveCorner.Parent = saveFrame
-
     local saveStroke = Instance.new("UIStroke")
     saveStroke.Color = Color3.fromRGB(255, 255, 255)
     saveStroke.Thickness = 1.5
     saveStroke.Parent = saveFrame
-
     local saveBox = Instance.new("TextBox")
     saveBox.Name = "SaveBox"
     saveBox.Size = UDim2.new(1, -75, 1, 0)
@@ -5750,7 +4959,6 @@ function createWaypointListWindow()
     saveBox.TextXAlignment = Enum.TextXAlignment.Left
     saveBox.ClearTextOnFocus = false
     saveBox.Parent = saveFrame
-
     local addBtn = Instance.new("TextButton")
     addBtn.Size = UDim2.new(0, 55, 0, 24)
     addBtn.Position = UDim2.new(1, -60, 0.5, -12)
@@ -5760,11 +4968,9 @@ function createWaypointListWindow()
     addBtn.Font = Enum.Font.GothamBold
     addBtn.TextSize = 11
     addBtn.Parent = saveFrame
-
     local addCorner = Instance.new("UICorner")
     addCorner.CornerRadius = UDim.new(0, 6)
     addCorner.Parent = addBtn
-
     addBtn.MouseButton1Click:Connect(function()
         local name = saveBox.Text
         if name and name ~= "" then
@@ -5774,8 +4980,6 @@ function createWaypointListWindow()
             saveBox.Text = ""
         end
     end)
-
-    -- Search Frame
     local searchFrame = Instance.new("Frame")
     searchFrame.Name = "SearchFrame"
     searchFrame.Size = UDim2.new(1, -20, 0, 32)
@@ -5783,11 +4987,9 @@ function createWaypointListWindow()
     searchFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
     searchFrame.BackgroundTransparency = 0.2
     searchFrame.Parent = mainFrame
-
     local searchCorner = Instance.new("UICorner")
     searchCorner.CornerRadius = UDim.new(0, 8)
     searchCorner.Parent = searchFrame
-
     local searchBox = Instance.new("TextBox")
     searchBox.Name = "SearchBox"
     searchBox.Size = UDim2.new(1, -20, 1, 0)
@@ -5802,7 +5004,6 @@ function createWaypointListWindow()
     searchBox.TextXAlignment = Enum.TextXAlignment.Left
     searchBox.ClearTextOnFocus = false
     searchBox.Parent = searchFrame
-
     local scroll = Instance.new("ScrollingFrame")
     scroll.Size = UDim2.new(1, -20, 1, -145)
     scroll.Position = UDim2.new(0, 10, 0, 110)
@@ -5811,17 +5012,13 @@ function createWaypointListWindow()
     scroll.ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255)
     scroll.Parent = mainFrame
     WaypointListScroll = scroll
-
     local listLayout = Instance.new("UIListLayout")
     listLayout.Padding = UDim.new(0, 5)
     listLayout.SortOrder = Enum.SortOrder.LayoutOrder
     listLayout.Parent = scroll
-
     listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         scroll.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 10)
     end)
-
-    -- Bottom Bar: Coordinates Visualizer
     local coordsLabel = Instance.new("TextLabel")
     coordsLabel.Size = UDim2.new(1, -20, 0, 20)
     coordsLabel.Position = UDim2.new(0, 10, 1, -25)
@@ -5832,8 +5029,6 @@ function createWaypointListWindow()
     coordsLabel.TextXAlignment = Enum.TextXAlignment.Left
     coordsLabel.Text = "X: 0 | Y: 0 | Z: 0"
     coordsLabel.Parent = mainFrame
-
-    -- Live Coordinates Updater
     RunService.RenderStepped:Connect(function()
         if mainFrame.Visible and not isMinimized then
             local lp = game.Players.LocalPlayer
@@ -5847,7 +5042,6 @@ function createWaypointListWindow()
             end
         end
     end)
-
     minBtn.MouseButton1Click:Connect(function()
         isMinimized = not isMinimized
         if isMinimized then
@@ -5875,7 +5069,6 @@ function createWaypointListWindow()
             end)
         end
     end)
-
     closeBtn.MouseButton1Click:Connect(function()
         mainFrame.Visible = false
         if isMinimized then
@@ -5888,8 +5081,6 @@ function createWaypointListWindow()
             coordsLabel.Visible = true
         end
     end)
-
-    -- Drag logic
     local dragging, dragInput, dragStart, startPos
     topBar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -5914,15 +5105,11 @@ function createWaypointListWindow()
             mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
     end)
-
-    -- Search Box Connection
     searchBox:GetPropertyChangedSignal("Text"):Connect(function()
         if refreshWaypointList then
             refreshWaypointList()
         end
     end)
-
-    -- naturalCompare helper nested inside
     local function getChunks(s)
         local chunks = {}
         local pos = 1
@@ -5943,7 +5130,6 @@ function createWaypointListWindow()
         end
         return chunks
     end
-
     local function naturalCompare(aStr, bStr)
         local aName, bName = tostring(aStr):lower(), tostring(bStr):lower()
         if aName == bName then return tostring(aStr) < tostring(bStr) end
@@ -5959,7 +5145,6 @@ function createWaypointListWindow()
         end
         return #aChunks < #bChunks
     end
-
     refreshWaypointList = function()
         if not WaypointListScroll then return end
         for _, child in ipairs(WaypointListScroll:GetChildren()) do
@@ -5967,7 +5152,6 @@ function createWaypointListWindow()
                 child:Destroy()
             end
         end
-
         local query = string.lower(searchBox.Text)
         local wps = {}
         for name, comps in pairs(customWaypoints) do
@@ -5978,11 +5162,9 @@ function createWaypointListWindow()
         table.sort(wps, function(a, b)
             return naturalCompare(a.name, b.name)
         end)
-
         for idx, item in ipairs(wps) do
             local name = item.name
             local comps = item.comps
-
             local row = Instance.new("Frame")
             row.Name = "WaypointRow"
             row.Size = UDim2.new(1, -5, 0, 38)
@@ -5990,11 +5172,9 @@ function createWaypointListWindow()
             row.BackgroundTransparency = 0
             row.LayoutOrder = idx
             row.Parent = WaypointListScroll
-
             local rowCorner = Instance.new("UICorner")
             rowCorner.CornerRadius = UDim.new(0, 8)
             rowCorner.Parent = row
-
             local nameLabel = Instance.new("TextLabel")
             nameLabel.Size = UDim2.new(1, -85, 1, 0)
             nameLabel.Position = UDim2.new(0, 8, 0, 0)
@@ -6005,7 +5185,6 @@ function createWaypointListWindow()
             nameLabel.TextSize = 11
             nameLabel.TextXAlignment = Enum.TextXAlignment.Left
             nameLabel.Parent = row
-
             local tpBtn = Instance.new("TextButton")
             tpBtn.Size = UDim2.new(0, 32, 0, 26)
             tpBtn.Position = UDim2.new(1, -68, 0.5, -13)
@@ -6015,25 +5194,21 @@ function createWaypointListWindow()
             tpBtn.Font = Enum.Font.GothamBold
             tpBtn.TextSize = 10
             tpBtn.Parent = row
-
             local tpCorner = Instance.new("UICorner")
             tpCorner.CornerRadius = UDim.new(0, 6)
             tpCorner.Parent = tpBtn
-
             tpBtn.MouseEnter:Connect(function()
                 TweenService:Create(tpBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
             end)
             tpBtn.MouseLeave:Connect(function()
                 TweenService:Create(tpBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(25, 25, 25)}):Play()
             end)
-
             tpBtn.MouseButton1Click:Connect(function()
                 local ok, cf = pcall(function() return CFrame.new(table.unpack(comps)) end)
                 if ok and typeof(cf) == "CFrame" then
                     safeTeleportToCFrame(cf)
                 end
             end)
-
             local delBtn = Instance.new("TextButton")
             delBtn.Size = UDim2.new(0, 26, 0, 26)
             delBtn.Position = UDim2.new(1, -32, 0.5, -13)
@@ -6043,18 +5218,15 @@ function createWaypointListWindow()
             delBtn.Font = Enum.Font.GothamBold
             delBtn.TextSize = 10
             delBtn.Parent = row
-
             local delCorner = Instance.new("UICorner")
             delCorner.CornerRadius = UDim.new(0, 6)
             delCorner.Parent = delBtn
-
             delBtn.MouseEnter:Connect(function()
                 TweenService:Create(delBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
             end)
             delBtn.MouseLeave:Connect(function()
                 TweenService:Create(delBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(25, 25, 25)}):Play()
             end)
-
             delBtn.MouseButton1Click:Connect(function()
                 customWaypoints[name] = nil
                 saveCustomWaypoints()
@@ -6067,7 +5239,6 @@ function createWaypointListWindow()
         end
     end
 end
-
 toggleWaypointListWindow = function()
     if not WaypointListFrame then
         createWaypointListWindow()
@@ -6077,10 +5248,6 @@ toggleWaypointListWindow = function()
         refreshWaypointList()
     end
 end
-
--- ==========================================
--- CHAT LOGS GUI & FUNCTIONS (BY ANTIGRAVITY)
--- ==========================================
 ChatLogsFrame = nil
 ChatLogsScroll = nil
 ChatLogsSearchBox = nil
@@ -6088,7 +5255,6 @@ refreshChatLogsUI = nil
 toggleChatLogsWindow = nil
 _G.ChatLogsTable = _G.ChatLogsTable or {}
 _G.ChatLogsCache = _G.ChatLogsCache or {}
-
 local function findPlr(name)
     if not name then return nil end
     local Players = game:GetService("Players")
@@ -6102,11 +5268,9 @@ local function findPlr(name)
     end
     return nil
 end
-
 local function logChatMessage(sender, msg, isWhisper)
     local plr = findPlr(sender)
     local username = plr and plr.Name or sender
-    
     local now = tick()
     local cacheKey = string.lower(username) .. "_" .. msg
     local lastTime = _G.ChatLogsCache[cacheKey]
@@ -6114,14 +5278,12 @@ local function logChatMessage(sender, msg, isWhisper)
         return
     end
     _G.ChatLogsCache[cacheKey] = now
-
     task.spawn(function()
         task.wait(5)
         if _G.ChatLogsCache[cacheKey] == now then
             _G.ChatLogsCache[cacheKey] = nil
         end
     end)
-
     local formattedSender = sender
     if plr then
         formattedSender = plr.DisplayName .. " (@" .. plr.Name .. ")"
@@ -6129,7 +5291,6 @@ local function logChatMessage(sender, msg, isWhisper)
     if isWhisper then
         formattedSender = "[WHISPER] " .. formattedSender
     end
-
     table.insert(_G.ChatLogsTable, {
         Sender = formattedSender,
         RawSender = username,
@@ -6144,8 +5305,6 @@ local function logChatMessage(sender, msg, isWhisper)
         refreshChatLogsUI()
     end
 end
-
--- Clean up previous connections to prevent double logging when re-running the script
 if _G.ChatLogsLegacyConnection then
     pcall(function() _G.ChatLogsLegacyConnection:Disconnect() end)
     _G.ChatLogsLegacyConnection = nil
@@ -6154,8 +5313,6 @@ if _G.ChatLogsModernConnection then
     pcall(function() _G.ChatLogsModernConnection:Disconnect() end)
     _G.ChatLogsModernConnection = nil
 end
-
--- Intercept legacy chat messages
 pcall(function()
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
     local chatEvents = ReplicatedStorage:WaitForChild("DefaultChatSystemChatEvents", 5)
@@ -6172,8 +5329,6 @@ pcall(function()
         end)
     end
 end)
-
--- Intercept modern TextChatService messages
 pcall(function()
     local textChatService = game:GetService("TextChatService")
     _G.ChatLogsModernConnection = textChatService.MessageReceived:Connect(function(textChatMessage)
@@ -6186,16 +5341,13 @@ pcall(function()
         end
     end)
 end)
-
 function createChatLogsWindow()
     if ChatLogsFrame then return end
-
     local sgui = ScreenGui
-
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "ChatLogsFrame"
     mainFrame.Size = UDim2.new(0, 340, 0, 360)
-    mainFrame.Position = UDim2.new(0.5, 120, 0.5, -180) -- Right side similar to others
+    mainFrame.Position = UDim2.new(0.5, 120, 0.5, -180)
     mainFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
     mainFrame.BackgroundTransparency = 0.1
     mainFrame.BorderSizePixel = 0
@@ -6203,42 +5355,35 @@ function createChatLogsWindow()
     mainFrame.ClipsDescendants = true
     mainFrame.Parent = sgui
     ChatLogsFrame = mainFrame
-
     local modal = Instance.new("TextButton")
     modal.Size = UDim2.new(0, 0, 0, 0)
     modal.BackgroundTransparency = 1
     modal.Text = ""
     modal.Modal = true
     modal.Parent = mainFrame
-
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 12)
     corner.Parent = mainFrame
-
     local mainStroke = Instance.new("UIStroke")
     mainStroke.Color = Color3.fromRGB(255, 255, 255)
     mainStroke.Thickness = 2
     mainStroke.Transparency = 0
     mainStroke.Parent = mainFrame
-
     local topBar = Instance.new("Frame")
     topBar.Name = "TopBar"
     topBar.Size = UDim2.new(1, 0, 0, 30)
     topBar.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
     topBar.BorderSizePixel = 0
     topBar.Parent = mainFrame
-    
     local topCorner = Instance.new("UICorner")
     topCorner.CornerRadius = UDim.new(0, 12)
     topCorner.Parent = topBar
-
     local topCover = Instance.new("Frame")
     topCover.Size = UDim2.new(1, 0, 0, 10)
     topCover.Position = UDim2.new(0, 0, 1, -10)
     topCover.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
     topCover.BorderSizePixel = 0
     topCover.Parent = topBar
-
     local title = Instance.new("TextLabel")
     title.Size = UDim2.new(1, -130, 1, 0)
     title.Position = UDim2.new(0, 12, 0, 0)
@@ -6249,7 +5394,6 @@ function createChatLogsWindow()
     title.Font = Enum.Font.GothamBold
     title.TextXAlignment = Enum.TextXAlignment.Left
     title.Parent = topBar
-
     local closeBtn = Instance.new("TextButton")
     closeBtn.Size = UDim2.new(0, 22, 0, 22)
     closeBtn.Position = UDim2.new(1, -28, 0.5, -11)
@@ -6260,16 +5404,13 @@ function createChatLogsWindow()
     closeBtn.Font = Enum.Font.GothamBold
     closeBtn.TextSize = 13
     closeBtn.Parent = topBar
-    
     local closeCorner = Instance.new("UICorner")
     closeCorner.CornerRadius = UDim.new(0, 6)
     closeCorner.Parent = closeBtn
-
     local closeStroke = Instance.new("UIStroke")
     closeStroke.Color = Color3.fromRGB(255, 255, 255)
     closeStroke.Thickness = 1.5
     closeStroke.Parent = closeBtn
-
     local minBtn = Instance.new("TextButton")
     minBtn.Size = UDim2.new(0, 22, 0, 22)
     minBtn.Position = UDim2.new(1, -54, 0.5, -11)
@@ -6280,17 +5421,13 @@ function createChatLogsWindow()
     minBtn.Font = Enum.Font.GothamBold
     minBtn.TextSize = 13
     minBtn.Parent = topBar
-    
     local minCorner = Instance.new("UICorner")
     minCorner.CornerRadius = UDim.new(0, 6)
     minCorner.Parent = minBtn
-
     local minStroke = Instance.new("UIStroke")
     minStroke.Color = Color3.fromRGB(255, 255, 255)
     minStroke.Thickness = 1.5
     minStroke.Parent = minBtn
-
-    -- Extra Premium Buttons: Clear and Copy
     local clearBtn = Instance.new("TextButton")
     clearBtn.Size = UDim2.new(0, 45, 0, 22)
     clearBtn.Position = UDim2.new(1, -105, 0.5, -11)
@@ -6304,14 +5441,12 @@ function createChatLogsWindow()
     local clearStroke = Instance.new("UIStroke", clearBtn)
     clearStroke.Color = Color3.fromRGB(60, 60, 65)
     clearStroke.Thickness = 1
-
     clearBtn.MouseButton1Click:Connect(function()
         _G.ChatLogsTable = {}
         if refreshChatLogsUI then
             refreshChatLogsUI()
         end
     end)
-
     local copyBtn = Instance.new("TextButton")
     copyBtn.Size = UDim2.new(0, 45, 0, 22)
     copyBtn.Position = UDim2.new(1, -155, 0.5, -11)
@@ -6325,7 +5460,6 @@ function createChatLogsWindow()
     local copyStroke = Instance.new("UIStroke", copyBtn)
     copyStroke.Color = Color3.fromRGB(60, 60, 65)
     copyStroke.Thickness = 1
-
     copyBtn.MouseButton1Click:Connect(function()
         if setclipboard then
             local text = ""
@@ -6342,12 +5476,9 @@ function createChatLogsWindow()
             end)
         end
     end)
-
     local isMinimized = false
     local normalSize = UDim2.new(0, 340, 0, 360)
     local minimizedSize = UDim2.new(0, 340, 0, 30)
-
-    -- Search Bar Container
     local searchFrame = Instance.new("Frame")
     searchFrame.Name = "SearchFrame"
     searchFrame.Size = UDim2.new(1, -20, 0, 32)
@@ -6355,16 +5486,13 @@ function createChatLogsWindow()
     searchFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
     searchFrame.BackgroundTransparency = 0.2
     searchFrame.Parent = mainFrame
-
     local searchCorner = Instance.new("UICorner")
     searchCorner.CornerRadius = UDim.new(0, 8)
     searchCorner.Parent = searchFrame
-
     local searchStroke = Instance.new("UIStroke")
     searchStroke.Color = Color3.fromRGB(255, 255, 255)
     searchStroke.Thickness = 1.5
     searchStroke.Parent = searchFrame
-
     local searchBox = Instance.new("TextBox")
     searchBox.Name = "SearchBox"
     searchBox.Size = UDim2.new(1, -20, 1, 0)
@@ -6380,13 +5508,11 @@ function createChatLogsWindow()
     searchBox.ClearTextOnFocus = false
     searchBox.Parent = searchFrame
     ChatLogsSearchBox = searchBox
-
     searchBox:GetPropertyChangedSignal("Text"):Connect(function()
         if refreshChatLogsUI then
             refreshChatLogsUI()
         end
     end)
-
     minBtn.MouseButton1Click:Connect(function()
         isMinimized = not isMinimized
         if isMinimized then
@@ -6408,7 +5534,6 @@ function createChatLogsWindow()
             end)
         end
     end)
-
     closeBtn.MouseButton1Click:Connect(function()
         mainFrame.Visible = false
         if isMinimized then
@@ -6419,7 +5544,6 @@ function createChatLogsWindow()
             scroll.Visible = true
         end
     end)
-
     local scroll = Instance.new("ScrollingFrame")
     scroll.Size = UDim2.new(1, -20, 1, -85)
     scroll.Position = UDim2.new(0, 10, 0, 78)
@@ -6428,17 +5552,13 @@ function createChatLogsWindow()
     scroll.ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255)
     scroll.Parent = mainFrame
     ChatLogsScroll = scroll
-
     local listLayout = Instance.new("UIListLayout")
     listLayout.Padding = UDim.new(0, 4)
     listLayout.SortOrder = Enum.SortOrder.LayoutOrder
     listLayout.Parent = scroll
-
     listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         scroll.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 10)
     end)
-
-    -- Drag logic
     local dragging, dragInput, dragStart, startPos
     topBar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -6463,75 +5583,66 @@ function createChatLogsWindow()
             mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
     end)
-
     refreshChatLogsUI = function()
         if not ChatLogsScroll then return end
-        
-        -- Clean existing items
         for _, child in ipairs(ChatLogsScroll:GetChildren()) do
             if child:IsA("Frame") then
                 child:Destroy()
             end
         end
-
         local query = ChatLogsSearchBox and string.lower(ChatLogsSearchBox.Text) or ""
         local count = 0
-
         for idx, logEntry in ipairs(_G.ChatLogsTable) do
             local senderMatch = string.find(string.lower(logEntry.Sender), query, 1, true)
             local msgMatch = string.find(string.lower(logEntry.Message), query, 1, true)
             if query == "" or senderMatch or msgMatch then
                 count = count + 1
-
                 local row = Instance.new("Frame")
                 row.Name = "ChatLogEntry"
                 row.Size = UDim2.new(1, -10, 0, 0)
                 row.BackgroundTransparency = 1
                 row.LayoutOrder = count
                 row.Parent = ChatLogsScroll
-
-                -- Check if target player exists for TP button
                 local targetPlayer = findPlr(logEntry.RawSender)
                 local showTp = targetPlayer and targetPlayer ~= game.Players.LocalPlayer
-                
                 local label = Instance.new("TextLabel")
                 label.BackgroundTransparency = 1
-                label.Font = Enum.Font.Gotham
-                label.TextSize = 12
-                label.TextColor3 = Color3.fromRGB(220, 220, 220)
+                label.Font = Enum.Font.GothamMedium
+                label.TextSize = 13
+                label.TextColor3 = Color3.fromRGB(230, 230, 230)
                 label.TextXAlignment = Enum.TextXAlignment.Left
                 label.TextYAlignment = Enum.TextYAlignment.Top
                 label.TextWrapped = true
-                label.Text = "[" .. logEntry.Time .. "] " .. logEntry.Sender .. ": " .. logEntry.Message
+                label.RichText = true
+                local v = 0
+                for i = 1, #logEntry.Sender do v = v + string.byte(logEntry.Sender, i) end
+                local color = Color3.fromHSV((v % 360) / 360, 0.6, 0.9)
+                local hexColor = string.format("rgb(%d,%d,%d)", color.R*255, color.G*255, color.B*255)
+                label.Text = string.format("[%s] <font color=\"%s\">%s</font>: %s", logEntry.Time, hexColor, logEntry.Sender, logEntry.Message)
                 label.Parent = row
-
                 local wrapWidth = 310
                 if showTp then
                     wrapWidth = 272
                     label.Size = UDim2.new(1, -42, 1, 0)
-
                     local tpBtn = Instance.new("TextButton")
                     tpBtn.Name = "TPBtn"
                     tpBtn.Size = UDim2.new(0, 32, 0, 20)
-                    tpBtn.Position = UDim2.new(1, -36, 0.5, -10)
+                    tpBtn.Position = UDim2.new(1, -45, 0.5, -10)
                     tpBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
                     tpBtn.Text = "TP"
                     tpBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
                     tpBtn.Font = Enum.Font.GothamBold
                     tpBtn.TextSize = 10
                     tpBtn.Parent = row
-
                     local c = Instance.new("UICorner")
                     c.CornerRadius = UDim.new(0, 4)
                     c.Parent = tpBtn
-
                     tpBtn.MouseEnter:Connect(function()
                         TweenService:Create(tpBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
                     end)
                     tpBtn.MouseLeave:Connect(function()
                         TweenService:Create(tpBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(25, 25, 25)}):Play()
                     end)
-
                     tpBtn.MouseButton1Click:Connect(function()
                         if targetPlayer and targetPlayer.Parent then
                             safeTeleportToPlayer(targetPlayer)
@@ -6540,21 +5651,17 @@ function createChatLogsWindow()
                 else
                     label.Size = UDim2.new(1, 0, 1, 0)
                 end
-
-                -- Adjust row height to fit text wrapped
                 local textService = game:GetService("TextService")
-                local size = textService:GetTextSize(label.Text, label.TextSize, label.Font, Vector2.new(wrapWidth, 1000))
-                row.Size = UDim2.new(1, -5, 0, size.Y + 4)
-                
-                -- Center the TP button vertically based on the row height
+                local plainText = "[" .. logEntry.Time .. "] " .. logEntry.Sender .. ": " .. logEntry.Message
+                local size = textService:GetTextSize(plainText, label.TextSize, label.Font, Vector2.new(wrapWidth, 1000))
+                row.Size = UDim2.new(1, -5, 0, size.Y + 6)
                 if showTp and row:FindFirstChild("TPBtn") then
-                    row.TPBtn.Position = UDim2.new(1, -32, 0.5, -10)
+                    row.TPBtn.Position = UDim2.new(1, -45, 0.5, -10)
                 end
             end
         end
     end
 end
-
 toggleChatLogsWindow = function()
     if not ChatLogsFrame then
         createChatLogsWindow()
@@ -6564,8 +5671,6 @@ toggleChatLogsWindow = function()
         refreshChatLogsUI()
     end
 end
-
--- Hook camera update for spectating loop safely
 RunService.RenderStepped:Connect(function()
     if currentSpectateTarget then
         local camera = workspace.CurrentCamera
@@ -6576,13 +5681,10 @@ RunService.RenderStepped:Connect(function()
         end
     end
 end)
-
--- [Optimized out duplicate] local Player = game.Players.LocalPlayer
 SpeedBtn = createButton("", "Speed")
 SpeedBtn.Name = "SpeedBtn"
 SpeedBtn.LayoutOrder = 5
 local desiredSpeed = 50
-
 do
     SpeedBox = Instance.new("TextBox")
     SpeedBox.Name = "SpeedBox"
@@ -6596,15 +5698,12 @@ do
     SpeedBox.TextColor3 = Color3.fromRGB(255, 255, 255)
     SpeedBox.ClearTextOnFocus = false
     SpeedBox.Parent = ScrollFrame
-
     local c_spd = Instance.new("UICorner")
     c_spd.CornerRadius = UDim.new(0, 8)
     c_spd.Parent = SpeedBox
-
     local p_spd = Instance.new("UIPadding")
     p_spd.PaddingLeft = UDim.new(0, 12)
     p_spd.Parent = SpeedBox
-
     SpeedBox.FocusLost:Connect(function()
         local n = tonumber(SpeedBox.Text)
         if n then
@@ -6619,15 +5718,12 @@ do
         SpeedBox.Text = tostring(desiredSpeed)
     end)
 end
-
 local speedOn = false
 local selendangPart = nil
-
 local colors = {
 	Color3.fromRGB(255, 255, 255),
 	Color3.fromRGB(150, 200, 255)
 }
-
 function lerpColor(c1, c2, t)
 	return Color3.new(
 		c1.R + (c2.R - c1.R) * t,
@@ -6635,7 +5731,6 @@ function lerpColor(c1, c2, t)
 		c1.B + (c2.B - c1.B) * t
 	)
 end
-
 function addSelendang(char)
 	if selendangPart then
 		selendangPart:Destroy()
@@ -6646,28 +5741,22 @@ function addSelendang(char)
 			p:Destroy()
 		end
 	end
-
 	local leftFoot = char:FindFirstChild("LeftFoot") or char:FindFirstChild("Left Leg")
 	local rightFoot = char:FindFirstChild("RightFoot") or char:FindFirstChild("Right Leg")
 	if not leftFoot or not rightFoot then return end
-
 	selendangPart = Instance.new("Folder")
 	selendangPart.Name = "SelendangPart"
 	selendangPart.Parent = char
-
 	local trails = {}
 	for _, foot in ipairs({leftFoot, rightFoot}) do
-		-- Trail 1 (Vertical)
 		local attTop1 = Instance.new("Attachment")
 		attTop1.Name = "SpeedTrailAtt"
 		attTop1.Position = Vector3.new(0, 0.4, 0)
 		attTop1.Parent = foot
-
 		local attBottom1 = Instance.new("Attachment")
 		attBottom1.Name = "SpeedTrailAtt"
 		attBottom1.Position = Vector3.new(0, -0.4, 0)
 		attBottom1.Parent = foot
-
 		local newTrail1 = Instance.new("Trail")
 		newTrail1.Name = "SpeedTrailInst"
 		newTrail1.Attachment0 = attTop1
@@ -6686,18 +5775,14 @@ function addSelendang(char)
 		})
 		newTrail1.Parent = foot
 		table.insert(trails, newTrail1)
-
-		-- Trail 2 (Horizontal - cross)
 		local attTop2 = Instance.new("Attachment")
 		attTop2.Name = "SpeedTrailAtt"
 		attTop2.Position = Vector3.new(0.4, 0, 0)
 		attTop2.Parent = foot
-
 		local attBottom2 = Instance.new("Attachment")
 		attBottom2.Name = "SpeedTrailAtt"
 		attBottom2.Position = Vector3.new(-0.4, 0, 0)
 		attBottom2.Parent = foot
-
 		local newTrail2 = Instance.new("Trail")
 		newTrail2.Name = "SpeedTrailInst"
 		newTrail2.Attachment0 = attTop2
@@ -6717,7 +5802,6 @@ function addSelendang(char)
 		newTrail2.Parent = foot
 		table.insert(trails, newTrail2)
 	end
-
 	task.spawn(function()
 		local step = 0
 		while speedOn and selendangPart and selendangPart.Parent do
@@ -6735,14 +5819,11 @@ function addSelendang(char)
 		end
 	end)
 end
-
 function removeSelendang()
-	-- Hapus folder
 	if selendangPart then
 		selendangPart:Destroy()
 		selendangPart = nil
 	end
-	-- Hapus sisa trail/attachment di karakter (jaga-jaga kalau folder tidak ter-destroy bersama anaknya)
 	local char = Player.Character
 	if char then
 		for _, p in ipairs(char:GetDescendants()) do
@@ -6752,16 +5833,13 @@ function removeSelendang()
 		end
 	end
 end
-
 local speedConnection
 local updatingSpeed = false
 local lastGameSpeed = 16
-
 local function setupSpeedListener(char)
 	if speedConnection then speedConnection:Disconnect() end
 	local hum = char:WaitForChild("Humanoid", 5)
 	if not hum then return end
-	
 	local function checkSpeed()
 		if updatingSpeed then return end
 		local currentSpeed = hum.WalkSpeed
@@ -6780,16 +5858,13 @@ local function setupSpeedListener(char)
 			lastGameSpeed = currentSpeed
 		end
 	end
-	
 	speedConnection = hum:GetPropertyChangedSignal("WalkSpeed"):Connect(checkSpeed)
 	checkSpeed()
 end
-
 function toggleSpeed()
 	speedOn = not speedOn
 	local char = Player.Character or Player.CharacterAdded:Wait()
 	local hum = char:FindFirstChild("Humanoid")
-
 	if speedOn then
 		addSelendang(char)
 		setButtonActive(SpeedBtn, true)
@@ -6816,16 +5891,13 @@ function toggleSpeed()
 		end
 	end
 end
-
 SpeedBtn.MouseButton1Click:Connect(toggleSpeed)
-
 SpeedShortcutConn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if UserInputService:GetFocusedTextBox() then return end
 	if input.KeyCode == Enum.KeyCode.RightBracket then
 		toggleSpeed()
 	end
 end)
-
 Player.CharacterAdded:Connect(function(char)
 	task.wait(0.5)
 	setupSpeedListener(char)
@@ -6836,18 +5908,12 @@ Player.CharacterAdded:Connect(function(char)
 		setButtonActive(SpeedBtn, false)
 	end
 end)
-
 if Player.Character then
 	task.spawn(setupSpeedListener, Player.Character)
 end
-
--- ===================================
--- WALK FLING (port dari admin3.lua)
--- ===================================
 local walkFlingActive = false
 local walkFlingConn = nil
 local walkFlingSpeed = 10000
-
 local function doWalkFlingBurst(root)
     if not (root and root.Parent) then return end
     local ok, vel = pcall(function() return root.Velocity end)
@@ -6864,11 +5930,9 @@ local function doWalkFlingBurst(root)
         pcall(function() root.Velocity = vel + Vector3.new(0, 0.1, 0) end)
     end
 end
-
 FlingBtn = createButton("", "Tendang")
 local hiddenfling = false
 local flingThread
-
 function fling()
     local lp = Players.LocalPlayer
     while hiddenfling do
@@ -6882,7 +5946,6 @@ function fling()
         end
     end
 end
-
 FlingBtn.MouseButton1Click:Connect(function()
     hiddenfling = not hiddenfling
     if hiddenfling then
@@ -6902,10 +5965,8 @@ FlingBtn.MouseButton1Click:Connect(function()
         if walkFlingConn then walkFlingConn:Disconnect(); walkFlingConn = nil end
     end
 end)
-
 WalkFlingBtn = createButton("", "Walk Fling")
 WalkFlingBtn.Name = "WalkFlingBtn"
-
 function toggleWalkFling(state)
     if state == nil then
         walkFlingActive = not walkFlingActive
@@ -6928,34 +5989,26 @@ function toggleWalkFling(state)
         if walkFlingConn then walkFlingConn:Disconnect(); walkFlingConn = nil end
     end
 end
-
 WalkFlingBtn.MouseButton1Click:Connect(function()
     toggleWalkFling()
 end)
-
--- ===================================
--- ANTI FLING (port dari admin3.lua)
--- ===================================
 AntiFlingBtn = createButton("", "Anti Fling")
 AntiFlingBtn.Name = "AntiFlingBtn"
 local antiFlingActive = false
 local antiFlingConns = {}
 local antiFlingTracked = {}
-
 local function antiFlingApply(p)
     if not (p and typeof(p) == "Instance" and p:IsA("BasePart")) then return end
     if antiFlingTracked[p] then return end
     antiFlingTracked[p] = true
     pcall(function() p.CanCollide = false end)
 end
-
 local function antiFlingClear(p)
     if antiFlingTracked[p] then
         antiFlingTracked[p] = nil
         pcall(function() p.CanCollide = true end)
     end
 end
-
 local function antiFlingHookChar(char)
     if not char then return end
     for _, d in ipairs(char:GetDescendants()) do
@@ -6968,7 +6021,6 @@ local function antiFlingHookChar(char)
         if inst:IsA("BasePart") then antiFlingClear(inst) end
     end))
 end
-
 function toggleAntiFling(state)
     if state == nil then
         antiFlingActive = not antiFlingActive
@@ -6978,7 +6030,6 @@ function toggleAntiFling(state)
     if antiFlingActive then
         setButtonActive(AntiFlingBtn, true)
         antiFlingTracked = {}
-        -- Terapkan ke semua karakter pemain lain
         local lp = Players.LocalPlayer
         for _, plr in ipairs(Players:GetPlayers()) do
             if plr ~= lp then
@@ -6996,7 +6047,6 @@ function toggleAntiFling(state)
                 end))
             end
         end))
-        -- Loop setiap frame untuk mempertahankan CanCollide = false
         table.insert(antiFlingConns, RunService.PreSimulation:Connect(function()
             for p in pairs(antiFlingTracked) do
                 pcall(function()
@@ -7009,34 +6059,25 @@ function toggleAntiFling(state)
     else
         setButtonActive(AntiFlingBtn, false)
         antiFlingActive = false
-        -- Putus semua koneksi
         for _, c in ipairs(antiFlingConns) do pcall(function() c:Disconnect() end) end
         antiFlingConns = {}
-        -- Restore CanCollide = true
         for p in pairs(antiFlingTracked) do
             pcall(function() if p and p.Parent then p.CanCollide = true end end)
         end
         antiFlingTracked = {}
     end
 end
-
 AntiFlingBtn.MouseButton1Click:Connect(function()
     toggleAntiFling()
 end)
-
--- ===================================
--- HITBOX EXPANDER & SILENT AIM
--- ===================================
 HitboxBtn = createButton("", "Hitbox")
 HitboxBtn.Name = "HitboxBtn"
 hitboxActive = false
 hitboxConnection = nil
 hitboxSize = 20
-
 function toggleHitbox(state)
     if state == nil then hitboxActive = not hitboxActive else hitboxActive = state end
     setButtonActive(HitboxBtn, hitboxActive)
-    
     if hitboxActive then
         hitboxConnection = RunService.RenderStepped:Connect(function()
             for _, p in ipairs(game.Players:GetPlayers()) do
@@ -7064,27 +6105,51 @@ function toggleHitbox(state)
 end
 HitboxBtn.MouseButton1Click:Connect(function() toggleHitbox() end)
 
+AutoClickerBtn = createButton("Auto Clicker (PC Only)", "Auto Clicker")
+AutoClickerBtn.Name = "AutoClickerBtn"
+autoClickerActive = false
+autoClickerConnection = nil
+function toggleAutoClicker(state)
+    if state == nil then autoClickerActive = not autoClickerActive else autoClickerActive = state end
+    setButtonActive(AutoClickerBtn, autoClickerActive)
+    if autoClickerActive then
+        autoClickerConnection = RunService.RenderStepped:Connect(function()
+            if mouse1click then
+                pcall(function() mouse1click() end)
+            else
+                pcall(function()
+                    local vu = game:GetService("VirtualUser")
+                    vu:CaptureController()
+                    vu:ClickButton1(Vector2.new())
+                end)
+            end
+        end)
+    else
+        if autoClickerConnection then 
+            autoClickerConnection:Disconnect() 
+            autoClickerConnection = nil 
+        end
+    end
+end
+AutoClickerBtn.MouseButton1Click:Connect(function() toggleAutoClicker() end)
 AimbotBtn = createButton("", "Aimbot")
 AimbotBtn.Name = "AimbotBtn"
 aimbotActive = false
 aimbotConnection = nil
-
 function toggleAimbot(state)
     if state == nil then aimbotActive = not aimbotActive else aimbotActive = state end
     setButtonActive(AimbotBtn, aimbotActive)
-    
     if aimbotActive then
         aimbotConnection = RunService.RenderStepped:Connect(function()
             local char = Player.Character
             if not char or not char:FindFirstChild("HumanoidRootPart") then return end
             local myPos = char.HumanoidRootPart.Position
             local cam = Workspace.CurrentCamera
-            
             local closestPlayer = nil
             local shortestDistance = math.huge
-            
             for _, p in ipairs(game.Players:GetPlayers()) do
                 if p ~= Player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
+                    if p.Team and Player.Team and p.Team == Player.Team then continue end
                     local pos = p.Character.HumanoidRootPart.Position
                     local dist = (pos - myPos).Magnitude
                     if dist < shortestDistance then
@@ -7093,9 +6158,11 @@ function toggleAimbot(state)
                     end
                 end
             end
-            
             if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                cam.CFrame = CFrame.new(cam.CFrame.Position, closestPlayer.Character.HumanoidRootPart.Position)
+                local targetPos = closestPlayer.Character.HumanoidRootPart.Position
+                local currentCFrame = cam.CFrame
+                local newCFrame = CFrame.new(currentCFrame.Position, targetPos)
+                cam.CFrame = currentCFrame:Lerp(newCFrame, 0.15)
             end
         end)
     else
@@ -7103,26 +6170,24 @@ function toggleAimbot(state)
     end
 end
 AimbotBtn.MouseButton1Click:Connect(function() toggleAimbot() end)
-
--- ===================================
--- MAX ZOOM BYPASS
--- ===================================
 MaxZoomBtn = nil
 maxZoomActive = false
 maxZoomConnection = nil
-
 function toggleMaxZoom(state)
     if state == nil then maxZoomActive = not maxZoomActive else maxZoomActive = state end
     if MaxZoomBtn then
         setButtonActive(MaxZoomBtn, maxZoomActive)
     end
-    
     if maxZoomActive then
         Player.CameraMaxZoomDistance = 100000
+        Player.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Invisicam
         if not maxZoomConnection then
             maxZoomConnection = RunService.RenderStepped:Connect(function()
                 if Player.CameraMaxZoomDistance ~= 100000 then
                     Player.CameraMaxZoomDistance = 100000
+                end
+                if Player.DevCameraOcclusionMode ~= Enum.DevCameraOcclusionMode.Invisicam then
+                    Player.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Invisicam
                 end
             end)
         end
@@ -7132,25 +6197,20 @@ function toggleMaxZoom(state)
             maxZoomConnection = nil
         end
         Player.CameraMaxZoomDistance = 128
+        Player.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Zoom
     end
 end
-
--- ===================================
--- FLING AURA & ORBIT FLING (RUSUH COMBO)
--- ===================================
 FlingAuraBtn = createButton("", "Fling Aura")
 FlingAuraBtn.Name = "FlingAuraBtn"
 flingAuraActive = false
 flingAuraRange = 35
 flingAuraConnection = nil
-
 function toggleFlingAura(state)
     if state == nil then
         flingAuraActive = not flingAuraActive
     else
         flingAuraActive = state
     end
-    
     local MiniFlingBtn = MiniButtons and MiniButtons["MiniFlingAuraBtn"]
     if flingAuraActive then
         setButtonActive(FlingAuraBtn, true)
@@ -7158,7 +6218,6 @@ function toggleFlingAura(state)
             MiniFlingBtn.Text = "Fling Aura: ON"
             MiniFlingBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
-        
         if flingAuraConnection then flingAuraConnection:Disconnect() end
         flingAuraConnection = RunService.Heartbeat:Connect(function()
             if not flingAuraActive then return end
@@ -7167,7 +6226,6 @@ function toggleFlingAura(state)
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
             local hum = char and char:FindFirstChildOfClass("Humanoid")
             if not hrp or not hum or hum.Health <= 0 then return end
-            
             local targetHRP = nil
             local shortestDist = flingAuraRange
             for _, plr in ipairs(Players:GetPlayers()) do
@@ -7179,7 +6237,6 @@ function toggleFlingAura(state)
                     end
                 end
             end
-            
             if targetHRP then
                 local originalCF = hrp.CFrame
                 for _, part in ipairs(char:GetDescendants()) do
@@ -7187,11 +6244,9 @@ function toggleFlingAura(state)
                         part.CanCollide = false
                     end
                 end
-                
                 hrp.CFrame = targetHRP.CFrame * CFrame.new(0, 0.2, 0)
                 hrp.Velocity = Vector3.new(999999, 999999, 999999)
                 RunService.RenderStepped:Wait()
-                
                 if hrp and hrp.Parent then
                     hrp.Velocity = Vector3.zero
                     hrp.CFrame = originalCF
@@ -7210,24 +6265,20 @@ function toggleFlingAura(state)
         end
     end
 end
-
 FlingAuraBtn.MouseButton1Click:Connect(function()
     toggleFlingAura()
 end)
-
 OrbitFlingBtn = createButton("", "Orbit Fling")
 OrbitFlingBtn.Name = "OrbitFlingBtn"
 orbitFlingActive = false
 orbitFlingConnection = nil
 orbitFlingTarget = nil
-
 function toggleOrbitFling(state, targetPlayer)
     if state == nil then
         orbitFlingActive = not orbitFlingActive
     else
         orbitFlingActive = state
     end
-    
     local MiniOrbitBtn = MiniButtons and MiniButtons["MiniOrbitFlingBtn"]
     if orbitFlingActive then
         orbitFlingTarget = targetPlayer or getClosestPlayer()
@@ -7242,17 +6293,14 @@ function toggleOrbitFling(state, targetPlayer)
             end)
             return
         end
-        
         setButtonActive(OrbitFlingBtn, true)
         if MiniOrbitBtn then
             MiniOrbitBtn.Text = "Orbit: " .. string.sub(orbitFlingTarget.Name, 1, 8)
             MiniOrbitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
-        
         local angle = 0
         local radius = 4
         local speed = 0.5
-        
         if orbitFlingConnection then orbitFlingConnection:Disconnect() end
         orbitFlingConnection = RunService.Heartbeat:Connect(function()
             if not orbitFlingActive then return end
@@ -7260,12 +6308,10 @@ function toggleOrbitFling(state, targetPlayer)
             local char = lp.Character
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
             if not hrp then return end
-            
             if not orbitFlingTarget or not orbitFlingTarget.Parent or not orbitFlingTarget.Character then
                 toggleOrbitFling(false)
                 return
             end
-            
             local tHrp = orbitFlingTarget.Character:FindFirstChild("HumanoidRootPart")
             local tHum = orbitFlingTarget.Character:FindFirstChildOfClass("Humanoid")
             if not tHrp or (tHum and tHum.Health <= 0) then
@@ -7280,16 +6326,13 @@ function toggleOrbitFling(state, targetPlayer)
                     return
                 end
             end
-            
             angle = angle + speed
             local offset = Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
-            
             for _, part in ipairs(char:GetDescendants()) do
                 if part:IsA("BasePart") then
                     part.CanCollide = false
                 end
             end
-            
             hrp.CFrame = CFrame.new(tHrp.Position + offset, tHrp.Position)
             hrp.Velocity = Vector3.new(999999, 999999, 999999)
         end)
@@ -7315,11 +6358,199 @@ function toggleOrbitFling(state, targetPlayer)
     end
 end
 
+TouchFlingBtn = createButton("", "Touch Fling")
+TouchFlingBtn.Name = "TouchFlingBtn"
+touchFlingActive = false
+touchFlingConnection = nil
+touchFlingToolConnections = {}
+touchFlingDebounces = {}
+touchFlingCharacterConn = nil
+
+function cleanupTouchFlingToolConnections()
+    for _, conn in ipairs(touchFlingToolConnections) do
+        pcall(function() conn:Disconnect() end)
+    end
+    touchFlingToolConnections = {}
+end
+
+function hookToolParts(tool)
+    if not tool:IsA("Tool") then return end
+    
+    local function hookPart(part)
+        if not part:IsA("BasePart") then return end
+        local conn = part.Touched:Connect(function(hit)
+            if not touchFlingActive then return end
+            if not hit or not hit.Parent then return end
+            
+            local targetChar = hit.Parent
+            if targetChar:IsA("Accessory") then
+                targetChar = targetChar.Parent
+            end
+            
+            local targetPlr = Players:GetPlayerFromCharacter(targetChar)
+            local lp = Players.LocalPlayer
+            if targetPlr and targetPlr ~= lp then
+                local hum = targetChar:FindFirstChildOfClass("Humanoid")
+                if hum and hum.Health > 0 then
+                    local now = tick()
+                    if not touchFlingDebounces[targetPlr] or (now - touchFlingDebounces[targetPlr] > 3) then
+                        touchFlingDebounces[targetPlr] = now
+                        executeInstantFling(targetPlr)
+                    end
+                end
+            end
+        end)
+        table.insert(touchFlingToolConnections, conn)
+    end
+
+    for _, descendant in ipairs(tool:GetDescendants()) do
+        hookPart(descendant)
+    end
+    
+    local childAddedConn = tool.DescendantAdded:Connect(hookPart)
+    table.insert(touchFlingToolConnections, childAddedConn)
+end
+
+function setupTouchFlingMonitoring()
+    cleanupTouchFlingToolConnections()
+    if not touchFlingActive then return end
+    
+    local lp = Players.LocalPlayer
+    local char = lp.Character
+    if not char then return end
+    
+    local currentTool = char:FindFirstChildOfClass("Tool")
+    if currentTool then
+        hookToolParts(currentTool)
+    end
+    
+    local childAddedConn = char.ChildAdded:Connect(function(child)
+        if child:IsA("Tool") then
+            cleanupTouchFlingToolConnections()
+            hookToolParts(child)
+        end
+    end)
+    table.insert(touchFlingToolConnections, childAddedConn)
+end
+
+function toggleTouchFling(state)
+    if state == nil then
+        touchFlingActive = not touchFlingActive
+    else
+        touchFlingActive = state
+    end
+    
+    if TouchFlingBtn then
+        setButtonActive(TouchFlingBtn, touchFlingActive)
+    end
+    
+    cleanupTouchFlingToolConnections()
+    if touchFlingCharacterConn then
+        touchFlingCharacterConn:Disconnect()
+        touchFlingCharacterConn = nil
+    end
+    
+    if touchFlingActive then
+        setupTouchFlingMonitoring()
+        local lp = Players.LocalPlayer
+        touchFlingCharacterConn = lp.CharacterAdded:Connect(function()
+            task.wait(0.5)
+            if touchFlingActive then
+                setupTouchFlingMonitoring()
+            end
+        end)
+    else
+        touchFlingDebounces = {}
+    end
+end
+
+TouchFlingBtn.MouseButton1Click:Connect(function()
+    toggleTouchFling()
+end)
+
+ClickYeetBtn = createButton("", "Click Yeet")
+ClickYeetBtn.Name = "ClickYeetBtn"
+ClickYeetBtn.MouseButton1Click:Connect(function()
+    local tool = game.Players.LocalPlayer.Backpack:FindFirstChild("Click Yeet (OP)") or Instance.new("Tool")
+    tool.Name = "Click Yeet (OP)"
+    tool.RequiresHandle = false
+    tool.ToolTip = _G.currentLang == "ID" and "Klik part/player manapun untuk melemparnya seketika!" or "Click any part or player to instantly fling them to the void!"
+    
+    local mouse = game.Players.LocalPlayer:GetMouse()
+    local conn
+    
+    tool.Equipped:Connect(function()
+        conn = mouse.Button1Down:Connect(function()
+            local target = mouse.Target
+            if target then
+                local char = target.Parent
+                if char and char:FindFirstChildOfClass("Humanoid") then
+                    target = char:FindFirstChild("HumanoidRootPart") or target
+                end
+                
+                pcall(function()
+                    sethiddenproperty(game.Players.LocalPlayer, "SimulationRadius", math.huge)
+                    target:BreakJoints()
+                    target.CanCollide = false
+                    target.Anchored = false
+                    target.CFrame = CFrame.new(99999, 9999, 99999)
+                    target.AssemblyLinearVelocity = Vector3.new(0, 50000, 0)
+                    task.wait(0.05)
+                    target:Destroy()
+                end)
+            end
+        end)
+    end)
+    
+    tool.Unequipped:Connect(function()
+        if conn then conn:Disconnect() end
+    end)
+    
+    tool.Parent = game.Players.LocalPlayer.Backpack
+    game.StarterGui:SetCore("SendNotification", {
+        Title = "Click Yeet",
+        Text = "Alat Click Yeet berhasil ditambahkan ke Backpack Anda!",
+        Duration = 3
+    })
+end)
+
+LagServerBtn = createButton("", "Crash Server")
+LagServerBtn.Name = "LagServerBtn"
+local lagServerActive = false
+LagServerBtn.MouseButton1Click:Connect(function()
+    lagServerActive = not lagServerActive
+    setButtonActive(LagServerBtn, lagServerActive)
+    if lagServerActive then
+        game.StarterGui:SetCore("SendNotification", {
+            Title = tr("Crash Server"),
+            Text = _G.currentLang == "ID" and "Mengirim spam physics ke server... (Berpotensi membuat lag semua player)" or "Sending spam physics to server... (Potentially lags all players)",
+            Duration = 3
+        })
+        task.spawn(function()
+            while lagServerActive do
+                local parts = scanParts()
+                for _, p in ipairs(parts) do
+                    if not lagServerActive then break end
+                    pcall(function()
+                        sethiddenproperty(game.Players.LocalPlayer, "SimulationRadius", math.huge)
+                        p.AssemblyLinearVelocity = Vector3.new(math.random(-99999, 99999), math.random(-99999, 99999), math.random(-99999, 99999))
+                        p.AssemblyAngularVelocity = Vector3.new(math.random(-99999, 99999), math.random(-99999, 99999), math.random(-99999, 99999))
+                    end)
+                end
+                task.wait()
+            end
+        end)
+    else
+        game.StarterGui:SetCore("SendNotification", {
+            Title = "Crash Server",
+            Text = "Crash Server dimatikan.",
+            Duration = 3
+        })
+    end
+end)
 OrbitFlingBtn.MouseButton1Click:Connect(function()
     toggleOrbitFling()
 end)
-
--- Click TP and Free Cam integrations
 ClickTPBtn = createButton("", "Click TP")
 ClickTPBtn.Name = "ClickTPBtn"
 ClickTPBtn.LayoutOrder = 1
@@ -7329,21 +6560,17 @@ FreeCamBtn.LayoutOrder = 3
 TweenTPBtn = createButton("", "Tween TP")
 TweenTPBtn.Name = "TweenTPBtn"
 TweenTPBtn.LayoutOrder = 4
-
 TweenTPBtn.MouseButton1Click:Connect(function()
     tweenTpEnabled = not tweenTpEnabled
     setButtonActive(TweenTPBtn, tweenTpEnabled)
 end)
-
 local TPBox
 local findPlayerByQuery
-
 local clickTpOn = false
 local freecamOn = false
 local freecamYaw, freecamPitch = 0, 0
 local freecamPos
-local freecamSpeed = 2
-
+local freecamSpeed = 1
 local clickTpConnection = nil
 function toggleClickTP(state)
     if state == nil then
@@ -7352,7 +6579,6 @@ function toggleClickTP(state)
         clickTpOn = state
     end
     setButtonActive(ClickTPBtn, clickTpOn)
-    
     if clickTpOn then
         if not clickTpConnection then
             local Mouse = Player:GetMouse()
@@ -7378,7 +6604,6 @@ function toggleClickTP(state)
         end
     end
 end
-
 function handleClickTPClick()
     local query = TPBox.Text
     if query and query ~= "" then
@@ -7398,9 +6623,7 @@ function handleClickTPClick()
         toggleClickTP()
     end
 end
-
 ClickTPBtn.MouseButton1Click:Connect(handleClickTPClick)
-
 function setFreecam(state)
     freecamOn = state
     local cam = workspace.CurrentCamera
@@ -7423,6 +6646,16 @@ function setFreecam(state)
                     if UserInputService:IsKeyDown(Enum.KeyCode.D) then delta += cam.CFrame.RightVector end
                     if UserInputService:IsKeyDown(Enum.KeyCode.Space) then delta += Vector3.new(0,1,0) end
                     if UserInputService:IsKeyDown(Enum.KeyCode.E) then delta -= Vector3.new(0,1,0) end
+                    
+                    local hum = char and char:FindFirstChildOfClass("Humanoid")
+                    if hum and hum.MoveDirection.Magnitude > 0 then
+                        local localMove = cam.CFrame:VectorToObjectSpace(hum.MoveDirection)
+                        delta += (cam.CFrame.LookVector * -localMove.Z) + (cam.CFrame.RightVector * localMove.X)
+                    end
+                    
+                    if delta.Magnitude > 0 then
+                        delta = delta.Unit
+                    end
                     freecamPos += delta * freecamSpeed
                     if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
                         local md = UserInputService:GetMouseDelta()
@@ -7444,12 +6677,15 @@ function setFreecam(state)
         setButtonActive(FreeCamBtn, false)
     end
 end
-
 FreeCamBtn.MouseButton1Click:Connect(function()
     setFreecam(not freecamOn)
 end)
-
--- Teleport-by-name UI (like admin2): a TextBox under Click TP
+FreecamShortcutConn = UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe or UserInputService:GetFocusedTextBox() then return end
+    if input.KeyCode == Enum.KeyCode.T then
+        setFreecam(not freecamOn)
+    end
+end)
 TPBox = Instance.new("TextBox")
 TPBox.Name = "TPBox"
 TPBox.LayoutOrder = 2
@@ -7470,8 +6706,6 @@ do
     p.PaddingLeft = UDim.new(0, 12)
     p.Parent = TPBox
 end
-
--- Freecam speed TextBox under Free Cam
 local FCBox = Instance.new("TextBox")
 FCBox.Name = "FCBox"
 FCBox.LayoutOrder = 4
@@ -7492,7 +6726,6 @@ do
     p.PaddingLeft = UDim.new(0, 12)
     p.Parent = FCBox
 end
-
 FCBox.FocusLost:Connect(function()
     local n = tonumber(FCBox.Text)
     if n and n > 0 and n < 200 then
@@ -7501,12 +6734,9 @@ FCBox.FocusLost:Connect(function()
         FCBox.Text = tostring(freecamSpeed)
     end
 end)
-
--- Save Waypoint UI: a TextButton and a TextBox
 SWPBtn = createButton("", "Save WP")
 SWPBtn.Name = "SWPBtn"
 SWPBtn.LayoutOrder = 5
-
 SWPBox = Instance.new("TextBox")
 SWPBox.Name = "SWPBox"
 SWPBox.LayoutOrder = 6
@@ -7527,7 +6757,6 @@ do
     p.PaddingLeft = UDim.new(0, 12)
     p.Parent = SWPBox
 end
-
 SWPBtn.MouseButton1Click:Connect(function()
     local name = SWPBox.Text
     if name and name ~= "" then
@@ -7544,20 +6773,16 @@ SWPBtn.MouseButton1Click:Connect(function()
         task.delay(1.5, function() SWPBox.PlaceholderText = "Waypoint Name" end)
     end
 end)
-
 findPlayerByQuery = function(q)
     if not q or q == "" then return nil end
     q = q:gsub("^@", "")
     local lower = string.lower(q)
-    -- exact Name
     for _,plr in ipairs(game:GetService("Players"):GetPlayers()) do
         if string.lower(plr.Name) == lower then return plr end
     end
-    -- exact DisplayName
     for _,plr in ipairs(game:GetService("Players"):GetPlayers()) do
         if string.lower(plr.DisplayName) == lower then return plr end
     end
-    -- startswith Name or DisplayName
     for _,plr in ipairs(game:GetService("Players"):GetPlayers()) do
         if string.find(string.lower(plr.Name), lower, 1, true) == 1 or string.find(string.lower(plr.DisplayName), lower, 1, true) == 1 then
             return plr
@@ -7565,27 +6790,14 @@ findPlayerByQuery = function(q)
     end
     return nil
 end
-
-
--- [Optimized out duplicate] local Players = game:GetService("Players")
--- [Optimized out duplicate] local RunService = game:GetService("RunService")
--- [Optimized out duplicate] local TweenService = game:GetService("TweenService")
--- [Optimized out duplicate] local UserInputService = game:GetService("UserInputService")
--- [Optimized out duplicate] local Workspace = game:GetService("Workspace")
-
--- [Optimized out duplicate] local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local root = character:WaitForChild("HumanoidRootPart")
-
 local function resolveCatalogAnimationId(assetId)
     local finalId = "rbxassetid://" .. tostring(assetId)
-    
-    -- Try game:GetObjects first
     local ok, objs = pcall(function()
         return game:GetObjects("rbxassetid://" .. tostring(assetId))
     end)
-    
     if ok and objs and objs[1] then
         local obj = objs[1]
         if obj:IsA("Animation") then
@@ -7597,12 +6809,9 @@ local function resolveCatalogAnimationId(assetId)
             end
         end
     end
-    
-    -- Fallback: Use HttpGet to query asset delivery API and parse the true AnimationId from the XML
     local okHttp, content = pcall(function()
         return game:HttpGet("https://assetdelivery.roblox.com/v1/asset/?id=" .. tostring(assetId))
     end)
-    
     if okHttp and content then
         local urlPattern = "<url>(.-)</url>"
         local foundUrl = content:match(urlPattern)
@@ -7612,29 +6821,23 @@ local function resolveCatalogAnimationId(assetId)
                 return foundUrl
             end
         end
-        
         local idPattern = "id=(%d+)"
         local foundId = content:match(idPattern)
         if foundId then
             return "rbxassetid://" .. foundId
         end
     end
-    
     return finalId
 end
-
 local animations = {
-    Idle = 100132174228207,
+    Idle = 76361248833307,
     Fly = 88952942370104,
 }
-
 local animTracks = {}
 local animator
-
 function setupAnimator(hum)
     animator = hum:FindFirstChildOfClass("Animator") or Instance.new("Animator", hum)
     animTracks = {}
-
     for name, id in pairs(animations) do
         local anim = Instance.new("Animation")
         anim.AnimationId = resolveCatalogAnimationId(id)
@@ -7644,9 +6847,7 @@ function setupAnimator(hum)
         animTracks[name] = track
     end
 end
-
 setupAnimator(humanoid)
-
 local flying = false
 local flySpeed = 2
 local currentFlySpeed = 2
@@ -7655,12 +6856,10 @@ local moving = false
 local savedOrientation = nil
 local oldGravity = Workspace.Gravity
 local frozenPos = nil
-
 local gui = Instance.new("ScreenGui")
 gui.Name = "FlyGui"
 gui.ResetOnSpawn = false
 gui.Parent = game:GetService("CoreGui")
-
 local DPad = Instance.new("Frame")
 DPad.Size = UDim2.new(0,140,0,140)
 DPad.Position = UDim2.new(0,15,1,-155)
@@ -7669,7 +6868,6 @@ DPad.BackgroundTransparency = 0.05
 DPad.Visible = false
 DPad.Parent = gui
 Instance.new("UICorner", DPad).CornerRadius = UDim.new(0,12)
-
 function createBtn(txt,pos)
     local btn = Instance.new("TextButton")
     btn.Text = txt
@@ -7683,12 +6881,10 @@ function createBtn(txt,pos)
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0,8)
     return btn
 end
-
 local UpBtn = createBtn("^", UDim2.new(0.5,-22,0,8))
 local DownBtn = createBtn("v", UDim2.new(0.5,-22,1,-53))
 local LeftBtn = createBtn("<", UDim2.new(0,8,0.5,-22))
 local RightBtn = createBtn(">", UDim2.new(1,-53,0.5,-22))
-
 function connectBtn(btn,key)
     btn.MouseButton1Down:Connect(function() pressed[key]=true btn.BackgroundColor3=Color3.fromRGB(90,90,90) end)
     btn.MouseButton1Up:Connect(function() pressed[key]=false btn.BackgroundColor3=Color3.fromRGB(50,50,50) end)
@@ -7697,9 +6893,7 @@ connectBtn(UpBtn,"Up")
 connectBtn(DownBtn,"Down")
 connectBtn(LeftBtn,"Left")
 connectBtn(RightBtn,"Right")
-
 local FlyBtn = createButton("", "Fly")
-
 function noclip(state)
     for _,v in pairs(character:GetDescendants()) do
         if v:IsA("BasePart") and not v:FindFirstAncestorOfClass("Accessory") then
@@ -7707,7 +6901,6 @@ function noclip(state)
         end
     end
 end
-
 function enableFly()
     flying = true
     DPad.Visible = true
@@ -7715,16 +6908,12 @@ function enableFly()
     noclipActive = true
     if enableNoclip then enableNoclip() else noclip(true) end
     Workspace.Gravity = 0
-    
     setButtonActive(FlyBtn, true)
-
     frozenPos = root.Position
     local _, y, _ = root.CFrame:ToOrientation()
     savedOrientation = CFrame.Angles(0, math.rad(y), 0)
-
     if animTracks.Idle then animTracks.Idle:Play() end
 end
-
 function disableFly()
     flying = false
     DPad.Visible = false
@@ -7735,17 +6924,14 @@ function disableFly()
     end
     Workspace.Gravity = oldGravity
     frozenPos = nil
-    
     if root then
         root.AssemblyLinearVelocity = Vector3.zero
         root.AssemblyAngularVelocity = Vector3.zero
-        
         local rayOrigin = root.Position
         local rayDirection = Vector3.new(0, -500, 0)
         local raycastParams = RaycastParams.new()
         raycastParams.FilterDescendantsInstances = {Player.Character, Workspace.CurrentCamera}
         raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-        
         local rayResult = Workspace:Raycast(rayOrigin, rayDirection, raycastParams)
         if rayResult then
             local hip = humanoid.HipHeight > 0 and humanoid.HipHeight or 2
@@ -7753,23 +6939,18 @@ function disableFly()
         else
             root.CFrame = root.CFrame + Vector3.new(0, 1.5, 0)
         end
-        
         pcall(function() humanoid:ChangeState(Enum.HumanoidStateType.GettingUp) end)
     end
-    
     setButtonActive(FlyBtn, false)
-
     for _, t in pairs(animTracks) do if t.IsPlaying then t:Stop() end end
 end
-
 FlyBtn.MouseButton1Click:Connect(function()
-    if flying then 
-        disableFly() 
-    else 
-        enableFly() 
+    if flying then
+        disableFly()
+    else
+        enableFly()
     end
 end)
-
 UserInputService.InputBegan:Connect(function(input, gpe)
 	if gpe then return end
 	if not flying then return end
@@ -7780,7 +6961,6 @@ UserInputService.InputBegan:Connect(function(input, gpe)
 	if input.KeyCode == Enum.KeyCode.Space then pressed.Space = true end
 	if input.KeyCode == Enum.KeyCode.LeftControl then pressed.Ctrl = true end
 end)
-
 UserInputService.InputEnded:Connect(function(input)
 	if input.KeyCode == Enum.KeyCode.W then pressed.Up = false end
 	if input.KeyCode == Enum.KeyCode.S then pressed.Down = false end
@@ -7789,25 +6969,26 @@ UserInputService.InputEnded:Connect(function(input)
 	if input.KeyCode == Enum.KeyCode.Space then pressed.Space = false end
 	if input.KeyCode == Enum.KeyCode.LeftControl then pressed.Ctrl = false end
 end)
-
 RunService.Heartbeat:Connect(function(dt)
     if not flying or not root then return end
-
     root.AssemblyLinearVelocity = Vector3.zero
     root.AssemblyAngularVelocity = Vector3.zero
-
     local cam = workspace.CurrentCamera
     local lookVec = cam.CFrame.LookVector
     local rightVec = cam.CFrame.RightVector
     local dir = Vector3.zero
-
     if pressed.Up then dir += lookVec end
     if pressed.Down then dir -= lookVec end
     if pressed.Left then dir -= rightVec end
     if pressed.Right then dir += rightVec end
     if pressed.Space then dir += Vector3.new(0, 1, 0) end
     if pressed.Ctrl then dir -= Vector3.new(0, 1, 0) end
-
+    
+    local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+    if hum and hum.MoveDirection.Magnitude > 0 then
+        local localMove = cam.CFrame:VectorToObjectSpace(hum.MoveDirection)
+        dir += (lookVec * -localMove.Z) + (rightVec * localMove.X)
+    end
     if dir.Magnitude > 0 then
         moving = true
         if pressed.Up then
@@ -7824,7 +7005,6 @@ RunService.Heartbeat:Connect(function(dt)
             root.CFrame = CFrame.new(frozenPos, frozenPos + lookVec)
         end
     end
-
     if moving then
         if animTracks.Idle and animTracks.Idle.IsPlaying then animTracks.Idle:Stop() end
         if animTracks.Fly and not animTracks.Fly.IsPlaying then animTracks.Fly:Play() end
@@ -7833,99 +7013,83 @@ RunService.Heartbeat:Connect(function(dt)
         if animTracks.Idle and not animTracks.Idle.IsPlaying then animTracks.Idle:Play() end
     end
 end)
-
 humanoid.Died:Connect(function()
     disableFly()
     setButtonActive(FlyBtn, false)
 end)
-
 player.CharacterAdded:Connect(function(char)
     character = char
     humanoid = char:WaitForChild("Humanoid")
     root = char:WaitForChild("HumanoidRootPart")
     setupAnimator(humanoid)
-    
     humanoid.Died:Connect(function()
         disableFly()
         setButtonActive(FlyBtn, false)
     end)
-    
     setButtonActive(FlyBtn, false)
 end)
-
 setButtonActive(FlyBtn, false)
-
 UnanchorBtn = createButton("", "Unanchor")
--- [Optimized out duplicate] local player = game.Players.LocalPlayer
 local aktif = false
 local folder, attachment1, koneksi1
 local RADIUS = 500
-
 local activeParts = {}
-
 local function isMapAsset(o)
     local name = string.lower(o.Name)
-    if name == "baseplate" or name == "terrain" or name == "road" or name == "sidewalk" 
-       or name == "floor" or name == "wall" or name == "glass" or name == "window" 
-       or name == "roof" or name == "ceiling" or name == "door" or name == "stairs" 
+    if name == "baseplate" or name == "terrain" or name == "road" or name == "sidewalk"
+       or name == "floor" or name == "wall" or name == "glass" or name == "window"
+       or name == "roof" or name == "ceiling" or name == "door" or name == "stairs"
        or name == "pillar" or name == "support" or name == "building" or name == "house"
-       or name == "rock" or name == "stone" or name == "batu" or name == "tree" 
-       or name == "leaf" or name == "leaves" or name == "trunk" or name == "branch" 
+       or name == "rock" or name == "stone" or name == "batu" or name == "tree"
+       or name == "leaf" or name == "leaves" or name == "trunk" or name == "branch"
        or name == "grass" or name == "hill" or name == "mountain" or name == "water" then
         return true
     end
     local p = o.Parent
     if p and p:IsA("Model") then
         local pName = string.lower(p.Name)
-        if pName:find("map") or pName:find("lobby") or pName:find("terrain") 
-           or pName:find("city") or pName:find("building") or pName:find("tree") 
-           or pName:find("rock") or pName:find("stone") or pName:find("batu") 
+        if pName:find("map") or pName:find("lobby") or pName:find("terrain")
+           or pName:find("city") or pName:find("building") or pName:find("tree")
+           or pName:find("rock") or pName:find("stone") or pName:find("batu")
            or pName:find("nature") or pName:find("environment") or pName:find("road") then
             return true
         end
     end
     return false
 end
-
 function scanParts()
     local parts = {}
     local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if not root then return parts end
-
-    -- Kumpulkan semua karakter pemain untuk di-exclude
     local charSet = {}
     for _, plr in ipairs(game.Players:GetPlayers()) do
         if plr.Character then
             charSet[plr.Character] = true
         end
     end
-
-    for _, part in pairs(workspace:GetDescendants()) do
-        if part:IsA("BasePart") and not part.Anchored then
-            -- Skip semua karakter pemain (bukan hanya lokal)
+    local radius = 1000
+    local rawParts = workspace:GetPartBoundsInRadius(root.Position, radius)
+    for _, part in ipairs(rawParts) do
+        if part:IsA("BasePart") and not part.Anchored and not part:IsDescendantOf(workspace.CurrentCamera) then
             local isCharPart = false
             local p = part.Parent
             while p and p ~= workspace do
-                if charSet[p] then isCharPart = true; break end
+                if charSet[p] or p:FindFirstChildOfClass("Humanoid") then
+                    isCharPart = true
+                    break
+                end
                 p = p.Parent
             end
-            if not isCharPart and not isMapAsset(part) and string.lower(part.Name) ~= "baseplate" and part.Name ~= "Handle" then
-                local dist = (part.Position - root.Position).Magnitude
-                -- Min distance 4m: jangan tarik part yang terlalu dekat (mencegah body ikut ketarik)
-                if dist <= RADIUS and dist > 4 then
-                    table.insert(parts, part)
-                end
+            if not isCharPart and string.lower(part.Name) ~= "baseplate" and part.Name ~= "Handle" and part.Name ~= "HumanoidRootPart" and part.Name ~= "Torso" then
+                table.insert(parts, part)
             end
         end
     end
     return parts
 end
-
 function applyForce(part)
     if not part or not part.Parent then return end
     part.CanCollide = false
-
-    -- Hapus welds/ropes/attachments agar tidak terseret bersama tali/las peta
     pcall(function() part:BreakJoints() end)
     for _, x in ipairs(part:GetChildren()) do
         if x:IsA("Weld") or x:IsA("WeldConstraint") or x:IsA("ManualWeld") or x:IsA("Motor6D")
@@ -7935,7 +7099,6 @@ function applyForce(part)
             pcall(function() x:Destroy() end)
         end
     end
-
     if not part:FindFirstChildOfClass("Torque") then
         local torque = Instance.new("Torque", part)
         torque.Torque = Vector3.new(100000,100000,100000)
@@ -7950,7 +7113,6 @@ function applyForce(part)
             align.Attachment1 = attachment1
         end
     end
-
     if attachment1 then
         local dist = (part.Position - attachment1.WorldPosition).Magnitude
         if dist <= RADIUS then
@@ -7959,7 +7121,6 @@ function applyForce(part)
         end
     end
 end
-
 function mulaiUnanchor()
     folder = Instance.new("Folder", workspace)
     local part = Instance.new("Part", folder)
@@ -7967,13 +7128,10 @@ function mulaiUnanchor()
     part.CanCollide = false
     part.Transparency = 1
     attachment1 = Instance.new("Attachment", part)
-
     task.spawn(function()
         settings().Physics.AllowSleep = false
         while aktif do
-            -- Cache parts once a second instead of every frame
             activeParts = scanParts()
-            
             for _, pl in next, game.Players:GetPlayers() do
                 if pl ~= player then
                     pl.MaximumSimulationRadius = 0
@@ -7982,11 +7140,9 @@ function mulaiUnanchor()
             end
             player.MaximumSimulationRadius = math.pow(math.huge, math.huge)
             pcall(function() setsimulationradius(math.huge) end)
-            
             task.wait(1)
         end
     end)
-
     koneksi1 = game:GetService("RunService").Stepped:Connect(function()
         if attachment1 and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             attachment1.Parent.Position = player.Character.HumanoidRootPart.Position
@@ -7996,13 +7152,11 @@ function mulaiUnanchor()
         end
     end)
 end
-
 function stopUnanchor()
     if koneksi1 then koneksi1:Disconnect() end
     if folder then folder:Destroy() end
     folder, attachment1 = nil, nil
 end
-
 function toggleUnanchor(state)
     if state == nil then
         aktif = not aktif
@@ -8024,24 +7178,15 @@ function toggleUnanchor(state)
         unanchorBtn.BackgroundColor3 = aktif and Color3.fromRGB(200, 50, 50) or Color3.fromRGB(200, 100, 0)
     end
 end
-
 UnanchorBtn.MouseButton1Click:Connect(function()
     toggleUnanchor()
 end)
-
 BringPartBtn = createButton("", "BringPart")
-
--- [Optimized out duplicate] local Players = game:GetService("Players")
--- [Optimized out duplicate] local RunService = game:GetService("RunService")
--- [Optimized out duplicate] local Workspace = game:GetService("Workspace")
-
--- [Optimized out duplicate] local LocalPlayer = Players.LocalPlayer
 local character, humanoidRootPart, head
 blackHoleActive = false
 scannerBroughtPart = nil
 local DescendantAddedConnection
 local NetworkConnection
-
 local Folder = Instance.new("Folder", Workspace)
 Folder.Name = "BringPartFolder"
 local TargetPart = Instance.new("Part", Folder)
@@ -8049,7 +7194,6 @@ TargetPart.Anchored = true
 TargetPart.CanCollide = false
 TargetPart.Transparency = 1
 Attachment1 = Instance.new("Attachment", TargetPart)
-
 local YeetFolder = Instance.new("Folder", Workspace)
 YeetFolder.Name = "YeetPartFolder"
 local YeetTargetPart = Instance.new("Part", YeetFolder)
@@ -8060,7 +7204,6 @@ YeetTargetPart.Transparency = 1
 YeetTargetPart.CFrame = CFrame.new(0, -9999, 0)
 local YeetAttachment = Instance.new("Attachment", YeetTargetPart)
 YeetAttachment.Name = "YeetAttachment"
-
 RunService.RenderStepped:Connect(function()
 	if blackHoleActive or scannerBroughtPart or plistSendPartTarget then
 		local char = plistSendPartTarget and plistSendPartTarget.Character or LocalPlayer.Character
@@ -8074,13 +7217,11 @@ RunService.RenderStepped:Connect(function()
 		end
 	end
 end)
-
 if not getgenv().Network then
 	getgenv().Network = {
 		BaseParts = {},
 		Velocity = Vector3.new(14.46, 14.46, 14.46)
 	}
-
 	function Network.RetainPart(part)
 		if part:IsA("BasePart") and part:IsDescendantOf(Workspace) then
 			table.insert(Network.BaseParts, part)
@@ -8089,7 +7230,6 @@ if not getgenv().Network then
 		end
 	end
 end
-
 function EnableNetwork()
 	if NetworkConnection then return end
 	NetworkConnection = RunService.Heartbeat:Connect(function()
@@ -8098,36 +7238,27 @@ function EnableNetwork()
 		end)
 	end)
 end
-
 function DisableNetwork()
 	if NetworkConnection then
 		NetworkConnection:Disconnect()
 		NetworkConnection = nil
 	end
 end
-
 function ForcePart(v)
-	if v:IsA("BasePart") 
-	and not v.Anchored 
-	and v.Transparency < 1          -- skip part invisible (hanya visual, tidak keliatan orang lain)
-	and not v.Parent:FindFirstChildOfClass("Humanoid") 
-	and not v.Parent:FindFirstChild("Head") 
+	if v:IsA("BasePart")
+	and not v.Anchored
+	and v.Transparency < 1
+	and not v.Parent:FindFirstChildOfClass("Humanoid")
+	and not v.Parent:FindFirstChild("Head")
 	and v.Name ~= "Handle" then
-
 		if v:GetAttribute("ScannerStopped") then return end
 		if v:FindFirstChild("BringAlign") then return end
-
 		v.CanCollide = false
-
-		-- Teleport part close to player once to claim network ownership from any distance!
 		local char = LocalPlayer.Character
 		local hrp = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
 		if hrp then
 			v.CFrame = Attachment1.WorldCFrame
 		end
-
-
-
 		if v:FindFirstChild("BringAttachment") then v:FindFirstChild("BringAttachment"):Destroy() end
 		if v:FindFirstChild("BringAlign") then v:FindFirstChild("BringAlign"):Destroy() end
 		if v:FindFirstChild("BringTorque") then v:FindFirstChild("BringTorque"):Destroy() end
@@ -8147,62 +7278,27 @@ function ForcePart(v)
 		v:SetAttribute("WasBrought", true)
 	end
 end
-
 function YeetPart(v)
 	if v:IsA("BasePart") then
 		task.spawn(function()
 			pcall(function()
-				-- Create YeetedParts folder if not exists
-				local yeetFolder = workspace:FindFirstChild("YeetedParts")
-				if not yeetFolder then
-					yeetFolder = Instance.new("Folder", workspace)
-					yeetFolder.Name = "YeetedParts"
-				end
-
-				-- Claim network ownership (tanpa teleport)
 				pcall(function() sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge) end)
-
-				-- Break joints
 				pcall(function() v:BreakJoints() end)
-				for _, x in ipairs(v:GetChildren()) do
-					if x:IsA("Weld") or x:IsA("WeldConstraint") or x:IsA("ManualWeld") or x:IsA("Motor6D")
-						or x:IsA("Constraint") or x:IsA("Attachment")
-						or x:IsA("BodyMover") or x:IsA("RocketPropulsion")
-					then
-						pcall(function() x:Destroy() end)
-					end
-				end
-
 				v.CanCollide = false
 				v.Anchored = false
-
-				-- Set velocity random seperti OneTimeUnanchor (tanpa teleport)
-				v.AssemblyLinearVelocity = Vector3.new(
-					math.random(-50, 50),
-					math.random(20, 100),
-					math.random(-50, 50)
-				)
-
-				-- Move to YeetedParts folder
-				v.Parent = yeetFolder
-
-				-- Wait sebentar
-				task.wait(0.2)
-
-				-- Destroy permanen
+				v.CFrame = CFrame.new(99999, 9999, 99999)
+				v.AssemblyLinearVelocity = Vector3.new(0, 50000, 0)
+				task.wait(0.05)
 				v:Destroy()
 			end)
 		end)
 	end
 end
-
 function OneTimeUnanchor()
 	if getgenv().UnanchorCooldown then return end
 	getgenv().UnanchorCooldown = true
-
 	task.spawn(function()
 		local startTime = tick()
-
 		while tick() - startTime < 1 do
 			for _, obj in pairs(Workspace:GetDescendants()) do
 				if obj:IsA("RopeConstraint") then
@@ -8213,7 +7309,6 @@ function OneTimeUnanchor()
 					if part1 and part1:IsA("BasePart") then part1.Anchored = false end
 				end
 			end
-
 			for _, part in pairs(Workspace:GetDescendants()) do
 				if part:IsA("BasePart") and not part.Anchored then
 					local isCharPart = false
@@ -8225,7 +7320,6 @@ function OneTimeUnanchor()
 						end
 						p = p.Parent
 					end
-					
 					if not isCharPart then
 						part.AssemblyLinearVelocity = Vector3.new(
 							math.random(-50, 50),
@@ -8235,16 +7329,12 @@ function OneTimeUnanchor()
 					end
 				end
 			end
-
 			task.wait(0.2)
 		end
-
 		getgenv().UnanchorCooldown = false
 	end)
 end
-
 local function yeetAllParts()
-    -- Stop active loops safely without immediately calling DisableNetwork
     if blackHoleActive then
         blackHoleActive = false
         setButtonActive(BringPartBtn, false)
@@ -8259,12 +7349,8 @@ local function yeetAllParts()
     if scannerBroughtPart then
         StopScannerBring()
     end
-
-    -- Keep network active
     EnableNetwork()
-
     local partsToYeet = scanParts()
-
     if #partsToYeet > 0 then
         task.spawn(function()
             for _, part in ipairs(partsToYeet) do
@@ -8275,8 +7361,6 @@ local function yeetAllParts()
         end)
     end
 end
-
-
 function GetAllPartsRecursive(parent)
 	local parts = {}
 	for _, obj in ipairs(parent:GetChildren()) do
@@ -8290,33 +7374,25 @@ function GetAllPartsRecursive(parent)
 	end
 	return parts
 end
-
 function toggleBringPart(state)
 	if state == nil then
 		blackHoleActive = not blackHoleActive
 	else
 		blackHoleActive = state
 	end
-
 	if blackHoleActive then
 		setButtonActive(BringPartBtn, true)
 		EnableNetwork()
 		if enableNoclip then enableNoclip() end
-
 		character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 		humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 		head = character:WaitForChild("Head")
-
 		OneTimeUnanchor()
-
-		-- Clear ScannerStopped attributes so we can bring them again when turning Bring Part ON
 		for _, v in ipairs(Workspace:GetDescendants()) do
 			if v:IsA("BasePart") then
 				v:SetAttribute("ScannerStopped", nil)
 			end
 		end
-
-		-- Start a lightweight loop to periodically check and bring parts as player moves
 		task.spawn(function()
 			while blackHoleActive do
 				for _, v in ipairs(GetAllPartsRecursive(Workspace)) do
@@ -8329,7 +7405,6 @@ function toggleBringPart(state)
 				task.wait(1.5)
 			end
 		end)
-
 		if DescendantAddedConnection then DescendantAddedConnection:Disconnect() end
 		DescendantAddedConnection = Workspace.DescendantAdded:Connect(function(v)
 			if blackHoleActive and v:IsA("BasePart") then
@@ -8339,8 +7414,6 @@ function toggleBringPart(state)
 				ForcePart(v)
 			end
 		end)
-
-
 	else
 		setButtonActive(BringPartBtn, false)
 		if DescendantAddedConnection then
@@ -8350,8 +7423,6 @@ function toggleBringPart(state)
 		if not noclipActive and not flying and disableNoclip then
 			disableNoclip()
 		end
-		-- Bersihkan constraints SAMBIL masih punya network ownership
-		-- DisableNetwork dipanggil SETELAH loop, agar server tidak ambil alih part sebelum di-anchor
 		for _, v in ipairs(Workspace:GetDescendants()) do
 			if v:IsA("BasePart") then
 				local torq = v:FindFirstChild("BringTorque")
@@ -8368,20 +7439,16 @@ function toggleBringPart(state)
 				end
 			end
 		end
-		-- Baru lepas network setelah semua part sudah di-anchor
 		DisableNetwork()
 	end
 end
-
 BringPartBtn.MouseButton1Click:Connect(function()
     toggleBringPart()
 end)
-
 AntiLagBtn = createButton("", "Anti Lag")
 antiLagActive = false
 connections = {}
 originalStates = {}
-
 function safeSet(obj, prop, val)
     local success, current = pcall(function() return obj[prop] end)
     if success then
@@ -8394,10 +7461,8 @@ function safeSet(obj, prop, val)
         pcall(function() obj[prop] = val end)
     end
 end
-
 function makeBurik(v)
     if not antiLagActive then return end
-    
     pcall(function()
         if v:IsA("BasePart") then
             safeSet(v, "Material", Enum.Material.SmoothPlastic)
@@ -8438,34 +7503,26 @@ function makeBurik(v)
         end
     end)
 end
-
 function applyAntiLag()
     local l = game.Lighting
     local t = game.Workspace.Terrain
-
     local function lockLightingAndTerrain()
         safeSet(t, "WaterWaveSize", 0)
         safeSet(t, "WaterWaveSpeed", 0)
         safeSet(t, "WaterReflectance", 0)
         safeSet(t, "WaterTransparency", 0)
         safeSet(t, "Decoration", false)
-
         safeSet(l, "GlobalShadows", false)
         safeSet(l, "FogEnd", 9e9)
         safeSet(l, "Brightness", 0)
     end
-
     lockLightingAndTerrain()
-
     pcall(function()
         settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
     end)
-
     if setfpscap then
         pcall(function() setfpscap(999) end)
     end
-
-    -- Scan workspace and lighting descendants once asynchronously on activation
     task.spawn(function()
         local targets = {}
         for _, v in ipairs(workspace:GetDescendants()) do
@@ -8474,7 +7531,6 @@ function applyAntiLag()
         for _, v in ipairs(l:GetDescendants()) do
             table.insert(targets, v)
         end
-
         local count = 0
         for _, v in ipairs(targets) do
             if not antiLagActive then break end
@@ -8485,8 +7541,6 @@ function applyAntiLag()
             end
         end
     end)
-
-    -- Event listeners for new descendants (deferred 0.1s to allow properties to load)
     connections[#connections+1] = workspace.DescendantAdded:Connect(function(obj)
         if antiLagActive then
             task.wait(0.1)
@@ -8503,8 +7557,6 @@ function applyAntiLag()
             end
         end
     end)
-    
-    -- Event listeners to lock Lighting & Terrain settings without CPU loop
     connections[#connections+1] = l.Changed:Connect(function()
         if antiLagActive then
             lockLightingAndTerrain()
@@ -8516,7 +7568,6 @@ function applyAntiLag()
         end
     end)
 end
-
 function resetAntiLag()
     for obj, state in pairs(originalStates) do
         if obj and obj.Parent then
@@ -8528,17 +7579,14 @@ function resetAntiLag()
         end
     end
     originalStates = {}
-
     for _, c in pairs(connections) do
         c:Disconnect()
     end
     connections = {}
-
     if setfpscap then
         pcall(function() setfpscap(60) end)
     end
 end
-
 function toggleAntiLag(state)
     if state == nil then
         antiLagActive = not antiLagActive
@@ -8553,19 +7601,15 @@ function toggleAntiLag(state)
         resetAntiLag()
     end
 end
-
 AntiLagBtn.MouseButton1Click:Connect(function()
     toggleAntiLag()
 end)
-
 BToolsBtn = createButton("", "BTools")
 BToolsBtn.Name = "BToolsBtn"
 BToolsActive = false
-
 function toggleBTools()
     local backpack = Player:FindFirstChildOfClass("Backpack")
     local char = Player.Character
-    
     local found = false
     local function cleanTools(parent)
         if not parent then return end
@@ -8576,10 +7620,8 @@ function toggleBTools()
             end
         end
     end
-    
     cleanTools(backpack)
     cleanTools(char)
-    
     if found then
         BToolsActive = false
         setButtonActive(BToolsBtn, false)
@@ -8607,14 +7649,185 @@ function toggleBTools()
         end)
     end
 end
-
 BToolsBtn.MouseButton1Click:Connect(toggleBTools)
+
+PartInspectorBtn = createButton("", "Part Inspector")
+PartInspectorBtn.Name = "PartInspectorBtn"
+partInspectorActive = false
+partInspectorConnection = nil
+inspectedPart = nil
+
+PartInspectorFrame = nil
+PartInspectorTitle = nil
+PartInspectorNameVal = nil
+PartInspectorClassVal = nil
+PartInspectorCollideVal = nil
+PartInspectorAnchoredVal = nil
+PartInspectorToggleCollideBtn = nil
+
+function createPartInspectorWindow()
+    if PartInspectorFrame then return end
+    
+    PartInspectorFrame = Instance.new("Frame")
+    PartInspectorFrame.Size = UDim2.new(0, 260, 0, 200)
+    PartInspectorFrame.Position = UDim2.new(0.5, -130, 0.5, -100)
+    PartInspectorFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
+    PartInspectorFrame.BackgroundTransparency = 0.15
+    PartInspectorFrame.BorderSizePixel = 0
+    PartInspectorFrame.Active = true
+    PartInspectorFrame.Visible = false
+    PartInspectorFrame.Parent = ScreenGui
+    
+    local corner = Instance.new("UICorner", PartInspectorFrame)
+    corner.CornerRadius = UDim.new(0, 10)
+    
+    local stroke = Instance.new("UIStroke", PartInspectorFrame)
+    stroke.Color = Color3.fromRGB(255, 255, 255)
+    stroke.Thickness = 1.5
+    
+    local header = Instance.new("Frame", PartInspectorFrame)
+    header.Size = UDim2.new(1, 0, 0, 30)
+    header.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    header.BorderSizePixel = 0
+    makeSmoothDraggable(PartInspectorFrame, header)
+    
+    local headerCorner = Instance.new("UICorner", header)
+    headerCorner.CornerRadius = UDim.new(0, 10)
+    
+    local headerFix = Instance.new("Frame", header)
+    headerFix.Size = UDim2.new(1, 0, 0, 6)
+    headerFix.Position = UDim2.new(0, 0, 1, -6)
+    headerFix.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    headerFix.BorderSizePixel = 0
+    
+    PartInspectorTitle = Instance.new("TextLabel", header)
+    PartInspectorTitle.Size = UDim2.new(1, -40, 1, 0)
+    PartInspectorTitle.Position = UDim2.new(0, 10, 0, 0)
+    PartInspectorTitle.BackgroundTransparency = 1
+    PartInspectorTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    PartInspectorTitle.Font = Enum.Font.GothamBold
+    PartInspectorTitle.TextSize = 12
+    PartInspectorTitle.TextXAlignment = Enum.TextXAlignment.Left
+    addTranslatable(PartInspectorTitle, "Part Inspector")
+    
+    local closeBtn = Instance.new("TextButton", header)
+    closeBtn.Size = UDim2.new(0, 20, 0, 20)
+    closeBtn.Position = UDim2.new(1, -26, 0.5, -10)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+    closeBtn.Text = "X"
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 11
+    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 5)
+    
+    closeBtn.MouseButton1Click:Connect(function()
+        PartInspectorFrame.Visible = false
+    end)
+    
+    local content = Instance.new("Frame", PartInspectorFrame)
+    content.Size = UDim2.new(1, -20, 1, -40)
+    content.Position = UDim2.new(0, 10, 0, 35)
+    content.BackgroundTransparency = 1
+    
+    local layout = Instance.new("UIListLayout", content)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0, 6)
+    
+    local function createLabelRow(labelKey, order)
+        local row = Instance.new("Frame")
+        row.Size = UDim2.new(1, 0, 0, 20)
+        row.BackgroundTransparency = 1
+        row.LayoutOrder = order
+        row.Parent = content
+        
+        local lbl = Instance.new("TextLabel", row)
+        lbl.Size = UDim2.new(0.4, 0, 1, 0)
+        lbl.BackgroundTransparency = 1
+        lbl.TextColor3 = Color3.fromRGB(180, 180, 180)
+        lbl.Font = Enum.Font.Gotham
+        lbl.TextSize = 11
+        lbl.TextXAlignment = Enum.TextXAlignment.Left
+        addTranslatable(lbl, labelKey)
+        
+        local val = Instance.new("TextLabel", row)
+        val.Size = UDim2.new(0.6, 0, 1, 0)
+        val.Position = UDim2.new(0.4, 0, 0, 0)
+        val.BackgroundTransparency = 1
+        val.TextColor3 = Color3.fromRGB(255, 255, 255)
+        val.Font = Enum.Font.GothamBold
+        val.TextSize = 11
+        val.TextXAlignment = Enum.TextXAlignment.Left
+        val.Text = "-"
+        
+        return val
+    end
+    
+    PartInspectorNameVal = createLabelRow("PartName", 1)
+    PartInspectorClassVal = createLabelRow("ClassName", 2)
+    PartInspectorCollideVal = createLabelRow("Collision", 3)
+    PartInspectorAnchoredVal = createLabelRow("Anchored", 4)
+    
+
+end
+
+function updateInspectedPartUI()
+    if not inspectedPart then return end
+    pcall(function()
+        PartInspectorNameVal.Text = tostring(inspectedPart.Name)
+        PartInspectorClassVal.Text = tostring(inspectedPart.ClassName)
+        PartInspectorCollideVal.Text = inspectedPart.CanCollide and (_G.currentLang == "ID" and "Padat (Tidak Nembus)" or "Solid (Can't Clip)") or (_G.currentLang == "ID" and "Nembus (CanCollide OFF)" or "Clip (CanCollide OFF)")
+        PartInspectorCollideVal.TextColor3 = inspectedPart.CanCollide and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+        PartInspectorAnchoredVal.Text = inspectedPart.Anchored and (_G.currentLang == "ID" and "Ya" or "Yes") or (_G.currentLang == "ID" and "Tidak" or "No")
+    end)
+end
+
+function togglePartInspector(state)
+    if state == nil then
+        partInspectorActive = not partInspectorActive
+    else
+        partInspectorActive = state
+    end
+    
+    if PartInspectorBtn then
+        setButtonActive(PartInspectorBtn, partInspectorActive)
+    end
+    
+    if partInspectorActive then
+        createPartInspectorWindow()
+        PartInspectorFrame.Visible = true
+        
+        local mouse = Players.LocalPlayer:GetMouse()
+        if partInspectorConnection then partInspectorConnection:Disconnect() end
+        partInspectorConnection = UserInputService.InputBegan:Connect(function(input, gpe)
+            if gpe then return end
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                local target = mouse.Target
+                if target and target:IsA("BasePart") then
+                    inspectedPart = target
+                    updateInspectedPartUI()
+                end
+            end
+        end)
+    else
+        if partInspectorConnection then
+            partInspectorConnection:Disconnect()
+            partInspectorConnection = nil
+        end
+        if PartInspectorFrame then
+            PartInspectorFrame.Visible = false
+        end
+        inspectedPart = nil
+    end
+end
+
+PartInspectorBtn.MouseButton1Click:Connect(function()
+    togglePartInspector()
+end)
 
 JumpPowerBtn = createButton("", "Jump Power")
 JumpPowerBtn.Name = "JumpPowerBtn"
 local desiredJumpPower = 50
 local jumpPowerOn = false
-
 do
     JumpPowerBox = Instance.new("TextBox")
     JumpPowerBox.Name = "JumpPowerBox"
@@ -8627,15 +7840,12 @@ do
     JumpPowerBox.TextColor3 = Color3.fromRGB(255, 255, 255)
     JumpPowerBox.ClearTextOnFocus = false
     JumpPowerBox.Parent = ScrollFrame
-
     local c_jp = Instance.new("UICorner")
     c_jp.CornerRadius = UDim.new(0, 8)
     c_jp.Parent = JumpPowerBox
-
     local p_jp = Instance.new("UIPadding")
     p_jp.PaddingLeft = UDim.new(0, 12)
     p_jp.Parent = JumpPowerBox
-
     JumpPowerBox.FocusLost:Connect(function()
         local n = tonumber(JumpPowerBox.Text)
         if n then
@@ -8653,9 +7863,7 @@ do
         JumpPowerBox.Text = tostring(desiredJumpPower)
     end)
 end
-
 local jumpTrailPart
-
 local function addJumpTrail(char)
 	if jumpTrailPart then
 		pcall(function() jumpTrailPart:Destroy() end)
@@ -8666,75 +7874,76 @@ local function addJumpTrail(char)
 			pcall(function() p:Destroy() end)
 		end
 	end
-
-	local torso = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso") or char:FindFirstChild("HumanoidRootPart")
-	if not torso then return end
-
+	local leftHand = char:FindFirstChild("Left Arm") or char:FindFirstChild("LeftHand")
+	local rightHand = char:FindFirstChild("Right Arm") or char:FindFirstChild("RightHand")
+	if not leftHand and not rightHand then return end
 	jumpTrailPart = Instance.new("Folder")
 	jumpTrailPart.Name = "JumpTrailPart"
 	jumpTrailPart.Parent = char
-
-	-- Torso Trail 1 (Vertical)
-	local attTop1 = Instance.new("Attachment")
-	attTop1.Name = "JumpTrailAtt"
-	attTop1.Position = Vector3.new(0, 0.6, 0)
-	attTop1.Parent = torso
-
-	local attBottom1 = Instance.new("Attachment")
-	attBottom1.Name = "JumpTrailAtt"
-	attBottom1.Position = Vector3.new(0, -0.6, 0)
-	attBottom1.Parent = torso
-
-	local newTrail1 = Instance.new("Trail")
-	newTrail1.Name = "JumpTrailInst"
-	newTrail1.Attachment0 = attTop1
-	newTrail1.Attachment1 = attBottom1
-	newTrail1.Lifetime = 1.2
-	newTrail1.MinLength = 0.05
-	newTrail1.LightEmission = 0.1
-	newTrail1.Color = ColorSequence.new(Color3.fromRGB(220, 20, 20)) -- Crimson Red
-	newTrail1.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 0.2),
-		NumberSequenceKeypoint.new(1, 1)
-	})
-	newTrail1.WidthScale = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 1.0),
-		NumberSequenceKeypoint.new(0.5, 0.5),
-		NumberSequenceKeypoint.new(1, 0)
-	})
-	newTrail1.Parent = torso
-
-	-- Torso Trail 2 (Horizontal - cross)
-	local attTop2 = Instance.new("Attachment")
-	attTop2.Name = "JumpTrailAtt"
-	attTop2.Position = Vector3.new(0.4, 0, 0)
-	attTop2.Parent = torso
-
-	local attBottom2 = Instance.new("Attachment")
-	attBottom2.Name = "JumpTrailAtt"
-	attBottom2.Position = Vector3.new(-0.4, 0, 0)
-	attBottom2.Parent = torso
-
-	local newTrail2 = Instance.new("Trail")
-	newTrail2.Name = "JumpTrailInst"
-	newTrail2.Attachment0 = attTop2
-	newTrail2.Attachment1 = attBottom2
-	newTrail2.Lifetime = 1.2
-	newTrail2.MinLength = 0.05
-	newTrail2.LightEmission = 0.1
-	newTrail2.Color = ColorSequence.new(Color3.fromRGB(220, 20, 20)) -- Crimson Red
-	newTrail2.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 0.2),
-		NumberSequenceKeypoint.new(1, 1)
-	})
-	newTrail2.WidthScale = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 1.0),
-		NumberSequenceKeypoint.new(0.5, 0.5),
-		NumberSequenceKeypoint.new(1, 0)
-	})
-	newTrail2.Parent = torso
+	
+	local function createHandTrail(handPart)
+		if not handPart then return end
+		
+		-- Trail 1 (Vertical)
+		local attTop1 = Instance.new("Attachment")
+		attTop1.Name = "JumpTrailAtt"
+		attTop1.Position = Vector3.new(0, 0.6, 0)
+		attTop1.Parent = handPart
+		local attBottom1 = Instance.new("Attachment")
+		attBottom1.Name = "JumpTrailAtt"
+		attBottom1.Position = Vector3.new(0, -0.6, 0)
+		attBottom1.Parent = handPart
+		local newTrail1 = Instance.new("Trail")
+		newTrail1.Name = "JumpTrailInst"
+		newTrail1.Attachment0 = attTop1
+		newTrail1.Attachment1 = attBottom1
+		newTrail1.Lifetime = 1.2
+		newTrail1.MinLength = 0.05
+		newTrail1.LightEmission = 0.1
+		newTrail1.Color = ColorSequence.new(Color3.fromRGB(220, 20, 20))
+		newTrail1.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.2),
+			NumberSequenceKeypoint.new(1, 1)
+		})
+		newTrail1.WidthScale = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1.0),
+			NumberSequenceKeypoint.new(0.5, 0.5),
+			NumberSequenceKeypoint.new(1, 0)
+		})
+		newTrail1.Parent = handPart
+		
+		-- Trail 2 (Horizontal)
+		local attTop2 = Instance.new("Attachment")
+		attTop2.Name = "JumpTrailAtt"
+		attTop2.Position = Vector3.new(0.4, 0, 0)
+		attTop2.Parent = handPart
+		local attBottom2 = Instance.new("Attachment")
+		attBottom2.Name = "JumpTrailAtt"
+		attBottom2.Position = Vector3.new(-0.4, 0, 0)
+		attBottom2.Parent = handPart
+		local newTrail2 = Instance.new("Trail")
+		newTrail2.Name = "JumpTrailInst"
+		newTrail2.Attachment0 = attTop2
+		newTrail2.Attachment1 = attBottom2
+		newTrail2.Lifetime = 1.2
+		newTrail2.MinLength = 0.05
+		newTrail2.LightEmission = 0.1
+		newTrail2.Color = ColorSequence.new(Color3.fromRGB(220, 20, 20))
+		newTrail2.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.2),
+			NumberSequenceKeypoint.new(1, 1)
+		})
+		newTrail2.WidthScale = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1.0),
+			NumberSequenceKeypoint.new(0.5, 0.5),
+			NumberSequenceKeypoint.new(1, 0)
+		})
+		newTrail2.Parent = handPart
+	end
+	
+	createHandTrail(leftHand)
+	createHandTrail(rightHand)
 end
-
 local function removeJumpTrail()
 	if jumpTrailPart then
 		pcall(function() jumpTrailPart:Destroy() end)
@@ -8749,7 +7958,6 @@ local function removeJumpTrail()
 		end
 	end
 end
-
 function toggleJumpPower(state)
     if state == nil then
         jumpPowerOn = not jumpPowerOn
@@ -8758,7 +7966,6 @@ function toggleJumpPower(state)
     end
     local char = Player.Character
     local hum = char and char:FindFirstChildOfClass("Humanoid")
-
     if jumpPowerOn then
         if hum then
             hum.UseJumpPower = true
@@ -8777,18 +7984,15 @@ function toggleJumpPower(state)
         setButtonActive(JumpPowerBtn, false)
     end
 end
-
 JumpPowerBtn.MouseButton1Click:Connect(function()
     toggleJumpPower()
 end)
-
 JumpPowerShortcutConn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if UserInputService:GetFocusedTextBox() then return end
     if input.KeyCode == Enum.KeyCode.BackSlash then
         toggleJumpPower()
     end
 end)
-
 Player.CharacterAdded:Connect(function(char)
     local hum = char:WaitForChild("Humanoid", 5)
     if hum and jumpPowerOn then
@@ -8800,28 +8004,21 @@ Player.CharacterAdded:Connect(function(char)
         end
     end
 end)
-
 TPToolBtn = createButton("", "TP Tool")
 TPToolBtn.Name = "TPToolBtn"
 local tpToolActive = false
-
 local function giveTPTool(char)
     local backpack = Player:FindFirstChildOfClass("Backpack")
     if not backpack then return end
-    
-    -- Check if already exists
     if backpack:FindFirstChild("TP Tool") or (char and char:FindFirstChild("TP Tool")) then
         return
     end
-    
     local tool = Instance.new("Tool")
     tool.Name = "TP Tool"
     tool.RequiresHandle = false
-    tool.ManualActivationOnly = true -- Prevent Roblox camera/mouse interference in first person
-    
+    tool.ManualActivationOnly = true
     local toolEquipped = false
     local mouseConn = nil
-
     tool.Equipped:Connect(function()
         toolEquipped = true
         pcall(function()
@@ -8830,7 +8027,6 @@ local function giveTPTool(char)
             end
         end)
     end)
-    
     tool.Unequipped:Connect(function()
         toolEquipped = false
         pcall(function()
@@ -8839,7 +8035,6 @@ local function giveTPTool(char)
             end
         end)
     end)
-    
     UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if not gameProcessed and toolEquipped and input.UserInputType == Enum.UserInputType.MouseButton1 then
             local mouse = Player:GetMouse()
@@ -8857,10 +8052,8 @@ local function giveTPTool(char)
             end
         end
     end)
-    
     tool.Parent = backpack
 end
-
 local function removeTPTool()
     local backpack = Player:FindFirstChildOfClass("Backpack")
     if backpack then
@@ -8873,14 +8066,12 @@ local function removeTPTool()
         if t then pcall(function() t:Destroy() end) end
     end
 end
-
 function toggleTPTool(state)
     if state == nil then
         tpToolActive = not tpToolActive
     else
         tpToolActive = state
     end
-    
     if tpToolActive then
         giveTPTool(Player.Character)
         setButtonActive(TPToolBtn, true)
@@ -8889,29 +8080,24 @@ function toggleTPTool(state)
         setButtonActive(TPToolBtn, false)
     end
 end
-
 TPToolBtn.MouseButton1Click:Connect(function()
     toggleTPTool()
 end)
-
 Player.CharacterAdded:Connect(function(char)
     task.wait(0.5)
     if tpToolActive then
         giveTPTool(char)
     end
 end)
-
 ShiftLockBtn = createButton("", "Shift Lock")
 shiftLockActive = false
 local shiftLockConnection = nil
-
 function toggleShiftLock(state)
     if state == nil then
         shiftLockActive = not shiftLockActive
     else
         shiftLockActive = state
     end
-    
     if shiftLockActive then
         setButtonActive(ShiftLockBtn, true)
         pcall(function()
@@ -8921,12 +8107,10 @@ function toggleShiftLock(state)
                 local root = character and character:FindFirstChild("HumanoidRootPart")
                 local camera = workspace.CurrentCamera
                 local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-                
                 if root and camera and humanoid and humanoid.Health > 0 then
                     local lookVector = camera.CFrame.LookVector
                     local angle = math.atan2(-lookVector.X, -lookVector.Z)
                     root.CFrame = CFrame.new(root.Position) * CFrame.Angles(0, angle, 0)
-                    
                     humanoid.CameraOffset = Vector3.new(1.75, 0, 0)
                     UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
                 end
@@ -8948,15 +8132,12 @@ function toggleShiftLock(state)
         end)
     end
 end
-
 ShiftLockBtn.MouseButton1Click:Connect(function()
     toggleShiftLock()
 end)
-
 NoclipBtn = createButton("", "Noclip Ghost")
 noclipActive = false
 noclipConnection = nil
-
 function enableNoclip()
     noclipConnection = RunService.Stepped:Connect(function()
         local char = Player.Character
@@ -8969,13 +8150,11 @@ function enableNoclip()
         end
     end)
 end
-
 function disableNoclip()
     if noclipConnection then
         noclipConnection:Disconnect()
         noclipConnection = nil
     end
-
     local char = Player.Character
     if char then
         for _, obj in ipairs(char:GetDescendants()) do
@@ -8985,7 +8164,6 @@ function disableNoclip()
         end
     end
 end
-
 function onCharacterAdded(newCharacter)
     if noclipActive then
         newCharacter:WaitForChild("HumanoidRootPart")
@@ -8995,14 +8173,12 @@ function onCharacterAdded(newCharacter)
         end
     end
 end
-
 function toggleNoclip(state)
     if state == nil then
         noclipActive = not noclipActive
     else
         noclipActive = state
     end
-    
     if noclipActive then
         enableNoclip()
         setButtonActive(NoclipBtn, true)
@@ -9011,18 +8187,14 @@ function toggleNoclip(state)
         setButtonActive(NoclipBtn, false)
     end
 end
-
 NoclipBtn.MouseButton1Click:Connect(function()
     toggleNoclip()
 end)
-
 Player.CharacterAdded:Connect(onCharacterAdded)
-
 if Player.Character then
     task.wait(0.5)
     onCharacterAdded(Player.Character)
 end
-
 SpectatorBtn = createButton("", "Spectator")
 AnimasiBtn = createButton("", "Animasi")
 EmoteBtn = createButton("", "Emotes")
@@ -9035,14 +8207,12 @@ DexBtn = createButton("", "Dex Explorer")
 MaxZoomBtn = createButton("", "Max Zoom")
 MaxZoomBtn.Name = "MaxZoomBtn"
 MaxZoomBtn.MouseButton1Click:Connect(function() toggleMaxZoom() end)
-
 CmdBarBtn = createButton("", "Command Bar")
 CmdBarBtn.MouseButton1Click:Connect(function()
     if showCmdBar then
         showCmdBar()
     end
 end)
-
 function launchDex()
     local ok, err = pcall(function()
         local success, result = pcall(function()
@@ -9070,7 +8240,6 @@ function launchDex()
     end
 end
 DexBtn.MouseButton1Click:Connect(launchDex)
-
 function launchSpectator()
     local success, err = pcall(function()
 local Players = game:GetService("Players")
@@ -9078,37 +8247,25 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-
 local LP = Players.LocalPlayer
 local Cam = Workspace.CurrentCamera
-
--- State
 local Active = true
 local TargetList = {}
 local CurrentIndex = 0
 local CurrentTarget = nil
-local updateProfile -- forward declaration
-
+local updateProfile
 local FlingActive = false
 local FlingThread = nil
 local OriginalCFrame = nil
-
 local FollowActive = false
 local FollowConnection = nil
 local FollowAnim = nil
-
 local SendPartActive = false
 local SendPartLoopThread = nil
-
--- FREEZE State
 local FreezeConnection = nil
 local OriginalWalkSpeed = 16
 local OriginalJumpPower = 50
-
--- Network stabilizer placeholder (best-effort)
 local NetworkConnection = nil
-
--- 3D HD Colors - Blue & Black Theme
 local COLORS = {
     DARK_BLUE = Color3.fromRGB(15, 15, 15),
     MEDIUM_BLUE = Color3.fromRGB(25, 25, 25),
@@ -9122,16 +8279,12 @@ local COLORS = {
     RED = Color3.fromRGB(255, 50, 50),
     GOLD = Color3.fromRGB(255, 215, 0)
 }
-
--- Character refs
 local humanoid, rootPart
 local function refreshCharacterRefs()
     local char = LP.Character
     if char then
         humanoid = char:FindFirstChildOfClass("Humanoid")
         rootPart = char:FindFirstChild("HumanoidRootPart")
-        
-        -- Save original movement properties
         if humanoid then
             OriginalWalkSpeed = humanoid.WalkSpeed
             OriginalJumpPower = humanoid.JumpPower
@@ -9142,14 +8295,12 @@ local function refreshCharacterRefs()
     end
 end
 refreshCharacterRefs()
-
 LP.CharacterAdded:Connect(function(char)
     pcall(function()
         char:WaitForChild("Humanoid", 5)
         char:WaitForChild("HumanoidRootPart", 5)
     end)
     refreshCharacterRefs()
-
     if FollowActive then
         if FollowConnection then
             FollowConnection:Disconnect()
@@ -9162,48 +8313,35 @@ LP.CharacterAdded:Connect(function(char)
         FollowActive = false
     end
 end)
-
--- ========== FREEZE CHARACTER SYSTEM ==========
 local function freezeCharacter()
     if FreezeConnection then
         FreezeConnection:Disconnect()
     end
-    
     FreezeConnection = RunService.Heartbeat:Connect(function()
         if humanoid and rootPart then
-            -- Freeze movement
             humanoid.WalkSpeed = 0
             humanoid.JumpPower = 0
-            
-            -- Freeze position (optional, for extra security)
             pcall(function()
                 rootPart.AssemblyLinearVelocity = Vector3.zero
                 rootPart.AssemblyAngularVelocity = Vector3.zero
             end)
         end
     end)
-    
-    -- Also disable humanoid controls
     if humanoid then
         humanoid.WalkSpeed = 0
         humanoid.JumpPower = 0
     end
 end
-
 local function unfreezeCharacter()
     if FreezeConnection then
         FreezeConnection:Disconnect()
         FreezeConnection = nil
     end
-    
-    -- Restore movement
     if humanoid then
         humanoid.WalkSpeed = OriginalWalkSpeed
         humanoid.JumpPower = OriginalJumpPower
     end
 end
-
--- ---------- 3D HD GUI - CLEAN LAYOUT ----------
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "PIXECUTE SPECTATE"
 ScreenGui.ResetOnSpawn = false
@@ -9214,7 +8352,6 @@ if not successParent then
     ScreenGui.Parent = PlayerGui or (game.Players.LocalPlayer and game.Players.LocalPlayer:FindFirstChild("PlayerGui"))
 end
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
 local ProfileFrame = Instance.new("Frame")
 ProfileFrame.Size = UDim2.new(0, 140, 0, 80)
 ProfileFrame.Position = UDim2.new(1, -150, 0, 8)
@@ -9222,20 +8359,14 @@ ProfileFrame.BackgroundColor3 = COLORS.DARK_BLACK
 ProfileFrame.BackgroundTransparency = 0.1
 ProfileFrame.BorderSizePixel = 0
 ProfileFrame.Parent = ScreenGui
-
 local ProfileCorner = Instance.new("UICorner", ProfileFrame)
 ProfileCorner.CornerRadius = UDim.new(0, 12)
-
 local ProfileStroke = Instance.new("UIStroke")
 ProfileStroke.Color = Color3.fromRGB(255, 50, 50)
 ProfileStroke.Thickness = 1
 ProfileStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 ProfileStroke.Parent = ProfileFrame
-
-
-
-local titleBg = ProfileFrame -- Keep variable for compatibility with tweens
-
+local titleBg = ProfileFrame
 local SpectateTitle = Instance.new("TextLabel")
 SpectateTitle.Size = UDim2.new(1, 0, 0, 20)
 SpectateTitle.Position = UDim2.new(0, 0, 0, 0)
@@ -9247,8 +8378,6 @@ SpectateTitle.Text = "PIXECUTE SPECTATE"
 SpectateTitle.TextXAlignment = Enum.TextXAlignment.Center
 SpectateTitle.ZIndex = 10
 SpectateTitle.Parent = ProfileFrame
-
--- Main Controls Frame (RIGHT - DIBAWAH)
 local ControlsFrame = Instance.new("Frame")
 ControlsFrame.Size = UDim2.new(0, 140, 0, 180)
 ControlsFrame.Position = UDim2.new(1, -150, 0, 100)
@@ -9256,19 +8385,13 @@ ControlsFrame.BackgroundColor3 = COLORS.DARK_BLACK
 ControlsFrame.BackgroundTransparency = 0.1
 ControlsFrame.BorderSizePixel = 0
 ControlsFrame.Parent = ScreenGui
-
 local ControlsCorner = Instance.new("UICorner", ControlsFrame)
 ControlsCorner.CornerRadius = UDim.new(0, 12)
-
 local ControlsStroke = Instance.new("UIStroke")
 ControlsStroke.Color = Color3.fromRGB(255, 50, 50)
 ControlsStroke.Thickness = 1
 ControlsStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 ControlsStroke.Parent = ControlsFrame
-
-
-
--- Header untuk Controls
 local ControlsHeader = Instance.new("TextLabel")
 ControlsHeader.Size = UDim2.new(1, 0, 0, 20)
 ControlsHeader.Position = UDim2.new(0, 0, 0, 0)
@@ -9279,28 +8402,20 @@ ControlsHeader.TextColor3 = COLORS.NEON_BLUE
 ControlsHeader.Font = Enum.Font.GothamBold
 ControlsHeader.TextSize = 11
 ControlsHeader.Parent = ControlsFrame
-
 local HeaderCorner = Instance.new("UICorner", ControlsHeader)
 HeaderCorner.CornerRadius = UDim.new(0, 12)
-
 local Avatar = Instance.new("ImageLabel")
 Avatar.Parent = ProfileFrame
 Avatar.Size = UDim2.new(0, 40, 0, 40)
 Avatar.Position = UDim2.new(0, 8, 0, 30)
 Avatar.BackgroundColor3 = COLORS.MEDIUM_BLACK
 Avatar.BorderSizePixel = 0
-
 local AvatarCorner = Instance.new("UICorner", Avatar)
 AvatarCorner.CornerRadius = UDim.new(0, 8)
-
-
-
 local UserInfoFrame = Instance.new("Frame", ProfileFrame)
 UserInfoFrame.Size = UDim2.new(1, -60, 1, -28)
 UserInfoFrame.Position = UDim2.new(0, 56, 0, 24)
 UserInfoFrame.BackgroundTransparency = 1
-
--- Username Label - Format Rapi
 local UsernameLabel = Instance.new("TextLabel", UserInfoFrame)
 UsernameLabel.Size = UDim2.new(1, 0, 0.4, 0)
 UsernameLabel.Position = UDim2.new(0,0,0,0)
@@ -9311,8 +8426,6 @@ UsernameLabel.TextXAlignment = Enum.TextXAlignment.Left
 UsernameLabel.TextSize = 12
 UsernameLabel.TextTruncate = Enum.TextTruncate.AtEnd
 UsernameLabel.Text = tr("NameLabel")
-
--- Age Label - Format Rapi
 local AgeLabel = Instance.new("TextLabel", UserInfoFrame)
 AgeLabel.Size = UDim2.new(1,0,0.3,0)
 AgeLabel.Position = UDim2.new(0,0,0.4,0)
@@ -9322,8 +8435,6 @@ AgeLabel.TextColor3 = COLORS.LIGHT_BLUE
 AgeLabel.TextXAlignment = Enum.TextXAlignment.Left
 AgeLabel.TextSize = 10
 AgeLabel.Text = tr("AgeLabel")
-
--- ID Label - Format Rapi
 local IdLabel = Instance.new("TextLabel", UserInfoFrame)
 IdLabel.Size = UDim2.new(1,0,0.3,0)
 IdLabel.Position = UDim2.new(0,0,0.7,0)
@@ -9333,19 +8444,14 @@ IdLabel.TextColor3 = COLORS.LIGHT_BLUE
 IdLabel.TextXAlignment = Enum.TextXAlignment.Left
 IdLabel.TextSize = 10
 IdLabel.Text = "ID"
-
--- Status Indicator untuk Profile
 local StatusIndicator = Instance.new("Frame")
 StatusIndicator.Size = UDim2.new(0, 5, 0, 5)
 StatusIndicator.Position = UDim2.new(1, -10, 0, 8)
 StatusIndicator.BackgroundColor3 = COLORS.RED
 StatusIndicator.BorderSizePixel = 0
 StatusIndicator.Parent = ProfileFrame
-
 local StatusCorner = Instance.new("UICorner", StatusIndicator)
 StatusCorner.CornerRadius = UDim.new(1, 0)
-
--- Improved 3D Button Function untuk Controls
 local function createControlButton(parent, text, bgColor, positionY, icon)
     local ButtonContainer = Instance.new("Frame")
     ButtonContainer.Size = UDim2.new(0.9, 0, 0, 30)
@@ -9354,12 +8460,8 @@ local function createControlButton(parent, text, bgColor, positionY, icon)
     ButtonContainer.BackgroundColor3 = COLORS.MEDIUM_BLACK
     ButtonContainer.BorderSizePixel = 0
     ButtonContainer.Parent = parent
-    
     local ButtonCorner = Instance.new("UICorner", ButtonContainer)
     ButtonCorner.CornerRadius = UDim.new(0, 8)
-    
-
-    
     local Button = Instance.new("TextButton")
     Button.Size = UDim2.new(1, -4, 1, -4)
     Button.Position = UDim2.new(0, 2, 0, 2)
@@ -9371,48 +8473,36 @@ local function createControlButton(parent, text, bgColor, positionY, icon)
     Button.Text = (icon or "") .. " " .. text
     Button.AutoButtonColor = false
     Button.Parent = ButtonContainer
-    
     local ButtonInnerCorner = Instance.new("UICorner", Button)
     ButtonInnerCorner.CornerRadius = UDim.new(0, 6)
-    
-    -- Improved Hover effects
     Button.MouseEnter:Connect(function()
         TweenService:Create(Button, TweenInfo.new(0.2), {BackgroundColor3 = COLORS.MEDIUM_BLUE}):Play()
         TweenService:Create(Button, TweenInfo.new(0.2), {TextColor3 = COLORS.NEON_BLUE}):Play()
     end)
-    
     Button.MouseLeave:Connect(function()
         TweenService:Create(Button, TweenInfo.new(0.2), {BackgroundColor3 = bgColor}):Play()
         TweenService:Create(Button, TweenInfo.new(0.2), {TextColor3 = COLORS.WHITE}):Play()
     end)
-    
     return Button
 end
-
--- Create control buttons di frame kanan dengan spacing yang rapi
 local TeleBtn = createControlButton(ControlsFrame, tr("TeleportBtn"), COLORS.DARK_BLUE, 0.15, "")
 local FlingBtn = createControlButton(ControlsFrame, "Fling", COLORS.DARK_BLUE, 0.35, "")
 local FollowBtn = createControlButton(ControlsFrame, tr("FollowBtn"), COLORS.DARK_BLUE, 0.55, "")
 local SendPartBtn = createControlButton(ControlsFrame, tr("SendPartBtn"), COLORS.DARK_BLUE, 0.75, "")
-
 local SpectatorPlayerListFrame = Instance.new("Frame")
 local SearchBox = Instance.new("TextBox")
 local SpListScroll = Instance.new("ScrollingFrame")
-
 SpectatorPlayerListFrame.Size = UDim2.new(0, 160, 0, 240)
 SpectatorPlayerListFrame.Position = UDim2.new(1, -330, 0, 40)
 SpectatorPlayerListFrame.BackgroundColor3 = COLORS.DARK_BLACK
 SpectatorPlayerListFrame.BackgroundTransparency = 0.1
 SpectatorPlayerListFrame.BorderSizePixel = 0
 SpectatorPlayerListFrame.Parent = ScreenGui
-
 local SpListCorner = Instance.new("UICorner", SpectatorPlayerListFrame)
 SpListCorner.CornerRadius = UDim.new(0, 12)
-
 local SpListStroke = Instance.new("UIStroke", SpectatorPlayerListFrame)
 SpListStroke.Color = COLORS.NEON_BLUE
 SpListStroke.Thickness = 2
-
 SearchBox.Size = UDim2.new(1, -10, 0, 24)
 SearchBox.Position = UDim2.new(0, 5, 0, 5)
 SearchBox.BackgroundColor3 = COLORS.MEDIUM_BLACK
@@ -9425,37 +8515,30 @@ SearchBox.PlaceholderColor3 = COLORS.NEON_BLUE
 SearchBox.Text = ""
 SearchBox.TextXAlignment = Enum.TextXAlignment.Center
 SearchBox.Parent = SpectatorPlayerListFrame
-
 local SearchCorner = Instance.new("UICorner", SearchBox)
 SearchCorner.CornerRadius = UDim.new(0, 4)
-
 SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
     if refreshSpectatorPlayerList then
         refreshSpectatorPlayerList()
     end
 end)
-
 SpListScroll.Size = UDim2.new(1, -10, 1, -40)
 SpListScroll.Position = UDim2.new(0, 5, 0, 35)
 SpListScroll.BackgroundTransparency = 1
 SpListScroll.ScrollBarThickness = 4
 SpListScroll.ScrollBarImageColor3 = COLORS.NEON_BLUE
 SpListScroll.Parent = SpectatorPlayerListFrame
-
 local SpListLayout = Instance.new("UIListLayout")
 SpListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 SpListLayout.Padding = UDim.new(0, 4)
 SpListLayout.Parent = SpListScroll
-
 function refreshSpectatorPlayerList()
     for _, child in ipairs(SpListScroll:GetChildren()) do
         if child:IsA("TextButton") then
             child:Destroy()
         end
     end
-
     local txt = string.lower(SearchBox.Text)
-
     local sortedList = {}
     for _, p in ipairs(TargetList) do
         table.insert(sortedList, p)
@@ -9466,7 +8549,6 @@ function refreshSpectatorPlayerList()
         local lpHrp = lp.Character:FindFirstChild("HumanoidRootPart") or lp.Character:FindFirstChild("Torso")
         if lpHrp then lpPos = lpHrp.Position end
     end
-
     table.sort(sortedList, function(a, b)
         local distA, distB = math.huge, math.huge
         if lpPos then
@@ -9479,7 +8561,6 @@ function refreshSpectatorPlayerList()
                 if bHrp then distB = (bHrp.Position - lpPos).Magnitude end
             end
         end
-        
         local aIsDetected = (distA ~= math.huge)
         local bIsDetected = (distB ~= math.huge)
         if aIsDetected ~= bIsDetected then
@@ -9492,23 +8573,19 @@ function refreshSpectatorPlayerList()
         end
         return string.lower(a.DisplayName) < string.lower(b.DisplayName)
     end)
-
         local ySize = 0
     local urutan = 0
     for _, p in ipairs(sortedList) do
         local i = table.find(TargetList, p)
         if txt == "" or string.find(string.lower(p.Name), txt, 1, true) or string.find(string.lower(p.DisplayName), txt, 1, true) then
             urutan = urutan + 1
-            
             local btn = Instance.new("TextButton")
             btn.Size = UDim2.new(1, 0, 0, 25)
             btn.BackgroundColor3 = COLORS.MEDIUM_BLACK
             btn.TextColor3 = COLORS.WHITE
             btn.Font = Enum.Font.Gotham
             btn.TextSize = 10
-            
-            -- Kalkulasi Ikon & Jarak
-            local prefix = "âš« "
+            local prefix = "⚫ "
             pcall(function()
                 local lp = game:GetService("Players").LocalPlayer
                 local lpPos = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") and lp.Character.HumanoidRootPart.Position
@@ -9516,26 +8593,22 @@ function refreshSpectatorPlayerList()
                 if tHrp then
                     if lpPos then
                         local dist = math.floor((lpPos - tHrp.Position).Magnitude)
-                        prefix = "ðŸŸ¢ [" .. dist .. "m] "
+                        prefix = "🟢 [" .. dist .. "m] "
                     else
-                        prefix = "ðŸŸ¢ "
+                        prefix = "🟢 "
                     end
                 end
             end)
-            
             btn.Text = " " .. prefix .. p.DisplayName .. " (@" .. p.Name .. ")"
             btn.TextXAlignment = Enum.TextXAlignment.Left
             btn.LayoutOrder = urutan
             btn.Parent = SpListScroll
-
             if p == CurrentTarget then
                 btn.BackgroundColor3 = COLORS.DARK_BLUE
                 btn.TextColor3 = COLORS.NEON_BLUE
             end
-
             local btnCorner = Instance.new("UICorner", btn)
             btnCorner.CornerRadius = UDim.new(0, 4)
-
             btn.MouseButton1Click:Connect(function()
                 if CurrentTarget ~= p then
                     CurrentTarget = p
@@ -9550,8 +8623,6 @@ function refreshSpectatorPlayerList()
     end
     SpListScroll.CanvasSize = UDim2.new(0, 0, 0, ySize)
 end
-
--- Bottom navigation (CENTER BOTTOM) - Prev - Close - Next
 local BottomFrame = Instance.new("Frame")
 BottomFrame.Size = UDim2.new(0, 320, 0, 50)
 BottomFrame.Position = UDim2.new(0.5, -160, 1, -70)
@@ -9559,32 +8630,25 @@ BottomFrame.BackgroundColor3 = COLORS.DARK_BLACK
 BottomFrame.BackgroundTransparency = 0.1
 BottomFrame.BorderSizePixel = 0
 BottomFrame.Parent = ScreenGui
-
 local BottomCorner = Instance.new("UICorner", BottomFrame)
 BottomCorner.CornerRadius = UDim.new(0, 12)
-
 local BottomStroke = Instance.new("UIStroke", BottomFrame)
 BottomStroke.Color = COLORS.NEON_BLUE
 BottomStroke.Thickness = 2
-
 local function createNavButton3D(parent, text, positionX, icon, isClose)
     local ButtonContainer = Instance.new("Frame")
     ButtonContainer.Size = UDim2.new(0, 90, 0, 35)
     ButtonContainer.Position = UDim2.new(positionX, 0, 0.5, 0)
     ButtonContainer.AnchorPoint = Vector2.new(0, 0.5)
-    
     local buttonColor = isClose and COLORS.RED or COLORS.DARK_BLUE
     ButtonContainer.BackgroundColor3 = COLORS.MEDIUM_BLACK
     ButtonContainer.BorderSizePixel = 0
     ButtonContainer.Parent = parent
-    
     local ButtonCorner = Instance.new("UICorner", ButtonContainer)
     ButtonCorner.CornerRadius = UDim.new(0, 8)
-    
     local ButtonStroke = Instance.new("UIStroke", ButtonContainer)
     ButtonStroke.Color = COLORS.NEON_BLUE
     ButtonStroke.Thickness = 2
-    
     local button = Instance.new("TextButton")
     button.Size = UDim2.new(1, -4, 1, -4)
     button.Position = UDim2.new(0, 2, 0, 2)
@@ -9595,77 +8659,56 @@ local function createNavButton3D(parent, text, positionX, icon, isClose)
     button.TextSize = 12
     button.Text = (icon or "") .. " " .. text
     button.Parent = ButtonContainer
-    
     local ButtonInnerCorner = Instance.new("UICorner", button)
     ButtonInnerCorner.CornerRadius = UDim.new(0, 6)
-    
-    -- Hover effects
     button.MouseEnter:Connect(function()
         local hoverColor = isClose and Color3.fromRGB(255, 100, 100) or COLORS.MEDIUM_BLUE
         TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = hoverColor}):Play()
     end)
-    
     button.MouseLeave:Connect(function()
         TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = buttonColor}):Play()
     end)
-    
     return button
 end
-
--- Tombol navigasi: Prev - Close - Next
 local PrevBtn = createNavButton3D(BottomFrame, tr("PrevBtn"), 0.05, "", false)
 local CloseNavBtn = createNavButton3D(BottomFrame, tr("CloseBtn"), 0.35, "", true)
 local NextBtn = createNavButton3D(BottomFrame, tr("NextBtn"), 0.65, "", false)
-
--- Function untuk membuka kembali profil frame
 local function openProfileFrame()
     TweenService:Create(ProfileFrame, TweenInfo.new(0.3), {
         BackgroundTransparency = 0.1,
         Size = UDim2.new(0, 140, 0, 80)
     }):Play()
-    
     TweenService:Create(Avatar, TweenInfo.new(0.3), {
         BackgroundTransparency = 0,
         ImageTransparency = 0
     }):Play()
-    
     TweenService:Create(UsernameLabel, TweenInfo.new(0.3), {
         TextTransparency = 0
     }):Play()
-    
     TweenService:Create(AgeLabel, TweenInfo.new(0.3), {
         TextTransparency = 0
     }):Play()
-    
     TweenService:Create(IdLabel, TweenInfo.new(0.3), {
         TextTransparency = 0
     }):Play()
-    
     TweenService:Create(StatusIndicator, TweenInfo.new(0.3), {
         BackgroundTransparency = 0
     }):Play()
 end
-
--- Function to update profile dengan efek visual
 updateProfile = function(plr)
     if ProfileFrame.BackgroundTransparency == 1 then
         openProfileFrame()
     end
-    
     if plr and plr:IsA("Player") then
         UsernameLabel.Text = plr.Name
         AgeLabel.Text = string.format(tr("AgeDaysLabel"), tostring(plr.AccountAge or 0))
         IdLabel.Text = "ID: " .. tostring(plr.UserId)
-        
         StatusIndicator.BackgroundColor3 = COLORS.GREEN
-        
-        -- Animation effect
         task.spawn(function()
             TweenService:Create(UsernameLabel, TweenInfo.new(0.3), {TextColor3 = COLORS.GREEN}):Play()
             task.wait(0.3)
             TweenService:Create(UsernameLabel, TweenInfo.new(0.3), {TextColor3 = COLORS.NEON_BLUE}):Play()
         end)
-        
         pcall(function()
             Avatar.Image = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. plr.UserId .. "&width=150&height=150&format=png"
         end)
@@ -9677,13 +8720,10 @@ updateProfile = function(plr)
         UsernameLabel.TextColor3 = COLORS.NEON_BLUE
         StatusIndicator.BackgroundColor3 = COLORS.RED
     end
-    
     if typeof(refreshSpectatorPlayerList) == "function" then
         refreshSpectatorPlayerList()
     end
 end
-
--- ========== AUTO-OFF SEND PART FUNCTION ==========
 local function turnOffSendPart()
     SendPartActive = false
     if SendPartLoopThread then
@@ -9696,37 +8736,28 @@ local function turnOffSendPart()
     end)
     unfreezeCharacter()
 end
-
--- ========== SEND PART BUTTON (PERSISTENT TOGGLE) ==========
 SendPartBtn.MouseButton1Click:Connect(function()
     if SendPartActive then
         turnOffSendPart()
         return
     end
-
     SendPartActive = true
     SendPartBtn.Text = tr("SendingOnBtn")
     TweenService:Create(SendPartBtn, TweenInfo.new(0.3), {BackgroundColor3 = COLORS.GREEN}):Play()
     freezeCharacter()
-
     if SendPartLoopThread then
         pcall(function() task.cancel(SendPartLoopThread) end)
     end
-
     SendPartLoopThread = task.spawn(function()
         if CurrentTarget and CurrentTarget.Character then
             pcall(function()
                 sendUnanchoredPartsToTarget(CurrentTarget)
             end)
         end
-        
-        task.wait(3) -- Menunggu 3 detik lalu otomatis mati
+        task.wait(3)
         turnOffSendPart()
     end)
 end)
-
-
--- ========== TARGETING SYSTEM ==========
 local function getTargetablePlayers()
     local list = {}
     for _, p in pairs(Players:GetPlayers()) do
@@ -9736,25 +8767,21 @@ local function getTargetablePlayers()
     end
     return list
 end
-
 local function refreshTargetList()
     local oldTarget = CurrentTarget
     TargetList = getTargetablePlayers()
-    
     if #TargetList == 0 then
         CurrentIndex = 0
         CurrentTarget = nil
         updateProfile(nil)
         return
     end
-    
     if oldTarget and table.find(TargetList, oldTarget) then
         CurrentIndex = table.find(TargetList, oldTarget)
         CurrentTarget = oldTarget
         updateProfile(CurrentTarget)
         return
     end
-    
     if oldTarget then
         for i, player in ipairs(TargetList) do
             if player.UserId == oldTarget.UserId then
@@ -9766,63 +8793,45 @@ local function refreshTargetList()
             end
         end
     end
-    
     if CurrentIndex < 1 or CurrentIndex > #TargetList then
         CurrentIndex = 1
     end
-    
     CurrentTarget = TargetList[CurrentIndex]
     updateProfile(CurrentTarget)
     if refreshSpectatorPlayerList then refreshSpectatorPlayerList() end
 end
-
 local refreshDebounce = false
 local function safeRefreshTargetList()
     if refreshDebounce then return end
     refreshDebounce = true
-    
     refreshTargetList()
-    
     task.wait(0.5)
     refreshDebounce = false
 end
-
 refreshTargetList()
-
--- Event listeners dengan debounce
-Players.PlayerAdded:Connect(function(plr) 
+Players.PlayerAdded:Connect(function(plr)
     task.wait(0.1)
     safeRefreshTargetList()
 end)
-
 Players.PlayerRemoving:Connect(function(plr)
     task.wait(0.1)
     safeRefreshTargetList()
-    
     if CurrentTarget and plr == CurrentTarget then
         CurrentTarget = nil
         updateProfile(nil)
-        
         if FollowActive then
             stopFollow()
         end
-        
-        -- Fling di spectate sekarang one-shot, tidak perlu shutdown manual di sini
-        
         if SendPartActive then
             turnOffSendPart()
         end
     end
 end)
-
--- Navigation buttons
 PrevBtn.MouseButton1Click:Connect(function()
     if #TargetList == 0 then safeRefreshTargetList() end
     if #TargetList == 0 then return end
-    
     local nextIndex = CurrentIndex - 1
     if nextIndex < 1 then nextIndex = #TargetList end
-    
     if nextIndex >= 1 and nextIndex <= #TargetList then
         CurrentIndex = nextIndex
         CurrentTarget = TargetList[CurrentIndex]
@@ -9830,14 +8839,11 @@ PrevBtn.MouseButton1Click:Connect(function()
         openProfileFrame()
     end
 end)
-
 NextBtn.MouseButton1Click:Connect(function()
     if #TargetList == 0 then safeRefreshTargetList() end
     if #TargetList == 0 then return end
-    
     local nextIndex = CurrentIndex + 1
     if nextIndex > #TargetList then nextIndex = 1 end
-    
     if nextIndex >= 1 and nextIndex <= #TargetList then
         CurrentIndex = nextIndex
         CurrentTarget = TargetList[CurrentIndex]
@@ -9845,8 +8851,6 @@ NextBtn.MouseButton1Click:Connect(function()
         openProfileFrame()
     end
 end)
-
--- ========== CAMERA SYSTEM ==========
 RunService.RenderStepped:Connect(function()
     if not Active then return end
     if CurrentTarget and CurrentTarget.Character then
@@ -9856,8 +8860,6 @@ RunService.RenderStepped:Connect(function()
         end
     end
 end)
-
--- ========== TELEPORT FUNCTION ==========
 TeleBtn.MouseButton1Click:Connect(function()
     if not CurrentTarget then return end
     local lpHRP = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
@@ -9869,22 +8871,17 @@ TeleBtn.MouseButton1Click:Connect(function()
         TweenService:Create(TeleBtn, TweenInfo.new(0.5), {BackgroundColor3 = COLORS.DARK_BLUE}):Play()
     end
 end)
-
 FlingBtn.MouseButton1Click:Connect(function()
     if not CurrentTarget then return end
     local lpHRP = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
     local tHrp = CurrentTarget.Character and (CurrentTarget.Character:FindFirstChild("HumanoidRootPart") or CurrentTarget.Character:FindFirstChild("Torso"))
     if not lpHRP or not tHrp then return end
-
     task.spawn(function()
         FlingBtn.Text = "Flinging..."
         TweenService:Create(FlingBtn, TweenInfo.new(0.3), {BackgroundColor3 = COLORS.RED}):Play()
-
         local origCF = lpHRP.CFrame
         local origGrav = workspace.Gravity
         workspace.Gravity = 0
-
-        -- Create welded fling part to prevent self-fling (like admin3.lua)
         local flingPart = Instance.new("Part")
         flingPart.Anchored = false
         flingPart.CanCollide = false
@@ -9892,23 +8889,18 @@ FlingBtn.MouseButton1Click:Connect(function()
         flingPart.Size = Vector3.new(1, 1, 1)
         flingPart.CFrame = lpHRP.CFrame
         flingPart.Parent = workspace
-
         local flingWeld = Instance.new("WeldConstraint")
         flingWeld.Part0 = flingPart
         flingWeld.Part1 = lpHRP
         flingWeld.Parent = flingPart
-
         local BV = Instance.new("BodyVelocity")
         BV.Parent = flingPart
         BV.Velocity = Vector3.new(9e8, 9e8, 9e8)
         BV.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-
         local myHum = LP.Character:FindFirstChildOfClass("Humanoid")
         if myHum then
             myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
         end
-
-        -- Teleport ke target, fling selama 2.0 detik (seperti admin3.lua)
         local startFling = tick()
         local angle = 0
         while tick() - startFling < 2.0 and tHrp and tHrp.Parent do
@@ -9924,23 +8916,18 @@ FlingBtn.MouseButton1Click:Connect(function()
                 elseif angle % 400 == 300 then
                     offset = CFrame.new(-2.25, -1.5, 2.25)
                 end
-                
                 lpHRP.CFrame = tHrp.CFrame * offset * CFrame.Angles(math.rad(angle), 0, 0)
                 flingPart.AssemblyLinearVelocity = Vector3.new(9e7, 9e8, 9e7)
                 flingPart.AssemblyAngularVelocity = Vector3.new(9e8, 9e8, 9e8)
             end)
             RunService.Heartbeat:Wait()
         end
-
         task.wait(0.1)
         workspace.Gravity = origGrav
-
         if myHum then
             myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
         end
         pcall(function() flingPart:Destroy() end)
-
-        -- Kembalikan ke posisi semula
         pcall(function()
             lpHRP.Anchored = true
             lpHRP.AssemblyLinearVelocity = Vector3.zero
@@ -9949,13 +8936,10 @@ FlingBtn.MouseButton1Click:Connect(function()
             task.wait(0.1)
             lpHRP.Anchored = false
         end)
-
         FlingBtn.Text = "Fling"
         TweenService:Create(FlingBtn, TweenInfo.new(0.3), {BackgroundColor3 = COLORS.DARK_BLUE}):Play()
     end)
 end)
-
--- ========== FOLLOW FUNCTION ==========
 local function stopFollow()
     FollowActive = false
     if FollowConnection then FollowConnection:Disconnect() FollowConnection = nil end
@@ -9963,13 +8947,11 @@ local function stopFollow()
     FollowBtn.Text = tr("FollowBtn")
     TweenService:Create(FollowBtn, TweenInfo.new(0.3), {BackgroundColor3 = COLORS.DARK_BLUE}):Play()
 end
-
 local function startFollowToTarget(target)
     if not target or not rootPart or not humanoid then return end
     FollowActive = true
     FollowBtn.Text = tr("FollowingBtn")
     TweenService:Create(FollowBtn, TweenInfo.new(0.3), {BackgroundColor3 = COLORS.GREEN}):Play()
-
     pcall(function()
         local anim = Instance.new("Animation")
         anim.AnimationId = "rbxassetid://100681208320300"
@@ -9977,7 +8959,6 @@ local function startFollowToTarget(target)
         FollowAnim.Looped = true
         FollowAnim:Play()
     end)
-
     FollowConnection = RunService.Heartbeat:Connect(function()
         if not FollowActive then return end
         if not target.Character then stopFollow() return end
@@ -9986,7 +8967,6 @@ local function startFollowToTarget(target)
         rootPart.CFrame = targetHRP.CFrame * CFrame.new(0, 0, 3)
     end)
 end
-
 FollowBtn.MouseButton1Click:Connect(function()
     if FollowActive then
         stopFollow()
@@ -9996,8 +8976,6 @@ FollowBtn.MouseButton1Click:Connect(function()
     refreshCharacterRefs()
     startFollowToTarget(CurrentTarget)
 end)
-
--- ========== MAIN CLOSE FUNCTION ==========
 CloseNavBtn.MouseButton1Click:Connect(function()
     TweenService:Create(ProfileFrame, TweenInfo.new(0.4), {BackgroundTransparency = 1}):Play()
     TweenService:Create(ControlsFrame, TweenInfo.new(0.4), {BackgroundTransparency = 1}):Play()
@@ -10010,25 +8988,17 @@ CloseNavBtn.MouseButton1Click:Connect(function()
         TweenService:Create(titleStroke, TweenInfo.new(0.4), {Transparency = 1}):Play()
         TweenService:Create(SpectateTitle, TweenInfo.new(0.4), {TextTransparency = 1}):Play()
     end)
-    
     task.wait(0.4)
-    
     Active = false
     SendPartActive = false
-    
     unfreezeCharacter()
-    
     if FollowConnection then FollowConnection:Disconnect() FollowConnection = nil end
     if FollowAnim then pcall(function() FollowAnim:Stop() end) FollowAnim = nil end
-    
     if LP.Character and LP.Character:FindFirstChild("Humanoid") then
         Cam.CameraSubject = LP.Character:FindFirstChild("Humanoid")
     end
-    
     pcall(function() ScreenGui:Destroy() end)
 end)
-
--- Initial setup
 task.defer(function()
     refreshTargetList()
     if #TargetList > 0 then
@@ -10043,28 +9013,19 @@ end)
     end
 end
 SpectatorBtn.MouseButton1Click:Connect(launchSpectator)
-
 ServerHopBtn.MouseButton1Click:Connect(serverhop)
-
--- resolveCatalogAnimationId moved to top to prevent initialization order issues with setupAnimator
-
 function launchAnimasi()
     local success, err = pcall(function()
 local Player = game.Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-
--- Forward declarations of functions to prevent nil execution errors
 local getAnimateFolder, applyAnimation, captureDefaultAnimations, createAnimationButton
 local defaultAnimationIds = nil
--- variables moved to top
-
 getAnimateFolder = function(character)
     if not character then
         return nil
     end
-    
     local humanoid = character:FindFirstChildOfClass("Humanoid")
     if not humanoid then
         wait(0.5)
@@ -10073,17 +9034,14 @@ getAnimateFolder = function(character)
             return nil
         end
     end
-    
     local animate = humanoid:FindFirstChild("Animate")
     if not animate then
         animate = character:FindFirstChild("Animate")
     end
-    
     if not animate then
         animate = Instance.new("Folder")
         animate.Name = "Animate"
         animate.Parent = humanoid
-        
         local animateScript = Instance.new("Script")
         animateScript.Name = "Animate"
         animateScript.Source = [[
@@ -10096,28 +9054,22 @@ getAnimateFolder = function(character)
             local Neck = Torso:WaitForChild("Neck")
             local Humanoid = Figure:WaitForChild("Humanoid")
             local pose = "Standing"
-            
             function createAnimation(id)
                 local animation = Instance.new("Animation")
                 animation.AnimationId = id
                 return animation
             end
-            
             script.Parent.Animate.Disabled = false
         ]]
         animateScript.Parent = animate
     end
-    
     return animate
 end
-
 applyAnimation = function(animate, animationData)
     if not animate then
         return false
     end
-    
     local success = true
-    
     local function setAnimation(part, animationId)
         if part and part:IsA("Animation") then
             pcall(function()
@@ -10125,12 +9077,10 @@ applyAnimation = function(animate, animationData)
             end)
         end
     end
-    
     if animate.idle then
         setAnimation(animate.idle.Animation1, animationData.idle1)
         setAnimation(animate.idle.Animation2, animationData.idle2)
     end
-    
     if animate.walk then
         if animate.walk.WalkAnim then
             setAnimation(animate.walk.WalkAnim, animationData.walk)
@@ -10138,7 +9088,6 @@ applyAnimation = function(animate, animationData)
             setAnimation(animate.walk.walk, animationData.walk)
         end
     end
-    
     if animate.run then
         if animate.run.RunAnim then
             setAnimation(animate.run.RunAnim, animationData.run)
@@ -10148,7 +9097,6 @@ applyAnimation = function(animate, animationData)
             setAnimation(animate.run.Animation, animationData.run)
         end
     end
-    
     if animate.jump then
         if animate.jump.JumpAnim then
             setAnimation(animate.jump.JumpAnim, animationData.jump)
@@ -10156,11 +9104,9 @@ applyAnimation = function(animate, animationData)
             setAnimation(animate.jump.jump, animationData.jump)
         end
     end
-    
     if animate.climb and animate.climb.ClimbAnim then
         setAnimation(animate.climb.ClimbAnim, animationData.climb)
     end
-    
     if animate.fall then
         if animate.fall.FallAnim then
             setAnimation(animate.fall.FallAnim, animationData.fall)
@@ -10168,13 +9114,10 @@ applyAnimation = function(animate, animationData)
             setAnimation(animate.fall.fall, animationData.fall)
         end
     end
-    
     return success
 end
-
 captureDefaultAnimations = function(animate)
     if defaultAnimationIds then return end
-    
     local data = {}
     local function getAnimationId(part)
         if part and part:IsA("Animation") then
@@ -10182,46 +9125,34 @@ captureDefaultAnimations = function(animate)
         end
         return nil
     end
-    
     if animate:FindFirstChild("idle") then
         data.idle1 = getAnimationId(animate.idle:FindFirstChild("Animation1"))
         data.idle2 = getAnimationId(animate.idle:FindFirstChild("Animation2"))
     end
-    
     if animate:FindFirstChild("walk") then
         data.walk = getAnimationId(animate.walk:FindFirstChild("WalkAnim") or animate.walk:FindFirstChild("walk"))
     end
-    
     if animate:FindFirstChild("run") then
         data.run = getAnimationId(animate.run:FindFirstChild("RunAnim") or animate.run:FindFirstChild("run") or animate.run:FindFirstChild("Animation"))
     end
-    
     if animate:FindFirstChild("jump") then
         data.jump = getAnimationId(animate.jump:FindFirstChild("JumpAnim") or animate.jump:FindFirstChild("jump"))
     end
-    
     if animate:FindFirstChild("climb") then
         data.climb = getAnimationId(animate.climb:FindFirstChild("ClimbAnim"))
     end
-    
     if animate:FindFirstChild("fall") then
         data.fall = getAnimationId(animate.fall:FindFirstChild("FallAnim") or animate.fall:FindFirstChild("fall"))
     end
-    
     if data.idle1 or data.walk or data.run then
         defaultAnimationIds = data
     end
 end
-
-
--- ScreenGui
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = PlayerGui
 ScreenGui.Enabled = true
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Name = "AnimationMenu"
-
--- Main Frame - DI TENGAH LAYAR
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 300, 0, 320)
 MainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
@@ -10231,18 +9162,13 @@ MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
-
 local mainCorner = Instance.new("UICorner")
 mainCorner.CornerRadius = UDim.new(0, 12)
 mainCorner.Parent = MainFrame
-
--- BORDER PUTIH HANYA DI MENU UTAMA
 local mainBorder = Instance.new("UIStroke")
 mainBorder.Color = Color3.fromRGB(255, 255, 255)
 mainBorder.Thickness = 2
 mainBorder.Parent = MainFrame
-
--- Shadow Effect untuk 3D (Subtle white glow)
 local shadow = Instance.new("ImageLabel")
 shadow.Name = "Shadow"
 shadow.Size = UDim2.new(1, 20, 1, 20)
@@ -10255,19 +9181,14 @@ shadow.ScaleType = Enum.ScaleType.Slice
 shadow.SliceCenter = Rect.new(10, 10, 118, 118)
 shadow.Parent = MainFrame
 shadow.ZIndex = -1
-
--- Navbar
 local Navbar = Instance.new("Frame")
 Navbar.Size = UDim2.new(1, 0, 0, 50)
 Navbar.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
 Navbar.BackgroundTransparency = 0.1
 Navbar.Parent = MainFrame
-
 local navCorner = Instance.new("UICorner")
 navCorner.CornerRadius = UDim.new(0, 12)
 navCorner.Parent = Navbar
-
--- Navbar Title - TULISAN PUTIH TERANG TANPA STROKE
 local TitleLabel = Instance.new("TextLabel")
 TitleLabel.Size = UDim2.new(1, -60, 1, 0)
 TitleLabel.Position = UDim2.new(0, 15, 0, 0)
@@ -10278,8 +9199,6 @@ TitleLabel.TextSize = 16
 TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 TitleLabel.Parent = Navbar
-
--- Tombol Minimize - Hitam & Stroke putih
 local MinimizeBtn = Instance.new("TextButton")
 MinimizeBtn.Size = UDim2.new(0, 30, 0, 30)
 MinimizeBtn.Position = UDim2.new(0.95, -65, 0.5, -15)
@@ -10289,12 +9208,9 @@ MinimizeBtn.Font = Enum.Font.GothamBold
 MinimizeBtn.TextSize = 18
 MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 MinimizeBtn.Parent = Navbar
-
 local minimizeCorner = Instance.new("UICorner")
 minimizeCorner.CornerRadius = UDim.new(0, 6)
 minimizeCorner.Parent = MinimizeBtn
-
--- X Button - Merah & Stroke merah
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 30, 0, 30)
 CloseBtn.Position = UDim2.new(0.95, -30, 0.5, -15)
@@ -10304,12 +9220,9 @@ CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.TextSize = 14
 CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 CloseBtn.Parent = Navbar
-
 local closeCorner = Instance.new("UICorner")
 closeCorner.CornerRadius = UDim.new(0, 6)
 closeCorner.Parent = CloseBtn
-
--- ScrollFrame
 local ScrollFrame = Instance.new("ScrollingFrame")
 ScrollFrame.Size = UDim2.new(1, -10, 1, -110)
 ScrollFrame.Position = UDim2.new(0, 5, 0, 100)
@@ -10319,7 +9232,6 @@ ScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255)
 ScrollFrame.ScrollingDirection = Enum.ScrollingDirection.Y
 ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 ScrollFrame.Parent = MainFrame
-
 local UIListLayout = Instance.new("UIListLayout")
 UIListLayout.Parent = ScrollFrame
 UIListLayout.Padding = UDim.new(0, 8)
@@ -10328,7 +9240,6 @@ UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 10)
 end)
-
 local bundleInput = Instance.new("TextBox")
 bundleInput.Size = UDim2.new(0.7, -15, 0, 30)
 bundleInput.Position = UDim2.new(0, 10, 0, 60)
@@ -10341,7 +9252,6 @@ bundleInput.Font = Enum.Font.GothamMedium
 bundleInput.TextColor3 = Color3.fromRGB(255,255,255)
 bundleInput.Parent = MainFrame
 Instance.new("UICorner", bundleInput).CornerRadius = UDim.new(0, 6)
-
 local bundleLoadBtn = Instance.new("TextButton")
 bundleLoadBtn.Size = UDim2.new(0.3, -5, 0, 30)
 bundleLoadBtn.Position = UDim2.new(0.7, 5, 0, 60)
@@ -10352,12 +9262,10 @@ bundleLoadBtn.TextSize = 12
 bundleLoadBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 bundleLoadBtn.Parent = MainFrame
 Instance.new("UICorner", bundleLoadBtn).CornerRadius = UDim.new(0, 6)
-
 bundleLoadBtn.MouseButton1Click:Connect(function()
     local bundleId = tonumber(bundleInput.Text)
     if not bundleId then return end
     bundleLoadBtn.Text = "Loading..."
-    
     task.spawn(function()
         local BundleMapping = {
             [33] = "Vampire",
@@ -10381,7 +9289,6 @@ bundleLoadBtn.MouseButton1Click:Connect(function()
             [86] = "Patrol",
             [87] = "Sneaky",
         }
-        
         local mappedName = BundleMapping[bundleId]
         if mappedName and AnimationData[mappedName] then
             local customPack = AnimationData[mappedName]
@@ -10391,8 +9298,6 @@ bundleLoadBtn.MouseButton1Click:Connect(function()
                 if animate then
                     captureDefaultAnimations(animate)
                     applyAnimation(animate, customPack)
-                    
-                    -- Stop currently playing tracks to force immediate reload
                     local humanoid = character:FindFirstChildOfClass("Humanoid")
                     if humanoid then
                         local animator = humanoid:FindFirstChildOfClass("Animator")
@@ -10402,15 +9307,11 @@ bundleLoadBtn.MouseButton1Click:Connect(function()
                             end
                         end
                     end
-                    
-                    -- Trigger button UI visual state
                     if activeButton then
                         resetButtonToNormal(activeButton)
                     end
                     activeButton = nil
                     currentAnimation = mappedName
-                    
-                    -- Find button and highlight it
                     for _, child in ipairs(ScrollFrame:GetChildren()) do
                         if child:IsA("Frame") and child.Name == mappedName then
                             activeButton = child
@@ -10427,24 +9328,18 @@ bundleLoadBtn.MouseButton1Click:Connect(function()
             bundleLoadBtn.Text = "Load"
             return
         end
-
         local AssetService = game:GetService("AssetService")
         local success, data = pcall(function()
             return AssetService:GetBundleDetailsAsync(bundleId)
         end)
-        
         if success and data and data.Items then
             local customPack = {}
             local count = 0
             for _, item in ipairs(data.Items) do
-                -- Native items list from GetBundleDetailsAsync has Id and Name properties
                 if item.Id then
                     local name = string.lower(item.Name or "")
                     local resolvedId = nil
-                    
-                    -- Resolve Catalog ID to AnimationId
                     local resolvedId = resolveCatalogAnimationId(item.Id)
-                    
                     if string.find(name, "idle") then
                         if not customPack.idle1 then
                             customPack.idle1 = resolvedId
@@ -10470,17 +9365,13 @@ bundleLoadBtn.MouseButton1Click:Connect(function()
                     end
                 end
             end
-            
             if count > 0 then
-                -- Apply custom pack immediately!
                 local character = Player.Character
                 if character then
                     local animate = getAnimateFolder(character)
                     if animate then
                         captureDefaultAnimations(animate)
                         applyAnimation(animate, customPack)
-                        
-                        -- Stop currently playing tracks to force immediate reload
                         local humanoid = character:FindFirstChildOfClass("Humanoid")
                         if humanoid then
                             local animator = humanoid:FindFirstChildOfClass("Animator")
@@ -10490,21 +9381,15 @@ bundleLoadBtn.MouseButton1Click:Connect(function()
                                 end
                             end
                         end
-                        
-                        -- Create temporary button
                         local bundleName = data.Name or ("Bundle " .. bundleId)
                         AnimationData[bundleName] = customPack
                         local newBtn = createAnimationButton(bundleName, customPack)
                         newBtn.Parent = ScrollFrame
-                        
-                        -- Trigger button visual active state
                         if activeButton then
                             resetButtonToNormal(activeButton)
                         end
                         activeButton = newBtn
                         currentAnimation = bundleName
-                        
-                        -- Update button UI visual state
                         local button = newBtn.Button
                         button.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
                         button.TextColor3 = Color3.fromRGB(15, 15, 15)
@@ -10521,16 +9406,12 @@ bundleLoadBtn.MouseButton1Click:Connect(function()
         bundleLoadBtn.Text = "Load"
     end)
 end)
-
--- Logika close & reopen
 CloseBtn.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
 end)
-
 local isMinimized = false
 local normalSize = UDim2.new(0, 300, 0, 320)
 local minimizedSize = UDim2.new(0, 300, 0, 50)
-
 MinimizeBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
     if isMinimized then
@@ -10549,8 +9430,6 @@ MinimizeBtn.MouseButton1Click:Connect(function()
         end)
     end
 end)
-
--- =================== SISTEM ANIMASI YANG DIPERBAIKI ===================
 AnimationData = {
      ["Retro"] = {
         idle1 = "http://www.roblox.com/asset/?id=10921258489",
@@ -10868,15 +9747,10 @@ AnimationData = {
         fall = "http://www.roblox.com/asset/?id=4708186162"
     }
 }
-
--- variables moved to top
-
--- Fungsi untuk mendapatkan folder Animate
 getAnimateFolder = function(character)
     if not character then
         return nil
     end
-    
     local humanoid = character:FindFirstChildOfClass("Humanoid")
     if not humanoid then
         wait(0.5)
@@ -10885,17 +9759,14 @@ getAnimateFolder = function(character)
             return nil
         end
     end
-    
     local animate = humanoid:FindFirstChild("Animate")
     if not animate then
         animate = character:FindFirstChild("Animate")
     end
-    
     if not animate then
         animate = Instance.new("Folder")
         animate.Name = "Animate"
         animate.Parent = humanoid
-        
         local animateScript = Instance.new("Script")
         animateScript.Name = "Animate"
         animateScript.Source = [[
@@ -10908,29 +9779,22 @@ getAnimateFolder = function(character)
             local Neck = Torso:WaitForChild("Neck")
             local Humanoid = Figure:WaitForChild("Humanoid")
             local pose = "Standing"
-            
             function createAnimation(id)
                 local animation = Instance.new("Animation")
                 animation.AnimationId = id
                 return animation
             end
-            
             script.Parent.Animate.Disabled = false
         ]]
         animateScript.Parent = animate
     end
-    
     return animate
 end
-
--- Fungsi untuk menerapkan animasi
 applyAnimation = function(animate, animationData)
     if not animate then
         return false
     end
-    
     local success = true
-    
     local function setAnimation(part, animationId)
         if part and part:IsA("Animation") then
             pcall(function()
@@ -10938,12 +9802,10 @@ applyAnimation = function(animate, animationData)
             end)
         end
     end
-    
     if animate.idle then
         setAnimation(animate.idle.Animation1, animationData.idle1)
         setAnimation(animate.idle.Animation2, animationData.idle2)
     end
-    
     if animate.walk then
         if animate.walk.WalkAnim then
             setAnimation(animate.walk.WalkAnim, animationData.walk)
@@ -10951,7 +9813,6 @@ applyAnimation = function(animate, animationData)
             setAnimation(animate.walk.walk, animationData.walk)
         end
     end
-    
     if animate.run then
         if animate.run.RunAnim then
             setAnimation(animate.run.RunAnim, animationData.run)
@@ -10961,7 +9822,6 @@ applyAnimation = function(animate, animationData)
             setAnimation(animate.run.Animation, animationData.run)
         end
     end
-    
     if animate.jump then
         if animate.jump.JumpAnim then
             setAnimation(animate.jump.JumpAnim, animationData.jump)
@@ -10969,11 +9829,9 @@ applyAnimation = function(animate, animationData)
             setAnimation(animate.jump.jump, animationData.jump)
         end
     end
-    
     if animate.climb and animate.climb.ClimbAnim then
         setAnimation(animate.climb.ClimbAnim, animationData.climb)
     end
-    
     if animate.fall then
         if animate.fall.FallAnim then
             setAnimation(animate.fall.FallAnim, animationData.fall)
@@ -10981,11 +9839,8 @@ applyAnimation = function(animate, animationData)
             setAnimation(animate.fall.fall, animationData.fall)
         end
     end
-    
     return success
 end
-
--- Fungsi untuk reset tombol ke state normal
 local function resetButtonToNormal(buttonContainer)
     if buttonContainer and buttonContainer:FindFirstChild("Button") then
         local button = buttonContainer.Button
@@ -11001,10 +9856,8 @@ local function resetButtonToNormal(buttonContainer)
         end
     end
 end
-
 captureDefaultAnimations = function(animate)
     if defaultAnimationIds then return end
-    
     local data = {}
     local function getAnimationId(part)
         if part and part:IsA("Animation") then
@@ -11012,38 +9865,29 @@ captureDefaultAnimations = function(animate)
         end
         return nil
     end
-    
     if animate:FindFirstChild("idle") then
         data.idle1 = getAnimationId(animate.idle:FindFirstChild("Animation1"))
         data.idle2 = getAnimationId(animate.idle:FindFirstChild("Animation2"))
     end
-    
     if animate:FindFirstChild("walk") then
         data.walk = getAnimationId(animate.walk:FindFirstChild("WalkAnim") or animate.walk:FindFirstChild("walk"))
     end
-    
     if animate:FindFirstChild("run") then
         data.run = getAnimationId(animate.run:FindFirstChild("RunAnim") or animate.run:FindFirstChild("run") or animate.run:FindFirstChild("Animation"))
     end
-    
     if animate:FindFirstChild("jump") then
         data.jump = getAnimationId(animate.jump:FindFirstChild("JumpAnim") or animate.jump:FindFirstChild("jump"))
     end
-    
     if animate:FindFirstChild("climb") then
         data.climb = getAnimationId(animate.climb:FindFirstChild("ClimbAnim"))
     end
-    
     if animate:FindFirstChild("fall") then
         data.fall = getAnimationId(animate.fall:FindFirstChild("FallAnim") or animate.fall:FindFirstChild("fall"))
     end
-    
     if data.idle1 or data.walk or data.run then
         defaultAnimationIds = data
     end
 end
-
--- Fungsi untuk menerapkan animasi ke karakter
 local function applyCurrentAnimationToCharacter(character)
     if currentAnimation and AnimationData[currentAnimation] then
         local animate = getAnimateFolder(character)
@@ -11052,22 +9896,17 @@ local function applyCurrentAnimationToCharacter(character)
         end
     end
 end
-
--- Event listener untuk karakter yang di-respawn
 Player.CharacterAdded:Connect(function(character)
     defaultAnimationIds = nil
     character:WaitForChild("Humanoid")
     applyCurrentAnimationToCharacter(character)
 end)
-
--- Fungsi untuk membuat tombol animasi
 createAnimationButton = function(animationName, animationData)
     local buttonContainer = Instance.new("Frame")
     buttonContainer.Name = animationName
     buttonContainer.Size = UDim2.new(0.9, 0, 0, 45)
     buttonContainer.BackgroundTransparency = 1
     buttonContainer.Parent = ScrollFrame
-
     local button = Instance.new("TextButton")
     button.Name = "Button"
     button.Size = UDim2.new(1, 0, 1, 0)
@@ -11079,12 +9918,9 @@ createAnimationButton = function(animationName, animationData)
     button.Font = Enum.Font.GothamMedium
     button.AutoButtonColor = false
     button.Parent = buttonContainer
-    
     local buttonCorner = Instance.new("UICorner")
     buttonCorner.CornerRadius = UDim.new(0, 8)
     buttonCorner.Parent = button
-
-    -- Efek hover
     button.MouseEnter:Connect(function()
         if activeButton ~= buttonContainer then
             TweenService:Create(button, TweenInfo.new(0.2), {
@@ -11092,7 +9928,6 @@ createAnimationButton = function(animationName, animationData)
             }):Play()
         end
     end)
-    
     button.MouseLeave:Connect(function()
         if activeButton ~= buttonContainer then
             TweenService:Create(button, TweenInfo.new(0.2), {
@@ -11100,26 +9935,19 @@ createAnimationButton = function(animationName, animationData)
             }):Play()
         end
     end)
-
-    -- Fungsi ketika tombol ditekan
     button.MouseButton1Click:Connect(function()
         local character = Player.Character
         if not character then
             character = Player.CharacterAdded:Wait()
             wait(0.5)
         end
-        
         local animate = getAnimateFolder(character)
         if not animate then return end
-
         if activeButton == buttonContainer then
-            -- Revert to default
             captureDefaultAnimations(animate)
             if defaultAnimationIds then
                 applyAnimation(animate, defaultAnimationIds)
             end
-            
-            -- Stop running tracks to apply immediately
             local humanoid = character:FindFirstChildOfClass("Humanoid")
             if humanoid then
                 local animator = humanoid:FindFirstChildOfClass("Animator")
@@ -11129,34 +9957,27 @@ createAnimationButton = function(animationName, animationData)
                     end
                 end
             end
-            
             resetButtonToNormal(buttonContainer)
             activeButton = nil
             currentAnimation = nil
             return
         end
-        
         captureDefaultAnimations(animate)
         local success = applyAnimation(animate, animationData)
-        
         if success then
             if activeButton then
                 resetButtonToNormal(activeButton)
             end
-            
             currentAnimation = animationName
             activeButton = buttonContainer
-            
             TweenService:Create(button, TweenInfo.new(0.3), {
                 BackgroundColor3 = Color3.fromRGB(255, 255, 255),
                 TextColor3 = Color3.fromRGB(15, 15, 15)
             }):Play()
-            
             TweenService:Create(button, TweenInfo.new(0.1), {
                 Size = UDim2.new(1, -4, 1, -4),
                 Position = UDim2.new(0, 2, 0, 2)
             }):Play()
-            
             wait(0.1)
             TweenService:Create(button, TweenInfo.new(0.2), {
                 Size = UDim2.new(1, 0, 1, 0),
@@ -11164,46 +9985,32 @@ createAnimationButton = function(animationName, animationData)
             }):Play()
         end
     end)
-
     return buttonContainer
 end
-
--- Buat tombol untuk setiap animasi
 for animationName, data in pairs(AnimationData) do
     local button = createAnimationButton(animationName, data)
     button.Parent = ScrollFrame
-
 end
-
-
-
     end)
     if not success then
         warn("Animasi error: " .. tostring(err))
     end
 end
 AnimasiBtn.MouseButton1Click:Connect(launchAnimasi)
-
 function launchEmote()
     local success, err = pcall(function()
-
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
-
--- cleanup previous if exists
 do
     local old = playerGui:FindFirstChild("EmoteBypass")
     if old then pcall(function() old:Destroy() end) end
 end
-
--- Gui
 local gui = Instance.new("ScreenGui")
 gui.Name = "EmoteBypass"
 gui.ResetOnSpawn = false
 gui.Parent = playerGui
-
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 320, 0, 360)
 frame.Position = UDim2.new(0.5, -150, 0.5, -60)
@@ -11212,9 +10019,7 @@ frame.BackgroundTransparency = 0.1
 frame.Parent = gui
 frame.Active = true
 frame.Draggable = true
-
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
-
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -10, 0, 24)
 title.Position = UDim2.new(0, 10, 0, 6)
@@ -11225,8 +10030,6 @@ title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Text = "BYPASS EMOTE BY PIXECUTE"
 title.Parent = frame
-
--- window controls
 local btnMin = Instance.new("TextButton")
 btnMin.Size = UDim2.new(0, 24, 0, 24)
 btnMin.Position = UDim2.new(1, -52, 0, 6)
@@ -11238,7 +10041,6 @@ btnMin.TextSize = 16
 btnMin.TextColor3 = Color3.fromRGB(255, 255, 255)
 btnMin.Parent = frame
 Instance.new("UICorner", btnMin).CornerRadius = UDim.new(0, 6)
-
 local btnClose = Instance.new("TextButton")
 btnClose.Size = UDim2.new(0, 24, 0, 24)
 btnClose.Position = UDim2.new(1, -24, 0, 6)
@@ -11250,16 +10052,12 @@ btnClose.TextSize = 14
 btnClose.TextColor3 = Color3.fromRGB(255,255,255)
 btnClose.Parent = frame
 Instance.new("UICorner", btnClose).CornerRadius = UDim.new(0, 6)
-
--- content holder
 local contentHolder = Instance.new("Frame")
 contentHolder.Name = "Content"
 contentHolder.BackgroundTransparency = 1
 contentHolder.Size = UDim2.new(1, 0, 1, -34)
 contentHolder.Position = UDim2.new(0, 0, 0, 34)
 contentHolder.Parent = frame
-
--- status label (shows rig type / errors)
 local statusLabel = Instance.new("TextLabel")
 statusLabel.Size = UDim2.new(1, -20, 0, 18)
 statusLabel.Position = UDim2.new(0, 10, 0, 6)
@@ -11270,8 +10068,6 @@ statusLabel.TextColor3 = Color3.fromRGB(180, 220, 200)
 statusLabel.TextXAlignment = Enum.TextXAlignment.Left
 statusLabel.Text = ""
 statusLabel.Parent = contentHolder
-
--- rig detection + status & Play availability
 local function updateRigStatus()
     local char = player.Character or player.CharacterAdded:Wait()
     local hum = char:FindFirstChildOfClass("Humanoid")
@@ -11294,13 +10090,11 @@ local function updateRigStatus()
         end
     end
 end
-
 task.defer(updateRigStatus)
 player.CharacterAdded:Connect(function()
     task.wait(0.2)
     updateRigStatus()
 end)
-
 local input = Instance.new("TextBox")
 input.Name = "AssetBox"
 input.Size = UDim2.new(1, -20, 0, 32)
@@ -11308,7 +10102,7 @@ input.Position = UDim2.new(0, 10, 0, 24)
 input.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
 input.BackgroundTransparency = 0.1
 input.PlaceholderText = "Enter Animation AssetId (e.g. 507776043)"
-input.Text = "103040723950430" -- Gojo Floating default
+input.Text = "103040723950430"
 input.TextSize = 14
 input.Font = Enum.Font.GothamMedium
 input.TextColor3 = Color3.fromRGB(255,255,255)
@@ -11336,10 +10130,8 @@ btnStop.TextSize = 14
 btnStop.TextColor3 = Color3.fromRGB(255, 50, 50)
 btnStop.Parent = contentHolder
 Instance.new("UICorner", btnStop).CornerRadius = UDim.new(0,8)
--- Toggles: Blend (smooth with default anims) and Loop
 local blendOn = false
 local loopOn = true
-
 local btnBlend = Instance.new("TextButton")
 btnBlend.Size = UDim2.new(0.48, -10, 0, 24)
 btnBlend.Position = UDim2.new(0, 10, 0, 100)
@@ -11364,20 +10156,15 @@ local function refreshToggleTexts()
     btnLoop.Text = loopOn and "Loop: ON" or "Loop: OFF"
 end
 refreshToggleTexts()
-
 btnBlend.MouseButton1Click:Connect(function()
     blendOn = not blendOn
     refreshToggleTexts()
 end)
-
 btnLoop.MouseButton1Click:Connect(function()
     loopOn = not loopOn
     refreshToggleTexts()
 end)
-
--- Logic
 local currentTrack: AnimationTrack? = nil
-
 local function getAnimator()
     local char = player.Character or player.CharacterAdded:Wait()
     local hum = char:FindFirstChildOfClass("Humanoid")
@@ -11389,7 +10176,6 @@ local function getAnimator()
     end
     return hum, animator
 end
-
 local function stopEmote()
     if currentTrack then
         pcall(function()
@@ -11398,14 +10184,12 @@ local function stopEmote()
         end)
         currentTrack = nil
     end
-    -- re-enable default Animate if it was disabled
     local char = player.Character
     if char then
         local animate = char:FindFirstChild("Animate")
         if animate then pcall(function() animate.Disabled = false end) end
     end
 end
-
 local function playEmoteById(id)
     stopEmote()
     local hum, animator = getAnimator()
@@ -11414,7 +10198,6 @@ local function playEmoteById(id)
         statusLabel.Text = "Rig: R6 tidak didukung untuk emote"
         return
     end
-
     local anim = Instance.new("Animation")
     local finalId = resolveCatalogAnimationId(id)
     anim.AnimationId = finalId
@@ -11422,7 +10205,6 @@ local function playEmoteById(id)
         return animator:LoadAnimation(anim)
     end)
     if not ok or not track then
-        -- fallback for older rigs/executors
         ok, track = pcall(function()
             return hum:LoadAnimation(anim)
         end)
@@ -11447,25 +10229,19 @@ local function playEmoteById(id)
         warn(msg)
     end
 end
-
 btnPlay.MouseButton1Click:Connect(function()
     local id = tonumber(input.Text)
     if not id then
-        -- try to parse if user pasted full rbxasset url/id
         local numeric = string.match(input.Text or "", "(%d+)")
         id = tonumber(numeric)
     end
     if not id then return end
     playEmoteById(id)
 end)
-
 btnStop.MouseButton1Click:Connect(stopEmote)
-
--- auto-stop when character respawns or dies
 player.CharacterAdded:Connect(function()
     stopEmote()
 end)
-
 do
     local char = player.Character or player.CharacterAdded:Wait()
     local hum = char:FindFirstChildOfClass("Humanoid")
@@ -11475,8 +10251,6 @@ do
         end)
     end
 end
-
--- Emote list (scrollable) similar to AnimationData
 local EmoteList = {
     {name = "Gojo Floating", id = 103040723950430},
     {name = "Nod", id = 507770453},
@@ -11484,7 +10258,6 @@ local EmoteList = {
     {name = "Cheer", id = 507770677},
     {name = "Point", id = 507770239},
 }
-
 local searchBar = Instance.new("TextBox")
 searchBar.Size = UDim2.new(1, -20, 0, 28)
 searchBar.Position = UDim2.new(0, 10, 0, 132)
@@ -11497,8 +10270,6 @@ searchBar.Font = Enum.Font.GothamMedium
 searchBar.TextColor3 = Color3.fromRGB(255,255,255)
 searchBar.Parent = contentHolder
 Instance.new("UICorner", searchBar).CornerRadius = UDim.new(0,6)
--- Removed search box stroke
-
 local listLabel = Instance.new("TextLabel")
 listLabel.Size = UDim2.new(1, -20, 0, 22)
 listLabel.Position = UDim2.new(0, 10, 0, 166)
@@ -11509,7 +10280,6 @@ listLabel.TextColor3 = Color3.fromRGB(255,255,255)
 listLabel.TextXAlignment = Enum.TextXAlignment.Left
 listLabel.Text = "Pilih Emote:"
 listLabel.Parent = contentHolder
-
 local Scroll = Instance.new("ScrollingFrame")
 Scroll.Size = UDim2.new(1, -20, 0, 118)
 Scroll.Position = UDim2.new(0, 10, 0, 192)
@@ -11518,7 +10288,6 @@ Scroll.ScrollBarThickness = 6
 Scroll.ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255)
 Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 Scroll.Parent = contentHolder
-
 local layout = Instance.new("UIListLayout")
 layout.Padding = UDim.new(0, 8)
 layout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -11526,7 +10295,6 @@ layout.Parent = Scroll
 layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     Scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
 end)
-
 local activeButton: TextButton? = nil
 local function setActive(btn: TextButton?, state: boolean)
     if not btn then return end
@@ -11541,7 +10309,6 @@ local function setActive(btn: TextButton?, state: boolean)
         }):Play()
     end
 end
-
 local function createItem(name, id)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, 0, 0, 36)
@@ -11552,22 +10319,17 @@ local function createItem(name, id)
     btn.Font = Enum.Font.GothamMedium
     btn.Parent = Scroll
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-
     btn.MouseButton1Click:Connect(function()
-        -- highlight
         if activeButton and activeButton ~= btn then setActive(activeButton, false) end
         activeButton = btn
         setActive(btn, true)
-        -- put id to textbox and play
         input.Text = tostring(id)
         playEmoteById(id)
     end)
 end
-
 for _, item in ipairs(EmoteList) do
     createItem(item.name, item.id)
 end
-
 local function searchEmotes(keyword)
     listLabel.Text = "Mencari..."
     task.spawn(function()
@@ -11575,20 +10337,16 @@ local function searchEmotes(keyword)
         local params = CatalogSearchParams.new()
         params.AssetTypes = {Enum.AvatarAssetType.EmoteAnimation}
         params.SearchKeyword = keyword
-        
         local success, pages = pcall(function()
             return AvatarEditorService:SearchCatalogAsync(params)
         end)
-        
         if success and pages then
-            -- Clear old search items
             for _, child in ipairs(Scroll:GetChildren()) do
                 if child:IsA("TextButton") then
                     child:Destroy()
                 end
             end
             activeButton = nil
-            
             local items = pages:GetCurrentPage()
             if items and #items > 0 then
                 for _, item in ipairs(items) do
@@ -11603,14 +10361,11 @@ local function searchEmotes(keyword)
         end
     end)
 end
-
 searchBar.FocusLost:Connect(function(enterPressed)
     if enterPressed and searchBar.Text ~= "" then
         searchEmotes(searchBar.Text)
     end
 end)
-
--- Close with RightShift
 local uis = game:GetService("UserInputService")
 uis.InputBegan:Connect(function(io, gpe)
     if gpe then return end
@@ -11618,8 +10373,6 @@ uis.InputBegan:Connect(function(io, gpe)
         gui.Enabled = not gui.Enabled
     end
 end)
-
--- Minimize & Close handlers
 local minimized = false
 btnMin.MouseButton1Click:Connect(function()
     minimized = not minimized
@@ -11627,11 +10380,9 @@ btnMin.MouseButton1Click:Connect(function()
     local target = minimized and UDim2.new(0, 320, 0, 40) or UDim2.new(0, 320, 0, 360)
     TweenService:Create(frame, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = target}):Play()
 end)
-
 btnClose.MouseButton1Click:Connect(function()
     gui:Destroy()
 end)
-
     end)
     if not success then
         warn("Emote error: " .. tostring(err))
@@ -11639,7 +10390,6 @@ end)
 end
 EmoteBtn.MouseButton1Click:Connect(launchEmote)
 CloneAvatarBtn.MouseButton1Click:Connect(promptClone)
-
 function launchFlyV2()
 	local main = Instance.new("ScreenGui")
 	local Frame = Instance.new("Frame")
@@ -11653,12 +10403,10 @@ function launchFlyV2()
 	local closebutton = Instance.new("TextButton")
 	local mini = Instance.new("TextButton")
 	local mini2 = Instance.new("TextButton")
-
 	main.Name = "main"
 	main.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 	main.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	main.ResetOnSpawn = false
-
 	Frame.Parent = main
 	Frame.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
 	Frame.BackgroundTransparency = 0.1
@@ -11669,7 +10417,6 @@ function launchFlyV2()
 	local fStroke = Instance.new("UIStroke", Frame)
 	fStroke.Color = Color3.fromRGB(255, 50, 50)
 	fStroke.Thickness = 1
-
 	local function styleBtn(btn, text, isRed)
 		btn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 		btn.Font = Enum.Font.GothamBold
@@ -11678,7 +10425,6 @@ function launchFlyV2()
 		btn.TextSize = 10
 		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
 	end
-
 	local function styleLbl(lbl, text, isRed)
 		lbl.BackgroundTransparency = 1
 		lbl.Font = Enum.Font.GothamBold
@@ -11686,32 +10432,27 @@ function launchFlyV2()
 		lbl.TextColor3 = isRed and Color3.fromRGB(255, 50, 50) or Color3.fromRGB(255, 255, 255)
 		lbl.TextSize = 10
 	end
-
 	up.Name = "up"
 	up.Parent = Frame
 	up.Size = UDim2.new(0, 44, 0, 28)
 	styleBtn(up, "NAIK", false)
-
 	down.Name = "down"
 	down.Parent = Frame
 	down.Position = UDim2.new(0, 0, 0.491228074, 0)
 	down.Size = UDim2.new(0, 44, 0, 28)
 	styleBtn(down, "TURUN", false)
-
 	onof.Name = "onof"
 	onof.Parent = Frame
 	onof.Position = UDim2.new(0.702823281, 0, 0.491228074, 0)
 	onof.Size = UDim2.new(0, 56, 0, 28)
 	styleBtn(onof, "Klik Untuk Terbang!", false)
 	onof.TextScaled = true
-
 	TextLabel.Parent = Frame
 	TextLabel.Position = UDim2.new(0.469327301, 0, 0, 0)
 	TextLabel.Size = UDim2.new(0, 100, 0, 28)
 	styleLbl(TextLabel, "FLY V2 BY MANNN", true)
 	TextLabel.TextScaled = true
 	TextLabel.TextWrapped = true
-
 	plus.Name = "plus"
 	plus.Parent = Frame
 	plus.Position = UDim2.new(0.231578946, 0, 0, 0)
@@ -11719,7 +10460,6 @@ function launchFlyV2()
 	styleBtn(plus, "+", false)
 	plus.TextScaled = true
 	plus.TextWrapped = true
-
 	speed.Name = "speed"
 	speed.Parent = Frame
 	speed.Position = UDim2.new(0.468421042, 0, 0.491228074, 0)
@@ -11727,7 +10467,6 @@ function launchFlyV2()
 	styleLbl(speed, "1", false)
 	speed.TextScaled = true
 	speed.TextWrapped = true
-
 	mine.Name = "mine"
 	mine.Parent = Frame
 	mine.Position = UDim2.new(0.231578946, 0, 0.491228074, 0)
@@ -11735,21 +10474,18 @@ function launchFlyV2()
 	styleBtn(mine, "-", false)
 	mine.TextScaled = true
 	mine.TextWrapped = true
-
 	closebutton.Name = "Close"
 	closebutton.Parent = Frame
 	closebutton.Size = UDim2.new(0, 45, 0, 28)
 	closebutton.Position = UDim2.new(0, 0, -1, 27)
 	styleBtn(closebutton, "X", true)
 	closebutton.TextSize = 14
-
 	mini.Name = "minimize"
 	mini.Parent = Frame
 	mini.Size = UDim2.new(0, 45, 0, 28)
 	mini.Position = UDim2.new(0, 44, -1, 27)
 	styleBtn(mini, "-", true)
 	mini.TextSize = 14
-
 	mini2.Name = "minimize2"
 	mini2.Parent = Frame
 	mini2.Size = UDim2.new(0, 45, 0, 28)
@@ -11757,44 +10493,32 @@ function launchFlyV2()
 	styleBtn(mini2, "+", true)
 	mini2.TextSize = 14
 	mini2.Visible = false
-
 	local speeds = 1
-
 	local speaker = game:GetService("Players").LocalPlayer
-
 	local chr = game.Players.LocalPlayer.Character
 	local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
-
 	local nowe = false
 	local noclipConnectionFly2 = nil
-
     local flyV1CustomIdleId = "102256275785620"
     local flyV1CustomFlyId = "100132174228207"
     local flyV1IdleTrack = nil
     local flyV1FlyTrack = nil
-
-	game:GetService("StarterGui"):SetCore("SendNotification", { 
+	game:GetService("StarterGui"):SetCore("SendNotification", {
 		Title = "GUI TERBANG V3";
 		Text = "by Mannn";
 		Icon = "rbxthumb://type=Asset&id=5107182114&w=150&h=150"})
 	local Duration = 5;
-
-	Frame.Active = true -- main = gui
+	Frame.Active = true
 	Frame.Draggable = true
-
 	onof.MouseButton1Down:connect(function()
-
 		if nowe == true then
 			nowe = false
-
 			if noclipConnectionFly2 then
 				noclipConnectionFly2:Disconnect()
 				noclipConnectionFly2 = nil
 			end
-			
 			if flyV1IdleTrack then pcall(function() flyV1IdleTrack:Stop() end) end
 			if flyV1FlyTrack then pcall(function() flyV1FlyTrack:Stop() end) end
-
 			speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing,true)
 			speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown,true)
 			speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Flying,true)
@@ -11811,9 +10535,8 @@ function launchFlyV2()
 			speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.StrafingNoPhysics,true)
 			speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Swimming,true)
 			speaker.Character.Humanoid:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
-		else 
+		else
 			nowe = true
-
 			if not noclipConnectionFly2 then
 				noclipConnectionFly2 = game:GetService("RunService").Stepped:Connect(function()
 					local chr = speaker.Character
@@ -11826,12 +10549,9 @@ function launchFlyV2()
 					end
 				end)
 			end
-
 			for i = 1, speeds do
 				spawn(function()
-
-					local hb = game:GetService("RunService").Heartbeat	
-
+					local hb = game:GetService("RunService").Heartbeat
 tpwalking = true
 					local chr = game.Players.LocalPlayer.Character
 					local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
@@ -11840,80 +10560,9 @@ tpwalking = true
 							chr:TranslateBy(hum.MoveDirection)
 						end
 					end
-
 				end)
 			end
-			game.Players.LocalPlayer.Character.Animate.Disabled = true
-			local Char = game.Players.LocalPlayer.Character
-			local Hum = Char:FindFirstChildOfClass("Humanoid") or Char:FindFirstChildOfClass("AnimationController")
-
-			for i,v in next, Hum:GetPlayingAnimationTracks() do
-				v:AdjustSpeed(0)
-			end
-			
-			-- Load custom Fly V1 animations
-			task.spawn(function()
-				local animator = Hum:FindFirstChildOfClass("Animator")
-				if Hum and not animator then
-					animator = Instance.new("Animator")
-					animator.Parent = Hum
-				end
-				if animator then
-					local idleUrl = resolveCatalogAnimationId(flyV1CustomIdleId)
-					local flyUrl = resolveCatalogAnimationId(flyV1CustomFlyId)
-					
-					if idleUrl == "rbxassetid://" .. flyV1CustomIdleId then
-					    game:GetService("StarterGui"):SetCore("SendNotification", {Title="Animasi Info", Text="Gagal resolve ID Idle dari catalog. Pastikan itu ID Animasi yg valid."})
-					end
-					if flyUrl == "rbxassetid://" .. flyV1CustomFlyId then
-					    game:GetService("StarterGui"):SetCore("SendNotification", {Title="Animasi Info", Text="Gagal resolve ID Fly dari catalog. Pastikan itu ID Animasi yg valid."})
-					end
-
-					if idleUrl and nowe then
-						local anim = Instance.new("Animation")
-						anim.AnimationId = idleUrl
-						flyV1IdleTrack = animator:LoadAnimation(anim)
-						flyV1IdleTrack.Priority = Enum.AnimationPriority.Action4
-						flyV1IdleTrack:Play(0.1)
-					end
-					if flyUrl and nowe then
-						local anim = Instance.new("Animation")
-						anim.AnimationId = flyUrl
-						flyV1FlyTrack = animator:LoadAnimation(anim)
-						flyV1FlyTrack.Priority = Enum.AnimationPriority.Action4
-					end
-					
-					-- Sync animation loop
-					while nowe do
-						task.wait(0.1)
-						if animator then
-						    for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
-						        if track ~= flyV1IdleTrack and track ~= flyV1FlyTrack then
-						            track:Stop()
-						        end
-						    end
-						end
-						
-						if not flyV1IdleTrack or not flyV1FlyTrack then continue end
-						
-						local isMoving = false
-						local bv = Char:FindFirstChildOfClass("BodyVelocity", true)
-						if bv then
-						    isMoving = (bv.Velocity.Magnitude > 1)
-						else
-						    isMoving = (Char.PrimaryPart and Char.PrimaryPart.AssemblyLinearVelocity.Magnitude > 2)
-						end
-						
-						if isMoving then
-							if not flyV1FlyTrack.IsPlaying then flyV1FlyTrack:Play(0.2) end
-							if flyV1IdleTrack.IsPlaying then flyV1IdleTrack:Stop(0.2) end
-						else
-							if not flyV1IdleTrack.IsPlaying then flyV1IdleTrack:Play(0.2) end
-							if flyV1FlyTrack.IsPlaying then flyV1FlyTrack:Stop(0.2) end
-						end
-					end
-				end
-			end)
+			-- Animasi khusus dihapus sesuai permintaan
 			speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing,false)
 			speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown,false)
 			speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Flying,false)
@@ -11931,9 +10580,7 @@ tpwalking = true
 			speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Swimming,false)
 			speaker.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Swimming)
 		end
-
 if game:GetService("Players").LocalPlayer.Character:FindFirstChildOfClass("Humanoid").RigType == Enum.HumanoidRigType.R6 then
-
 local plr = game.Players.LocalPlayer
 			local torso = plr.Character.Torso
 			local flying = true
@@ -11942,7 +10589,6 @@ local plr = game.Players.LocalPlayer
 			local lastctrl = {f = 0, b = 0, l = 0, r = 0}
 			local maxspeed = 50
 			local speed = 0
-
 local bg = Instance.new("BodyGyro", torso)
 			bg.P = 9e4
 			bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
@@ -11955,7 +10601,6 @@ local bg = Instance.new("BodyGyro", torso)
 			end
 			while nowe == true or game:GetService("Players").LocalPlayer.Character.Humanoid.Health == 0 do
 				game:GetService("RunService").RenderStepped:Wait()
-
 				if ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0 then
 					speed = speed+.5+(speed/maxspeed)
 					if speed > maxspeed then
@@ -11975,7 +10620,6 @@ local bg = Instance.new("BodyGyro", torso)
 				else
 					bv.velocity = Vector3.new(0,0,0)
 				end
-				--	game.Players.LocalPlayer.Character.Animate.Disabled = true
 				bg.cframe = game.Workspace.CurrentCamera.CoordinateFrame * CFrame.Angles(-math.rad((ctrl.f+ctrl.b)*50*speed/maxspeed),0,0)
 			end
 			ctrl = {f = 0, b = 0, l = 0, r = 0}
@@ -11986,7 +10630,6 @@ local bg = Instance.new("BodyGyro", torso)
 			plr.Character.Humanoid.PlatformStand = false
 			game.Players.LocalPlayer.Character.Animate.Disabled = false
 			tpwalking = false
-
 else
 			local plr = game.Players.LocalPlayer
 			local UpperTorso = plr.Character.UpperTorso
@@ -11996,7 +10639,6 @@ else
 			local lastctrl = {f = 0, b = 0, l = 0, r = 0}
 			local maxspeed = 50
 			local speed = 0
-
 local bg = Instance.new("BodyGyro", UpperTorso)
 			bg.P = 9e4
 			bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
@@ -12009,7 +10651,6 @@ local bg = Instance.new("BodyGyro", UpperTorso)
 			end
 			while nowe == true or game:GetService("Players").LocalPlayer.Character.Humanoid.Health == 0 do
 				wait()
-
 				if ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0 then
 					speed = speed+.5+(speed/maxspeed)
 					if speed > maxspeed then
@@ -12029,7 +10670,6 @@ local bg = Instance.new("BodyGyro", UpperTorso)
 				else
 					bv.velocity = Vector3.new(0,0,0)
 				end
-
 				bg.cframe = game.Workspace.CurrentCamera.CoordinateFrame * CFrame.Angles(-math.rad((ctrl.f+ctrl.b)*50*speed/maxspeed),0,0)
 			end
 			ctrl = {f = 0, b = 0, l = 0, r = 0}
@@ -12040,11 +10680,8 @@ local bg = Instance.new("BodyGyro", UpperTorso)
 			plr.Character.Humanoid.PlatformStand = false
 			game.Players.LocalPlayer.Character.Animate.Disabled = false
 			tpwalking = false
-
 end
-
 end)
-
 	local movingUp = false
 	up.MouseButton1Down:Connect(function()
 		movingUp = true
@@ -12059,15 +10696,12 @@ end)
 			end)
 		end
 	end)
-
 	up.MouseButton1Up:Connect(function()
 		movingUp = false
 	end)
-
 	up.MouseLeave:Connect(function()
 		movingUp = false
 	end)
-
 	local movingDown = false
 	down.MouseButton1Down:Connect(function()
 		movingDown = true
@@ -12082,33 +10716,25 @@ end)
 			end)
 		end
 	end)
-
 	down.MouseButton1Up:Connect(function()
 		movingDown = false
 	end)
-
 	down.MouseLeave:Connect(function()
 		movingDown = false
 	end)
-
 game:GetService("Players").LocalPlayer.CharacterAdded:Connect(function(char)
 		wait(0.7)
 		game.Players.LocalPlayer.Character.Humanoid.PlatformStand = false
 		game.Players.LocalPlayer.Character.Animate.Disabled = false
-
 	end)
-
 plus.MouseButton1Down:connect(function()
 		speeds = speeds + 1
 		speed.Text = speeds
 		if nowe == true then
-
 tpwalking = false
 			for i = 1, speeds do
 				spawn(function()
-
-					local hb = game:GetService("RunService").Heartbeat	
-
+					local hb = game:GetService("RunService").Heartbeat
 tpwalking = true
 					local chr = game.Players.LocalPlayer.Character
 					local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
@@ -12117,7 +10743,6 @@ tpwalking = true
 							chr:TranslateBy(hum.MoveDirection)
 						end
 					end
-
 				end)
 			end
 		end
@@ -12134,9 +10759,7 @@ tpwalking = true
 				tpwalking = false
 				for i = 1, speeds do
 					spawn(function()
-
-						local hb = game:GetService("RunService").Heartbeat	
-
+						local hb = game:GetService("RunService").Heartbeat
 tpwalking = true
 						local chr = game.Players.LocalPlayer.Character
 						local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
@@ -12145,17 +10768,14 @@ tpwalking = true
 								chr:TranslateBy(hum.MoveDirection)
 							end
 						end
-
 					end)
 				end
 			end
 		end
 	end)
-
 	closebutton.MouseButton1Click:Connect(function()
 		main:Destroy()
 	end)
-
 	mini.MouseButton1Click:Connect(function()
 		up.Visible = false
 		down.Visible = false
@@ -12168,7 +10788,6 @@ tpwalking = true
 		main.Frame.BackgroundTransparency = 1
 		closebutton.Position =  UDim2.new(0, 0, -1, 57)
 	end)
-
 	mini2.MouseButton1Click:Connect(function()
 		up.Visible = true
 		down.Visible = true
@@ -12178,23 +10797,109 @@ tpwalking = true
 		mine.Visible = true
 		mini.Visible = true
 		mini2.Visible = false
-		main.Frame.BackgroundTransparency = 0 
+		main.Frame.BackgroundTransparency = 0
 			closebutton.Position =  UDim2.new(0, 0, -1, 27)
 	end)
 end
-
 FlyV2Btn.MouseButton1Click:Connect(function()
     launchFlyV2()
 end)
 
--- toggleFlyV3 globalized
--- toggleFlyV3 globalized
+VehicleFlyBtn = createButton("", "Vehicle Fly")
+VehicleFlyBtn.Name = "VehicleFlyBtn"
+local vFlyActive = false
+local vFlyConnection = nil
+
+function toggleVehicleFly(state)
+    if state == nil then vFlyActive = not vFlyActive else vFlyActive = state end
+    setButtonActive(VehicleFlyBtn, vFlyActive)
+    
+    local char = Player.Character
+    if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    
+    if vFlyActive then
+        local seat = hum.SeatPart
+        if not seat or (not seat:IsA("VehicleSeat") and not seat:IsA("Seat")) then
+            vFlyActive = false
+            setButtonActive(VehicleFlyBtn, false)
+            return
+        end
+        
+        local vehicle = seat.Parent
+        local primary = vehicle:IsA("Model") and vehicle.PrimaryPart or seat
+        if not primary then primary = seat end
+        
+        local bg = Instance.new("BodyGyro")
+        bg.P = 9e4
+        bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+        bg.cframe = primary.CFrame
+        bg.Parent = primary
+        
+        local bv = Instance.new("BodyVelocity")
+        bv.velocity = Vector3.new(0,0,0)
+        bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
+        bv.Parent = primary
+        
+        local cam = workspace.CurrentCamera
+        local speed = 50
+        
+        vFlyConnection = RunService.RenderStepped:Connect(function()
+            if not hum.SeatPart then
+                toggleVehicleFly(false)
+                return
+            end
+            
+            local lookVector = cam.CFrame.lookVector
+            local moveVector = Vector3.new(0,0,0)
+            
+            local w = UserInputService:IsKeyDown(Enum.KeyCode.W)
+            local s = UserInputService:IsKeyDown(Enum.KeyCode.S)
+            local a = UserInputService:IsKeyDown(Enum.KeyCode.A)
+            local d = UserInputService:IsKeyDown(Enum.KeyCode.D)
+            local space = UserInputService:IsKeyDown(Enum.KeyCode.Space)
+            local lctrl = UserInputService:IsKeyDown(Enum.KeyCode.LeftControl)
+            
+            if w then moveVector = moveVector + lookVector end
+            if s then moveVector = moveVector - lookVector end
+            if a then moveVector = moveVector - cam.CFrame.RightVector end
+            if d then moveVector = moveVector + cam.CFrame.RightVector end
+            if space then moveVector = moveVector + Vector3.new(0, 1, 0) end
+            if lctrl then moveVector = moveVector + Vector3.new(0, -1, 0) end
+            
+            if moveVector.Magnitude > 0 then
+                bv.velocity = moveVector.Unit * speed
+            else
+                bv.velocity = Vector3.new(0,0,0)
+            end
+            bg.cframe = cam.CFrame
+        end)
+    else
+        if vFlyConnection then
+            vFlyConnection:Disconnect()
+            vFlyConnection = nil
+        end
+        local seat = hum.SeatPart
+        if seat then
+            local vehicle = seat.Parent
+            local primary = vehicle:IsA("Model") and vehicle.PrimaryPart or seat
+            if primary then
+                local oldBg = primary:FindFirstChildOfClass("BodyGyro")
+                if oldBg then oldBg:Destroy() end
+                local oldBv = primary:FindFirstChildOfClass("BodyVelocity")
+                if oldBv then oldBv:Destroy() end
+            end
+        end
+    end
+end
+VehicleFlyBtn.MouseButton1Click:Connect(function() toggleVehicleFly() end)
+
 do
     flyV3Active = false
     flyV3Movers = {}
     flyV3Enabled = false
     MiniButtons = {}
-    
     function toggleFlyV3(state)
         if state == nil then
             flyV3Active = not flyV3Active
@@ -12224,7 +10929,6 @@ do
             end
         end
     end
-
     function toggleFlyV3Permission(state)
         if state == nil then
             flyV3Enabled = not flyV3Enabled
@@ -12235,24 +10939,20 @@ do
             toggleFlyV3(false)
         end
     end
-
     godModeActive = false
     godModeConnection = nil
-    
     function toggleGodMode(state)
         if state == nil then
             godModeActive = not godModeActive
         else
             godModeActive = state
         end
-        
         local MiniGodBtn = MiniButtons and MiniButtons["MiniGodBtn"]
         if godModeActive then
             if MiniGodBtn then
                 MiniGodBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
                 MiniGodBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
             end
-            
             if not godModeConnection then
                 godModeConnection = RunService.Heartbeat:Connect(function()
                     local char = game.Players.LocalPlayer.Character
@@ -12270,12 +10970,10 @@ do
                 MiniGodBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
                 MiniGodBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
             end
-            
             if godModeConnection then
                 godModeConnection:Disconnect()
                 godModeConnection = nil
             end
-            
             local char = game.Players.LocalPlayer.Character
             local hum = char and char:FindFirstChildOfClass("Humanoid")
             if hum then
@@ -12286,7 +10984,6 @@ do
             end
         end
     end
-
     MiniPanelFrame = Instance.new("Frame")
     MiniPanelFrame.Size = UDim2.new(0, 250, 0, 320)
     MiniPanelFrame.Position = UDim2.new(1, -260, 0.5, -50)
@@ -12297,16 +10994,13 @@ do
     MiniPanelFrame.Draggable = false
     MiniPanelFrame.Visible = false
     MiniPanelFrame.Parent = ScreenGui
-    
     MiniPanelCorner = Instance.new("UICorner", MiniPanelFrame)
     MiniPanelCorner.CornerRadius = UDim.new(0, 12)
-    
     mainStroke = Instance.new("UIStroke")
     mainStroke.Color = Color3.fromRGB(255, 255, 255)
     mainStroke.Thickness = 2
     mainStroke.Transparency = 0
     mainStroke.Parent = MiniPanelFrame
-    
     MiniPanelHeader = Instance.new("Frame", MiniPanelFrame)
     MiniPanelHeader.Size = UDim2.new(1, 0, 0, 30)
     MiniPanelHeader.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
@@ -12319,7 +11013,6 @@ do
     HeaderBottomFix.Position = UDim2.new(0, 0, 1, -6)
     HeaderBottomFix.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
     HeaderBottomFix.BorderSizePixel = 0
-    
     MiniPanelTitle = Instance.new("TextLabel", MiniPanelHeader)
     MiniPanelTitle.Size = UDim2.new(1, -60, 1, 0)
     MiniPanelTitle.Position = UDim2.new(0, 10, 0, 0)
@@ -12329,7 +11022,6 @@ do
     MiniPanelTitle.Font = Enum.Font.GothamBold
     MiniPanelTitle.TextSize = 12
     MiniPanelTitle.TextXAlignment = Enum.TextXAlignment.Left
-    
     MiniMinimizeBtn = Instance.new("TextButton", MiniPanelHeader)
     MiniMinimizeBtn.Size = UDim2.new(0, 22, 0, 22)
     MiniMinimizeBtn.Position = UDim2.new(1, -55, 0.5, -11)
@@ -12343,7 +11035,6 @@ do
     minStroke = Instance.new("UIStroke", MiniMinimizeBtn)
     minStroke.Color = Color3.fromRGB(255, 255, 255)
     minStroke.Thickness = 1
- 
     MiniCloseBtn = Instance.new("TextButton", MiniPanelHeader)
     MiniCloseBtn.Size = UDim2.new(0, 22, 0, 22)
     MiniCloseBtn.Position = UDim2.new(1, -28, 0.5, -11)
@@ -12357,12 +11048,10 @@ do
     clsStroke = Instance.new("UIStroke", MiniCloseBtn)
     clsStroke.Color = Color3.fromRGB(255, 255, 255)
     clsStroke.Thickness = 1
-    
     MiniContent = Instance.new("Frame", MiniPanelFrame)
     MiniContent.Size = UDim2.new(1, 0, 1, -30)
     MiniContent.Position = UDim2.new(0, 0, 0, 30)
     MiniContent.BackgroundTransparency = 1
-    
     local buttonsData = {
         {name = "MiniBringBtn", text = "Bring Part: OFF"},
         {name = "MiniEspBtn", text = "ESP: OFF"},
@@ -12381,7 +11070,6 @@ do
         {name = "MiniUnanchorV2Btn", text = "Unanchor v2: OFF"},
         {name = "MiniYeetPartsBtn", text = "Yeet All Parts"}
     }
-    
     MiniButtons = {}
     local columns = 2
     local btnWidth = 0.46
@@ -12390,11 +11078,9 @@ do
     local startY = 8
     local btnHeight = 28
     local gapY = 6
-    
     for i, data in ipairs(buttonsData) do
         local col = (i - 1) % columns
         local row = math.floor((i - 1) / columns)
-        
         local btn = Instance.new("TextButton", MiniContent)
         btn.Name = data.name
         btn.Size = UDim2.new(btnWidth, 0, 0, btnHeight)
@@ -12407,7 +11093,6 @@ do
         Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
         MiniButtons[data.name] = btn
     end
-    
     MiniFlyV3Btn = MiniButtons["MiniFlyV3Btn"]
     MiniFlyV3SpeedBtn = MiniButtons["MiniFlyV3SpeedBtn"]
     MiniBringBtn = MiniButtons["MiniBringBtn"]
@@ -12424,7 +11109,6 @@ do
     MiniGodBtn = MiniButtons["MiniGodBtn"]
     MiniFlingAuraBtn = MiniButtons["MiniFlingAuraBtn"]
     MiniOrbitFlingBtn = MiniButtons["MiniOrbitFlingBtn"]
- 
     flyV1PCEnabled = false
     MiniFlyV3Btn.MouseButton1Click:Connect(function()
         flyV1PCEnabled = not flyV1PCEnabled
@@ -12439,8 +11123,6 @@ do
     MiniGodBtn.MouseButton1Click:Connect(function() toggleGodMode() end)
     MiniFlingAuraBtn.MouseButton1Click:Connect(function() toggleFlingAura() end)
     MiniOrbitFlingBtn.MouseButton1Click:Connect(function() toggleOrbitFling() end)
-
-    -- Loop HP Monitor
     task.spawn(function()
         while true do
             pcall(function()
@@ -12466,7 +11148,6 @@ do
             task.wait(0.2)
         end
     end)
-    
     MiniScannerBtn.MouseButton1Click:Connect(function()
         if PartScannerFrame and PartScannerFrame.Visible then
             PartScannerFrame.Visible = false
@@ -12480,13 +11161,10 @@ do
             MiniScannerBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
     end)
-    
     MiniNoclipBtn.MouseButton1Click:Connect(function() toggleNoclip() end)
     MiniFlyTapBtn.MouseButton1Click:Connect(function()
         if flying then disableFly() else enableFly() end
     end)
-    
-    -- Unanchor v1: One-shot unanchor (like original MiniUnanchorBtn)
     MiniUnanchorV1Btn.MouseButton1Click:Connect(function()
         MiniUnanchorV1Btn.Text = "Wait..."
         MiniUnanchorV1Btn.TextColor3 = Color3.fromRGB(255, 150, 50)
@@ -12494,16 +11172,12 @@ do
         local lpPos = lp.Character and (lp.Character:FindFirstChild("HumanoidRootPart") or lp.Character:FindFirstChild("Torso"))
         if lpPos then
             EnableNetwork()
-            
-            -- Kumpulkan semua karakter pemain untuk exclude
             local charSet = {}
             for _, plr in ipairs(game.Players:GetPlayers()) do
                 if plr.Character then
                     charSet[plr.Character] = true
                 end
             end
-
-            -- Loop unanchoring selama 2.5 detik agar posisi tersinkronisasi ke server
             task.spawn(function()
                 local start = tick()
                 while tick() - start < 2.5 do
@@ -12518,7 +11192,6 @@ do
                                 end
                                 p = p.Parent
                             end
-
                             if not isChar and string.lower(obj.Name) ~= "baseplate" and obj.Name ~= "Handle" then
                                 if (obj.Position - lpPos.Position).Magnitude <= 1000 then
                                     obj.CanCollide = false
@@ -12531,8 +11204,6 @@ do
                     end
                     task.wait(0.25)
                 end
-
-                -- Kembalikan tabrakan (CanCollide) agar part bertengger di tanah
                 for _, obj in ipairs(workspace:GetDescendants()) do
                     if obj:IsA("BasePart") and not obj.Anchored then
                         obj.CanCollide = true
@@ -12546,8 +11217,6 @@ do
             MiniUnanchorV1Btn.TextColor3 = Color3.fromRGB(255, 50, 50)
         end)
     end)
-    
-    -- Unanchor v2: Toggle on/off (using Part Scanner's toggleUnanchor logic)
     MiniUnanchorV2Btn.MouseButton1Click:Connect(function()
         toggleUnanchor()
         if aktif then
@@ -12562,10 +11231,9 @@ do
     end)
     MiniSpectateBtn.MouseButton1Click:Connect(function() launchSpectator() end)
     MiniRefreshBtn.MouseButton1Click:Connect(function() pcall(function() refreshCharacter(true) end) end)
-    MiniEspBtn.MouseButton1Click:Connect(function() 
-        if typeof(toggleESP) == "function" then toggleESP() end 
+    MiniEspBtn.MouseButton1Click:Connect(function()
+        if typeof(toggleESP) == "function" then toggleESP() end
     end)
-    
     MiniPlayerListBtn.MouseButton1Click:Connect(function()
         if PlayerListFrame and PlayerListFrame.Visible then
             PlayerListFrame.Visible = false
@@ -12579,7 +11247,6 @@ do
             MiniPlayerListBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
     end)
-
     FlyV3Btn.MouseButton1Click:Connect(function()
         MiniPanelFrame.Visible = not MiniPanelFrame.Visible
         setButtonActive(FlyV3Btn, MiniPanelFrame.Visible)
@@ -12590,12 +11257,10 @@ do
             MiniContent.Visible = true
         end
     end)
-    
     RealFlyV3Btn.MouseButton1Click:Connect(function()
         toggleFlyV3()
         setButtonActive(RealFlyV3Btn, flyV3Active)
     end)
-    
     isMinPanelMinimized = false
     MiniMinimizeBtn.MouseButton1Click:Connect(function()
         isMinPanelMinimized = not isMinPanelMinimized
@@ -12609,12 +11274,10 @@ do
             MiniContent.Visible = true
         end
     end)
-
     MiniCloseBtn.MouseButton1Click:Connect(function()
         MiniPanelFrame.Visible = false
         setButtonActive(FlyV3Btn, false)
     end)
-
     FlyV3ShortcutConn = UserInputService.InputBegan:Connect(function(input, gpe)
         if gpe then return end
         if input.KeyCode == Enum.KeyCode.E and flyV1PCEnabled then
@@ -12624,7 +11287,6 @@ do
             toggleFlyV3()
         end
     end)
-    
     task.spawn(function()
         while ScreenGui and ScreenGui.Parent and task.wait(0.1) do
             pcall(function()
@@ -12635,7 +11297,6 @@ do
                     MiniFlyV3Btn.Text = "Fly PC: OFF  [E]"
                     MiniFlyV3Btn.TextColor3 = Color3.fromRGB(255, 50, 50)
                 end
-                
                 if flyV3Enabled then
                     MiniFlyV3SpeedBtn.Text = "Fly V3: ON  [Q]"
                     MiniFlyV3SpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -12643,7 +11304,6 @@ do
                     MiniFlyV3SpeedBtn.Text = "Fly V3: OFF  [Q]"
                     MiniFlyV3SpeedBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
                 end
-                
                 if PartScannerFrame and PartScannerFrame.Visible then
                     MiniScannerBtn.Text = "Part Scanner: ON"
                     MiniScannerBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -12651,7 +11311,6 @@ do
                     MiniScannerBtn.Text = "Part Scanner: OFF"
                     MiniScannerBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
                 end
-                
                 if blackHoleActive then
                     MiniBringBtn.Text = "Bring Part: ON"
                     MiniBringBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -12659,7 +11318,6 @@ do
                     MiniBringBtn.Text = "Bring Part: OFF"
                     MiniBringBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
                 end
-                
                 if ESPenabled then
                     MiniEspBtn.Text = "ESP: ON"
                     MiniEspBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -12667,7 +11325,6 @@ do
                     MiniEspBtn.Text = "ESP: OFF"
                     MiniEspBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
                 end
-                
                 if noclipActive then
                     MiniNoclipBtn.Text = "Noclip: ON"
                     MiniNoclipBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -12675,7 +11332,6 @@ do
                     MiniNoclipBtn.Text = "Noclip: OFF"
                     MiniNoclipBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
                 end
-                
                 if flying then
                     MiniFlyTapBtn.Text = "Fly (Mobile): ON"
                     MiniFlyTapBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -12683,7 +11339,6 @@ do
                     MiniFlyTapBtn.Text = "Fly (Mobile): OFF"
                     MiniFlyTapBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
                 end
-
                 local specGui = PlayerGui:FindFirstChild("PIXECUTE SPECTATE") or (game:GetService("CoreGui") and game:GetService("CoreGui"):FindFirstChild("PIXECUTE SPECTATE"))
                 if specGui and specGui.Enabled then
                     MiniSpectateBtn.Text = "Spectate: ON"
@@ -12692,7 +11347,6 @@ do
                     MiniSpectateBtn.Text = "Spectate: OFF"
                     MiniSpectateBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
                 end
-                
                 if PlayerListFrame and PlayerListFrame.Visible then
                     MiniPlayerListBtn.Text = "Player List: ON"
                     MiniPlayerListBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -12700,7 +11354,6 @@ do
                     MiniPlayerListBtn.Text = "Player List: OFF"
                     MiniPlayerListBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
                 end
-                
                 if flingAuraActive then
                     MiniFlingAuraBtn.Text = "Fling Aura: ON"
                     MiniFlingAuraBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -12708,7 +11361,6 @@ do
                     MiniFlingAuraBtn.Text = "Fling Aura: OFF"
                     MiniFlingAuraBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
                 end
-                
                 if orbitFlingActive then
                     if orbitFlingTarget then
                         MiniOrbitFlingBtn.Text = "Orbit: " .. string.sub(orbitFlingTarget.Name, 1, 8)
@@ -12723,7 +11375,6 @@ do
             end)
         end
     end)
-
     RunService.Heartbeat:Connect(function()
         if not flyV3Active then return end
         local char = Player.Character
@@ -12746,7 +11397,6 @@ do
             local camCFrame = camera.CFrame
             local velocity = Vector3.zero
             local rotation = camCFrame.Rotation
-            
             if UserInputService:IsKeyDown(Enum.KeyCode.W) then
                 velocity += camCFrame.LookVector
                 rotation *= CFrame.Angles(math.rad(-40), 0, 0)
@@ -12769,8 +11419,6 @@ do
             if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
                 velocity -= Vector3.yAxis
             end
-            
-            -- Mobile Support (Thumbstick / MoveDirection)
             local isPC = UserInputService:IsKeyDown(Enum.KeyCode.W) or UserInputService:IsKeyDown(Enum.KeyCode.S) or UserInputService:IsKeyDown(Enum.KeyCode.A) or UserInputService:IsKeyDown(Enum.KeyCode.D)
             if not isPC then
                 local hum = char and char:FindFirstChild("Humanoid")
@@ -12780,7 +11428,6 @@ do
                     rotation *= CFrame.Angles(math.rad(-40 * -localMove.Z), 0, math.rad(-40 * localMove.X))
                 end
             end
-            
             local tweenInfo = TweenInfo.new(0.5)
             TweenService:Create(bodyVelocity, tweenInfo, { Velocity = velocity * 50 * 4.5 }):Play()
             bodyVelocity.Parent = primaryPart
@@ -12800,28 +11447,24 @@ AntiLagBtn.LayoutOrder = 12
 SpectatorBtn.LayoutOrder = 15
 AnimasiBtn.LayoutOrder = 16
 FlyV2Btn.LayoutOrder = 18.5
-
--- Place the new controls at the end
 ClickTPBtn.LayoutOrder = 19
 FreeCamBtn.LayoutOrder = 21
 TPBox.LayoutOrder = 20
 SWPBtn.LayoutOrder = 22
 SWPBox.LayoutOrder = 23
-
 ChatLogsBtn = createButton("", "Chat Logs")
 ChatLogsBtn.Name = "ChatLogsBtn"
 ChatLogsBtn.MouseButton1Click:Connect(function()
     toggleChatLogsWindow()
 end);
-
--- A->Z sort all action buttons and place input boxes under their buttons
 task.spawn(function()
     local btns = {
         AirwalkBtn, ESPBtn, ESPTeamBtn, LampBtn, JumpBtn, SpeedBtn, NoclipBtn, FlingBtn, FlyBtn,
         UnanchorBtn, BringPartBtn, AntiLagBtn, SpectatorBtn,
-        AnimasiBtn, CloneAvatarBtn, EmoteBtn, FlyV2Btn, FlyV3Btn, RealFlyV3Btn, ClickTPBtn, FreeCamBtn, TweenTPBtn, ServerHopBtn, SWPBtn, DexBtn, CmdBarBtn,
+        AnimasiBtn, CloneAvatarBtn, EmoteBtn, FlyV2Btn, FlyV3Btn, RealFlyV3Btn, VehicleFlyBtn, ClickTPBtn, FreeCamBtn, TweenTPBtn, ServerHopBtn, SWPBtn, DexBtn, CmdBarBtn,
         BToolsBtn, ShiftLockBtn, JumpPowerBtn, TPToolBtn, ChatLogsBtn,
-        WalkFlingBtn, AntiFlingBtn, FlingAuraBtn, OrbitFlingBtn, HitboxBtn, AimbotBtn, MaxZoomBtn
+        WalkFlingBtn, AntiFlingBtn, FlingAuraBtn, OrbitFlingBtn, HitboxBtn, AutoClickerBtn, AimbotBtn, MaxZoomBtn,
+        ClickYeetBtn, LagServerBtn, TouchFlingBtn, PartInspectorBtn
     }
     local list = {}
     for _,b in ipairs(btns) do
@@ -12860,12 +11503,9 @@ task.spawn(function()
         end
     end
 end)
-
--- Hook chat commands & Command Bar (e.g. swp <name>) like Infinite Yield
 local success, err = pcall(function()
     local lastSavedWaypointName = nil
     local lastSavedWaypointTime = 0
-
     local function notifyPlayer(title, text)
         pcall(function()
             game:GetService("StarterGui"):SetCore("SendNotification", {
@@ -12875,7 +11515,6 @@ local success, err = pcall(function()
             })
         end)
     end
-
     local invisibleLoop = nil
     local function setInvisible(state)
         if state then
@@ -12910,7 +11549,6 @@ local success, err = pcall(function()
             end
         end
     end
-
     local monitorGui = nil
     local monitorConnection = nil
     _G.ToggleFPSPingMonitor = function()
@@ -12931,7 +11569,6 @@ local success, err = pcall(function()
             elseif game:GetService("CoreGui") then guiParent = game:GetService("CoreGui")
             else guiParent = PlayerGui end
             monitorGui.Parent = guiParent
-
             local monitorFrame = Instance.new("Frame")
             monitorFrame.Size = UDim2.new(0, 140, 0, 70)
             monitorFrame.Position = UDim2.new(1, -150, 0, 10)
@@ -12940,16 +11577,13 @@ local success, err = pcall(function()
             monitorFrame.BorderSizePixel = 0
             monitorFrame.Active = true
             monitorFrame.Parent = monitorGui
-
             local corner = Instance.new("UICorner")
             corner.CornerRadius = UDim.new(0, 8)
             corner.Parent = monitorFrame
-
             local topBar = Instance.new("Frame")
             topBar.Size = UDim2.new(1, 0, 0, 20)
             topBar.BackgroundTransparency = 1
             topBar.Parent = monitorFrame
-
             local dragging = false
             local dragInput, dragStart, startPos
             monitorFrame.InputBegan:Connect(function(input)
@@ -12973,7 +11607,6 @@ local success, err = pcall(function()
                     monitorFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
                 end
             end)
-
             local closeBtn = Instance.new("TextButton")
             closeBtn.Size = UDim2.new(0, 20, 0, 20)
             closeBtn.Position = UDim2.new(1, -25, 0, 2)
@@ -12986,7 +11619,6 @@ local success, err = pcall(function()
             closeBtn.MouseButton1Click:Connect(function()
                 _G.ToggleFPSPingMonitor()
             end)
-
             local fpsLabel = Instance.new("TextLabel")
             fpsLabel.Size = UDim2.new(1, -30, 0, 25)
             fpsLabel.Position = UDim2.new(0, 10, 0, 15)
@@ -12997,7 +11629,6 @@ local success, err = pcall(function()
             fpsLabel.TextSize = 14
             fpsLabel.TextXAlignment = Enum.TextXAlignment.Left
             fpsLabel.Parent = monitorFrame
-
             local pingLabel = Instance.new("TextLabel")
             pingLabel.Size = UDim2.new(1, -30, 0, 25)
             pingLabel.Position = UDim2.new(0, 10, 0, 40)
@@ -13008,7 +11639,6 @@ local success, err = pcall(function()
             pingLabel.TextSize = 14
             pingLabel.TextXAlignment = Enum.TextXAlignment.Left
             pingLabel.Parent = monitorFrame
-
             local lastUpdate = tick()
             local frames = 0
             monitorConnection = RunService.RenderStepped:Connect(function()
@@ -13018,7 +11648,6 @@ local success, err = pcall(function()
                     fpsLabel.Text = "FPS: " .. frames
                     frames = 0
                     lastUpdate = now
-                    
                     local ok, pingData = pcall(function()
                         return game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue()
                     end)
@@ -13097,31 +11726,26 @@ local success, err = pcall(function()
         { name = "visible", aliases = {"vis"}, desc = "Membuat karakter kembali terlihat.", usage = "" },
         { name = "fps", aliases = {"fpsmonitor"}, desc = "Tampilkan/sembunyikan monitor FPS.", usage = "" },
         { name = "chatlogs", aliases = {"logs", "clogs", "clog"}, desc = "Menampilkan/menyembunyikan catatan chat (Chat Logs).", usage = "" },
-        { name = "maxzoom", aliases = {"mz"}, desc = "Bypass batas jarak zoom kamera.", usage = "" }
+        { name = "maxzoom", aliases = {"mz"}, desc = "Bypass batas jarak zoom kamera.", usage = "" },
+        { name = "autoclicker", aliases = {"clicker", "autoclick"}, desc = "Mengaktifkan/mematikan Auto Clicker (PC Only).", usage = "" }
     }
-
     table.sort(commandsList, function(a, b)
         return a.name < b.name
     end)
-
     local CmdListFrame = nil
-
     local function makeDraggable(frame, parentFrame)
         parentFrame = parentFrame or frame
         local dragging = false
         local dragInput, dragStart, startPos
-
         local function update(input)
             local delta = input.Position - dragStart
             parentFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
-
         frame.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                 dragging = true
                 dragStart = input.Position
                 startPos = parentFrame.Position
-
                 input.Changed:Connect(function()
                     if input.UserInputState == Enum.UserInputState.End then
                         dragging = false
@@ -13129,52 +11753,43 @@ local success, err = pcall(function()
                 end)
             end
         end)
-
         frame.InputChanged:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
                 dragInput = input
             end
         end)
-
         UserInputService.InputChanged:Connect(function(input)
             if input == dragInput and dragging then
                 update(input)
             end
         end)
     end
-
     local function createCommandsWindow()
         if not CmdsFrame then return end
-        if CmdsFrame:FindFirstChild("ListScroll") then return end -- Already created
-
-        -- Search Bar Container
+        if CmdsFrame:FindFirstChild("ListScroll") then return end
         local searchFrame = Instance.new("Frame")
         searchFrame.Name = "SearchFrame"
         searchFrame.Size = UDim2.new(1, -120, 0, 32)
         searchFrame.Position = UDim2.new(0, 5, 0, 5)
         searchFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
         searchFrame.Parent = CmdsFrame
-
         local searchCorner = Instance.new("UICorner")
         searchCorner.CornerRadius = UDim.new(0, 6)
         searchCorner.Parent = searchFrame
-
         local searchStroke = Instance.new("UIStroke")
         searchStroke.Color = Color3.fromRGB(40, 40, 45)
         searchStroke.Thickness = 1
         searchStroke.Parent = searchFrame
-
         local searchIcon = Instance.new("TextLabel")
         searchIcon.Name = "Icon"
         searchIcon.Size = UDim2.new(0, 20, 1, 0)
         searchIcon.Position = UDim2.new(0, 8, 0, 0)
         searchIcon.BackgroundTransparency = 1
         searchIcon.Font = Enum.Font.Gotham
-        searchIcon.Text = "ðŸ”"
+        searchIcon.Text = "🔍"
         searchIcon.TextColor3 = Color3.fromRGB(150, 150, 150)
         searchIcon.TextSize = 14
         searchIcon.Parent = searchFrame
-
         local searchBox = Instance.new("TextBox")
         searchBox.Name = "SearchBox"
         searchBox.Size = UDim2.new(1, -38, 1, 0)
@@ -13189,8 +11804,6 @@ local success, err = pcall(function()
         searchBox.TextXAlignment = Enum.TextXAlignment.Left
         searchBox.ClearTextOnFocus = false
         searchBox.Parent = searchFrame
-
-        -- Command Bar Button
         local barBtn = Instance.new("TextButton")
         barBtn.Name = "OpenBarBtn"
         barBtn.Size = UDim2.new(0, 105, 0, 32)
@@ -13201,16 +11814,12 @@ local success, err = pcall(function()
         barBtn.Font = Enum.Font.GothamBold
         barBtn.TextSize = 12
         barBtn.Parent = CmdsFrame
-
         local barCorner = Instance.new("UICorner")
         barCorner.CornerRadius = UDim.new(0, 6)
         barCorner.Parent = barBtn
-
         barBtn.MouseButton1Click:Connect(function()
             showCmdBar()
         end)
-
-        -- Scrolling Frame for commands
         local scrollFrame = Instance.new("ScrollingFrame")
         scrollFrame.Name = "ListScroll"
         scrollFrame.Size = UDim2.new(1, -10, 1, -45)
@@ -13221,13 +11830,10 @@ local success, err = pcall(function()
         scrollFrame.CanvasSize = UDim2.new(0, 0, 0, #commandsList * 56 + 15)
         scrollFrame.Visible = true
         scrollFrame.Parent = CmdsFrame
-
         local listLayout = Instance.new("UIListLayout")
         listLayout.Padding = UDim.new(0, 8)
         listLayout.SortOrder = Enum.SortOrder.LayoutOrder
         listLayout.Parent = scrollFrame
-
-        -- Render Command Items
         for idx, cmdData in ipairs(commandsList) do
             local renderSuccess, renderErr = pcall(function()
                 local itemFrame = Instance.new("Frame")
@@ -13238,23 +11844,17 @@ local success, err = pcall(function()
                 itemFrame.LayoutOrder = idx
                 itemFrame.Visible = true
                 itemFrame.Parent = scrollFrame
-
                 local itemCorner = Instance.new("UICorner")
                 itemCorner.CornerRadius = UDim.new(0, 6)
                 itemCorner.Parent = itemFrame
-
-                -- Store command name/description in StringValues
                 local cmdNameVal = Instance.new("StringValue")
                 cmdNameVal.Name = "CmdNameValue"
                 cmdNameVal.Value = cmdData.name
                 cmdNameVal.Parent = itemFrame
-
                 local cmdDescVal = Instance.new("StringValue")
                 cmdDescVal.Name = "CmdDescValue"
                 cmdDescVal.Value = cmdData.desc
                 cmdDescVal.Parent = itemFrame
-
-                -- Dot Indicator
                 local dot = Instance.new("Frame")
                 dot.Name = "Dot"
                 dot.Size = UDim2.new(0, 6, 0, 6)
@@ -13265,13 +11865,10 @@ local success, err = pcall(function()
                 local dotCorner = Instance.new("UICorner")
                 dotCorner.CornerRadius = UDim.new(1, 0)
                 dotCorner.Parent = dot
-
-                -- Title and Aliases
                 local aliasesStr = ""
                 if #cmdData.aliases > 0 then
                     aliasesStr = "  (" .. table.concat(cmdData.aliases, ", ") .. ")"
                 end
-
                 local nameLabel = Instance.new("TextLabel")
                 nameLabel.Name = "CmdTitle"
                 nameLabel.Size = UDim2.new(1, -26, 0, 20)
@@ -13285,8 +11882,6 @@ local success, err = pcall(function()
                 nameLabel.Visible = true
                 nameLabel.ZIndex = 10
                 nameLabel.Parent = itemFrame
-
-                -- Description
                 local descLabel = Instance.new("TextLabel")
                 descLabel.Name = "CmdDesc"
                 descLabel.Size = UDim2.new(1, -26, 0, 18)
@@ -13305,8 +11900,6 @@ local success, err = pcall(function()
                 warn("Failed to render command item " .. tostring(idx) .. ": " .. tostring(renderErr))
             end
         end
-
-        -- Search Filtering Connection
         searchBox:GetPropertyChangedSignal("Text"):Connect(function()
             local query = string.lower(searchBox.Text)
             local visibleCount = 0
@@ -13327,7 +11920,6 @@ local success, err = pcall(function()
             scrollFrame.CanvasSize = UDim2.new(0, 0, 0, visibleCount * 56 + 15)
         end)
     end
-
     showCommandsWindow = function()
         local success, err = pcall(createCommandsWindow)
         if not success then
@@ -13337,14 +11929,10 @@ local success, err = pcall(function()
             setCategory("Commands")
         end
     end
-
     local function handleChatCommand(message)
         if typeof(message) ~= "string" then return end
-        
         local cleanMsg = message:gsub("^%s+", ""):gsub("%s+$", "")
         if cleanMsg == "" then return end
-        
-        -- Remove leading prefix if present (like ; or ' or \ or / or /e)
         local commandText = cleanMsg
         for _, prefix in ipairs({";", "'", "\\", "/", "/e "}) do
             if string.sub(string.lower(cleanMsg), 1, #prefix) == prefix then
@@ -13352,20 +11940,14 @@ local success, err = pcall(function()
                 break
             end
         end
-        
-        -- Split into command and arguments
         local args = {}
         for word in string.gmatch(commandText, "%S+") do
             table.insert(args, word)
         end
-        
         if #args == 0 then return end
-        
         local cmd = string.lower(args[1])
         table.remove(args, 1)
         local fullArgString = table.concat(args, " ")
-        
-        -- Command Handlers
         if cmd == "swp" or cmd == "savewp" or cmd == "savewaypoint" then
             local name = fullArgString
             if name and name ~= "" then
@@ -13375,7 +11957,6 @@ local success, err = pcall(function()
                 end
                 lastSavedWaypointName = name
                 lastSavedWaypointTime = now
-                
                 local saveFunc = saveCurrentPositionAsWaypoint or (typeof(_G.saveCurrentPositionAsWaypoint) == "function" and _G.saveCurrentPositionAsWaypoint)
                 if typeof(saveFunc) == "function" then
                     saveFunc(name)
@@ -13388,7 +11969,6 @@ local success, err = pcall(function()
                     end)
                 end
             end
-            
         elseif cmd == "tpwp" or cmd == "wp" then
             local name = fullArgString
             if name and name ~= "" then
@@ -13409,7 +11989,6 @@ local success, err = pcall(function()
                     notifyPlayer("Waypoint", "Waypoint tidak ditemukan: " .. name)
                 end
             end
-
         elseif cmd == "speed" or cmd == "spd" or cmd == "ws" then
             local num = tonumber(fullArgString)
             if num then
@@ -13424,7 +12003,6 @@ local success, err = pcall(function()
             else
                 toggleSpeed()
             end
-            
         elseif cmd == "jumppower" or cmd == "jp" or cmd == "jump" then
             local num = tonumber(fullArgString)
             if num then
@@ -13442,45 +12020,35 @@ local success, err = pcall(function()
             else
                 toggleJumpPower()
             end
-            
         elseif cmd == "tptool" or cmd == "tooltp" then
             toggleTPTool()
-            
         elseif cmd == "tweentp" or cmd == "tween" then
             tweenTpEnabled = not tweenTpEnabled
             if TweenTPBtn then
                 setButtonActive(TweenTPBtn, tweenTpEnabled)
             end
-            
         elseif cmd == "fly" then
             if not flying then
                 enableFly()
             end
-            
         elseif cmd == "unfly" or cmd == "nofly" then
             if flying then
                 disableFly()
             end
-
         elseif cmd == "flyv2" then
             launchFlyV2()
-
         elseif cmd == "flyv3" then
             if typeof(toggleFlyV3) == "function" then
                 toggleFlyV3()
             end
-            
         elseif cmd == "freecam" or cmd == "fc" then
             setFreecam(not freecamOn)
-            
         elseif cmd == "nofreecam" or cmd == "nofc" then
             if freecamOn then
                 setFreecam(false)
             end
-            
         elseif cmd == "clicktp" or cmd == "ctp" then
             toggleClickTP()
-
         elseif cmd == "tp" or cmd == "teleport" then
             local targetName = fullArgString
             if targetName and targetName ~= "" then
@@ -13491,10 +12059,8 @@ local success, err = pcall(function()
                     notifyPlayer("Teleport", "Pemain tidak ditemukan: " .. tostring(targetName))
                 end
             end
-            
         elseif cmd == "unanchor" then
             toggleUnanchor()
-
         elseif cmd == "ifling" or cmd == "instantfling" then
             local targetName = fullArgString
             if targetName and targetName ~= "" then
@@ -13536,7 +12102,6 @@ local success, err = pcall(function()
                     notifyPlayer("IFling", "Pemain tidak ditemukan: " .. tostring(targetName))
                 end
             end
-
         elseif cmd == "walkfling" or cmd == "wfling" or cmd == "wf" then
             walkFlingActive = not walkFlingActive
             if walkFlingActive then
@@ -13554,13 +12119,11 @@ local success, err = pcall(function()
                 if walkFlingConn then walkFlingConn:Disconnect(); walkFlingConn = nil end
                 notifyPlayer("Walk Fling", "Walk Fling mati.")
             end
-
         elseif cmd == "unwalkfling" or cmd == "unwfling" or cmd == "unwf" then
             walkFlingActive = false
             setButtonActive(WalkFlingBtn, false)
             if walkFlingConn then walkFlingConn:Disconnect(); walkFlingConn = nil end
             notifyPlayer("Walk Fling", "Walk Fling mati.")
-
         elseif cmd == "antifling" or cmd == "af" then
             antiFlingActive = not antiFlingActive
             if antiFlingActive then
@@ -13603,7 +12166,6 @@ local success, err = pcall(function()
                 antiFlingTracked = {}
                 notifyPlayer("Anti Fling", "Anti Fling mati.")
             end
-
         elseif cmd == "unantifling" then
             antiFlingActive = false
             setButtonActive(AntiFlingBtn, false)
@@ -13614,15 +12176,12 @@ local success, err = pcall(function()
             end
             antiFlingTracked = {}
             notifyPlayer("Anti Fling", "Anti Fling mati.")
-
         elseif cmd == "flingaura" or cmd == "fa" then
             toggleFlingAura()
             notifyPlayer("Fling Aura", flingAuraActive and "Fling Aura aktif." or "Fling Aura mati.")
-
         elseif cmd == "unflingaura" or cmd == "noflingaura" or cmd == "unfa" then
             toggleFlingAura(false)
             notifyPlayer("Fling Aura", "Fling Aura mati.")
-
         elseif cmd == "orbitfling" or cmd == "orbit" then
             local targetName = fullArgString
             if targetName and targetName ~= "" then
@@ -13637,11 +12196,9 @@ local success, err = pcall(function()
                 toggleOrbitFling()
                 notifyPlayer("Orbit Fling", orbitFlingActive and "Orbit Fling aktif." or "Orbit Fling mati.")
             end
-
         elseif cmd == "unorbitfling" or cmd == "unorbit" or cmd == "noorbit" then
             toggleOrbitFling(false)
             notifyPlayer("Orbit Fling", "Orbit Fling mati.")
-
         elseif cmd == "fling" or cmd == "tendang" then
             hiddenfling = not hiddenfling
             if hiddenfling then
@@ -13651,59 +12208,41 @@ local success, err = pcall(function()
             else
                 setButtonActive(FlingBtn, false)
             end
-            
         elseif cmd == "explorer" or cmd == "dex" then
             launchDex()
-
         elseif cmd == "airwalk" or cmd == "walkonair" then
             toggleAirwalk()
-
         elseif cmd == "esp" then
             toggleESP()
-
         elseif cmd == "espteam" then
             toggleESPTeam()
-
         elseif cmd == "lampu" or cmd == "light" or cmd == "lamp" then
             toggleLampu()
-
         elseif cmd == "infjump" or cmd == "infinitejump" then
             toggleInfiniteJump()
-
         elseif cmd == "rejoin" or cmd == "rj" then
             rejoinServer()
-
         elseif cmd == "refresh" or cmd == "re" or cmd == "respawn" then
             refreshCharacter()
-
         elseif cmd == "antiafk" then
             toggleAntiAFK()
-
         elseif cmd == "serverhop" or cmd == "shop" then
             serverhop()
-
         elseif cmd == "bringpart" or cmd == "bp" then
             toggleBringPart()
-
         elseif cmd == "yeetparts" or cmd == "yeetall" or cmd == "yeet" then
             yeetAllParts()
             notifyPlayer("Yeet Parts", "Semua objek di sekitar telah di-yeet ke void.")
-
         elseif cmd == "antilag" or cmd == "boost" then
             toggleAntiLag()
-
         elseif cmd == "btools" or cmd == "bt" then
             toggleBTools()
-
         elseif cmd == "shiftlock" or cmd == "sl" then
             toggleShiftLock()
-
         elseif cmd == "noclip" then
             toggleNoclip()
-
         elseif cmd == "spectate" or cmd == "spectator" or cmd == "view" then
             launchSpectator()
-
         elseif cmd == "animasi" or cmd == "anims" then
             launchAnimasi()
         elseif cmd == "emote" or cmd == "emotes" then
@@ -13718,7 +12257,6 @@ local success, err = pcall(function()
                     notifyPlayer("Clone Avatar", "Pemain tidak ditemukan: " .. tostring(targetName))
                 end
             end
-
         elseif cmd == "headsit" then
             local targetName = fullArgString
             if targetName and targetName ~= "" then
@@ -13729,10 +12267,8 @@ local success, err = pcall(function()
                     notifyPlayer("Headsit", "Pemain tidak ditemukan: " .. tostring(targetName))
                 end
             end
-
         elseif cmd == "unheadsit" or cmd == "noheadsit" then
             stopHeadsit()
-
         elseif cmd == "follow" then
             local targetName = fullArgString
             if targetName and targetName ~= "" then
@@ -13743,35 +12279,27 @@ local success, err = pcall(function()
                     notifyPlayer("Follow", "Pemain tidak ditemukan: " .. tostring(targetName))
                 end
             end
-
         elseif cmd == "unfollow" or cmd == "nofollow" then
             stopFollow()
-
         elseif cmd == "cmdbar" then
             showCmdBar()
-
         elseif cmd == "credits" then
             createCreditsWindow()
             setCategory("Credits")
-
         elseif cmd == "cmds" or cmd == "commands" then
             showCommandsWindow()
-            
         elseif cmd == "fullbright" or cmd == "fb" then
             if toggleFullbright then
                 toggleFullbright()
             end
-            
         elseif cmd == "aimbot" or cmd == "aim" then
             if toggleAimbot then
                 toggleAimbot()
             end
-            
         elseif cmd == "maxzoom" or cmd == "mz" then
             if toggleMaxZoom then
                 toggleMaxZoom()
             end
-            
         elseif cmd == "hitbox" or cmd == "hb" then
             if #args > 0 then
                 local size = tonumber(args[1])
@@ -13785,22 +12313,18 @@ local success, err = pcall(function()
             else
                 if toggleHitbox then toggleHitbox() end
             end
-            
         elseif cmd == "players" or cmd == "playerlist" or cmd == "plist" then
             if togglePlayerListWindow then
                 togglePlayerListWindow()
             end
-            
         elseif cmd == "friends" or cmd == "friendlist" or cmd == "flist" then
             if toggleFriendListWindow then
                 toggleFriendListWindow()
             end
-            
         elseif cmd == "waypoints" or cmd == "wps" or cmd == "wplist" then
             if setCategory then
                 setCategory("Waypoints")
             end
-            
         elseif cmd == "menu" or cmd == "mainmenu" then
             if setCategory then
                 setCategory("Menu")
@@ -13821,10 +12345,12 @@ local success, err = pcall(function()
             if toggleChatLogsWindow then
                 toggleChatLogsWindow()
             end
+        elseif cmd == "autoclicker" or cmd == "clicker" or cmd == "autoclick" then
+            if toggleAutoClicker then
+                toggleAutoClicker()
+            end
         end
     end
-
-    -- Create Command Bar GUI (tiru cara dari Infinite Yield)
     local CmdBarGuiParent = nil
     local successParent, errParent = pcall(function()
         if typeof(gethui) == "function" then
@@ -13840,15 +12366,12 @@ local success, err = pcall(function()
     if not successParent or not CmdBarGuiParent then
         CmdBarGuiParent = PlayerGui
     end
-
     local CmdBarGui = Instance.new("ScreenGui")
     CmdBarGui.Name = "CHCmdBarGUI"
     CmdBarGui.ResetOnSpawn = false
     CmdBarGui.DisplayOrder = 2147483647
     CmdBarGui.IgnoreGuiInset = true
     CmdBarGui.Parent = CmdBarGuiParent
-
-    -- Create Command Bar UI
     CmdBarFrame = Instance.new("Frame")
     CmdBarFrame.Name = "CmdBarFrame"
     CmdBarFrame.Size = UDim2.new(0, 440, 0, 44)
@@ -13860,24 +12383,19 @@ local success, err = pcall(function()
     CmdBarFrame.Active = true
     CmdBarFrame.Parent = CmdBarGui
     CmdBarFrame:GetPropertyChangedSignal("Visible"):Connect(updateExternalCursorVisibility)
-    
-    -- Make Command Bar Draggable
     local dragging = false
     local dragInput = nil
     local dragStart = nil
     local startPos = nil
-
     local function updateDrag(input)
         local delta = input.Position - dragStart
         CmdBarFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
-
     CmdBarFrame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             dragStart = input.Position
             startPos = CmdBarFrame.Position
-            
             input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
                     dragging = false
@@ -13885,38 +12403,30 @@ local success, err = pcall(function()
             end)
         end
     end)
-
     CmdBarFrame.InputChanged:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
             dragInput = input
         end
     end)
-
     UserInputService.InputChanged:Connect(function(input)
         if input == dragInput and dragging then
             updateDrag(input)
         end
     end)
-
     local cmdCorner = Instance.new("UICorner")
     cmdCorner.CornerRadius = UDim.new(0, 10)
     cmdCorner.Parent = CmdBarFrame
-
     local cmdStroke = Instance.new("UIStroke")
     cmdStroke.Color = Color3.fromRGB(255, 255, 255)
     cmdStroke.Thickness = 1.5
     cmdStroke.Transparency = 0
     cmdStroke.Parent = CmdBarFrame
-
-    -- Drag bar (top strip)
     local dragHandle = Instance.new("Frame")
     dragHandle.Name = "DragHandle"
     dragHandle.Size = UDim2.new(1, 0, 1, 0)
     dragHandle.BackgroundTransparency = 1
     dragHandle.ZIndex = 99999
     dragHandle.Parent = CmdBarFrame
-
-    -- TextBox input
     local CmdBarInput = Instance.new("TextBox")
     CmdBarInput.Name = "CmdBarInput"
     CmdBarInput.Size = UDim2.new(1, -96, 1, -10)
@@ -13933,24 +12443,20 @@ local success, err = pcall(function()
     CmdBarInput.ClearTextOnFocus = false
     CmdBarInput.ZIndex = 100000
     CmdBarInput.Parent = CmdBarFrame
-
-    -- Enter (âŽ) button
     local enterBarBtn = Instance.new("TextButton")
     enterBarBtn.Name = "EnterBarBtn"
     enterBarBtn.Size = UDim2.new(0, 36, 0, 36)
     enterBarBtn.Position = UDim2.new(1, -80, 0, 4)
     enterBarBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    enterBarBtn.Text = "âŽ"
+    enterBarBtn.Text = "⏎"
     enterBarBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
     enterBarBtn.TextSize = 16
     enterBarBtn.Font = Enum.Font.GothamBold
     enterBarBtn.ZIndex = 100001
     enterBarBtn.Parent = CmdBarFrame
-
     local enterBtnCorner = Instance.new("UICorner")
     enterBtnCorner.CornerRadius = UDim.new(0, 6)
     enterBtnCorner.Parent = enterBarBtn
-
     enterBarBtn.MouseButton1Click:Connect(function()
         local text = CmdBarInput.Text
         if text and text ~= "" then
@@ -13966,8 +12472,6 @@ local success, err = pcall(function()
             end
         end)
     end)
-
-    -- Close (X) button
     local closeBarBtn = Instance.new("TextButton")
     closeBarBtn.Name = "CloseBarBtn"
     closeBarBtn.Size = UDim2.new(0, 36, 0, 36)
@@ -13979,20 +12483,15 @@ local success, err = pcall(function()
     closeBarBtn.Font = Enum.Font.GothamBold
     closeBarBtn.ZIndex = 100001
     closeBarBtn.Parent = CmdBarFrame
-
     local closeBtnCorner = Instance.new("UICorner")
     closeBtnCorner.CornerRadius = UDim.new(0, 6)
     closeBtnCorner.Parent = closeBarBtn
-
     local closeStroke = Instance.new("UIStroke", closeBarBtn)
     closeStroke.Color = Color3.fromRGB(255, 255, 255)
     closeStroke.Thickness = 1.5
-
-    -- Drag logic
     do
         local dragging = false
         local dragStart, startPos
-
         dragHandle.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1
             or input.UserInputType == Enum.UserInputType.Touch then
@@ -14006,7 +12505,6 @@ local success, err = pcall(function()
                 end)
             end
         end)
-
         UserInputService.InputChanged:Connect(function(input)
             if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
             or input.UserInputType == Enum.UserInputType.Touch) then
@@ -14018,14 +12516,11 @@ local success, err = pcall(function()
             end
         end)
     end
-
-    -- Prevent ' or ; from appearing when first opened via shortcut
     CmdBarInput:GetPropertyChangedSignal("Text"):Connect(function()
         if CmdBarInput.Text == "'" or CmdBarInput.Text == ";" then
             CmdBarInput.Text = ""
         end
     end)
-
     local function hideCmdBar()
         TweenService:Create(CmdBarFrame, TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {
             Position = UDim2.new(CmdBarFrame.Position.X.Scale, CmdBarFrame.Position.X.Offset,
@@ -14036,15 +12531,12 @@ local success, err = pcall(function()
             CmdBarInput.Text = ""
         end)
     end
-
     closeBarBtn.MouseButton1Click:Connect(hideCmdBar)
-
     showCmdBar = function()
         if not CmdBarFrame or not CmdBarFrame:IsDescendantOf(game) then return end
         local cx = CmdBarFrame.Position.X.Offset
         local cy = CmdBarFrame.Position.Y.Offset
         if not CmdBarFrame.Visible then
-            -- Reset to center if first open
             CmdBarFrame.Position = UDim2.new(0.5, -220, 0.5, -62)
             CmdBarFrame.Visible = true
             TweenService:Create(CmdBarFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
@@ -14055,15 +12547,11 @@ local success, err = pcall(function()
         CmdBarInput.Text = ""
         CmdBarInput:CaptureFocus()
     end
-
     executingFromCmdBar = false
-
-    -- Enter runs command and closes command bar immediately
     CmdBarInput.FocusLost:Connect(function(enterPressed)
         if enterPressed then
             local text = CmdBarInput.Text
             if text and text ~= "" then
-                -- Jalankan perintah tanpa mengirim ke chat publik
                 local ok, err = pcall(handleChatCommand, text)
                 if not ok then
                     warn("Command Bar Error: " .. tostring(err))
@@ -14073,8 +12561,6 @@ local success, err = pcall(function()
             hideCmdBar()
         end
     end)
-
-    -- Keybind ' to open Command Bar
     pcall(function()
         local Mouse = Player:GetMouse()
         Mouse.KeyDown:Connect(function(key)
@@ -14083,8 +12569,6 @@ local success, err = pcall(function()
             end
         end)
     end)
-
-    -- Connect legacy chat event
     pcall(function()
         if Player then
             Player.Chatted:Connect(function(msg)
@@ -14094,8 +12578,6 @@ local success, err = pcall(function()
             end)
         end
     end)
-
-    -- Connect modern TextChatService event if applicable
     pcall(function()
         local TextChatService = game:GetService("TextChatService")
         if TextChatService and TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
@@ -14112,13 +12594,9 @@ end)
 if not success then
     warn("Failed to initialize command bar: " .. tostring(err))
 end
-
--- Apply UIStroke to all buttons across all GUIs automatically (except left panel sidebar)
 pcall(function()
     local function applyStrokeToButton(btn)
         if not btn:IsA("TextButton") and not btn:IsA("ImageButton") then return end
-        
-        -- Skip sidebar buttons (in QuickPanel)
         local parent = btn.Parent
         while parent do
             if parent.Name == "QuickPanel" then
@@ -14126,22 +12604,15 @@ pcall(function()
             end
             parent = parent.Parent
         end
-
-        -- Skip background/invisible interaction buttons
         if btn.Name == "ClickDetector" or btn.Name == "ModalFix" or (btn.BackgroundTransparency == 1 and btn.Text == "") then
             return
         end
-
-        -- Don't duplicate strokes
         if btn:FindFirstChildOfClass("UIStroke") then
             return
         end
-
         local s = Instance.new("UIStroke")
         s.Thickness = 1
         s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-        
-        -- Style based on button colors/properties
         local textColor = btn:IsA("TextButton") and btn.TextColor3 or nil
         if textColor == Color3.fromRGB(255, 255, 255) then
             s.Color = Color3.fromRGB(80, 80, 80)
@@ -14152,8 +12623,6 @@ pcall(function()
         end
         s.Parent = btn
     end
-
-    -- Monitor new buttons
     ScreenGui.DescendantAdded:Connect(function(descendant)
         if descendant:IsA("TextButton") or descendant:IsA("ImageButton") then
             task.defer(function()
@@ -14163,30 +12632,26 @@ pcall(function()
             end)
         end
     end)
-
-    -- Apply to existing ones
     for _, descendant in ipairs(ScreenGui:GetDescendants()) do
         if descendant:IsA("TextButton") or descendant:IsA("ImageButton") then
             applyStrokeToButton(descendant)
         end
     end
 end)
-
--- =====================================
--- ADVANCED PART SCANNER GUI V4 (BRUTE UNANCHOR + TELEPORT)
--- =====================================
-PartScannerFrame = nil
-local PartScannerScroll = nil
-local PartScannerAutoRefresh = nil
-
-local scannerBringHeartbeat = nil
+local ScannerState = {
+    Frame = nil,
+    Scroll = nil,
+    AutoRefresh = nil,
+    BringHeartbeat = nil,
+    IsScanning = false
+}
 local function StopScannerBring()
     if scannerBroughtPart then
         local part = scannerBroughtPart
         scannerBroughtPart = nil
-        if scannerBringHeartbeat then
-            pcall(function() scannerBringHeartbeat:Disconnect() end)
-            scannerBringHeartbeat = nil
+        if ScannerState.BringHeartbeat then
+            pcall(function() ScannerState.BringHeartbeat:Disconnect() end)
+            ScannerState.BringHeartbeat = nil
         end
         pcall(function()
             local torq = part:FindFirstChild("ScannerBringTorque")
@@ -14196,62 +12661,48 @@ local function StopScannerBring()
             if align then align:Destroy() end
             if att then att:Destroy() end
             part.CanCollide = true
-            part.Anchored = true -- Anchor in place, like Bring Part when turned off
+            part.Anchored = true
         end)
     end
     pcall(refreshPartScanner)
 end
-
 local function StartScannerBring(part)
     StopScannerBring()
     if not part or not part.Parent then return end
-
     scannerBroughtPart = part
     EnableNetwork()
     pcall(function()
         part.CanCollide = false
         part.Anchored = false
-
-        -- Putus semua joint/weld agar bagian map lainnya tidak ikut rusak/tertarik
         pcall(function() part:BreakJoints() end)
         for _, x in ipairs(part:GetChildren()) do
             if x:IsA("Weld") or x:IsA("WeldConstraint") or x:IsA("ManualWeld") or x:IsA("Motor6D") then
                 pcall(function() x:Destroy() end)
             end
         end
-
-        -- Teleport once to claim network ownership (infinite range)
         local char = LocalPlayer.Character
         local hrp = char and (char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart"))
         if hrp then
             part.CFrame = hrp.CFrame * CFrame.new(0, 10, 0)
         end
-
         for _, x in ipairs(part:GetChildren()) do
             if x:IsA("BodyMover") or x:IsA("RocketPropulsion") then x:Destroy() end
         end
-
-        -- Reuse the same Attachment1 from the main BringPart system
         local torq = part:FindFirstChild("ScannerBringTorque") or Instance.new("Torque", part)
         torq.Name = "ScannerBringTorque"
         torq.Torque = Vector3.new(100000, 100000, 100000)
-
         local align = part:FindFirstChild("ScannerBringAlign") or Instance.new("AlignPosition", part)
         align.Name = "ScannerBringAlign"
         align.MaxForce = math.huge
         align.MaxVelocity = math.huge
         align.Responsiveness = 200
-
         local att = part:FindFirstChild("ScannerBringAttachment") or Instance.new("Attachment", part)
         att.Name = "ScannerBringAttachment"
-
         torq.Attachment0 = att
         align.Attachment0 = att
-        align.Attachment1 = Attachment1 -- global Attachment1 from BringPart system
+        align.Attachment1 = Attachment1
     end)
-    
-    -- Fast loop to assert network ownership and velocity continuously (very aggressive)
-    scannerBringHeartbeat = RunService.Heartbeat:Connect(function()
+    ScannerState.BringHeartbeat = RunService.Heartbeat:Connect(function()
         if not scannerBroughtPart or not scannerBroughtPart.Parent then
             StopScannerBring()
             return
@@ -14268,10 +12719,8 @@ local function StartScannerBring(part)
             end
         end)
     end)
-    
     pcall(refreshPartScanner)
 end
-
 local function isCharacterPart(part)
     for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
         if p.Character and part:IsDescendantOf(p.Character) then
@@ -14280,13 +12729,10 @@ local function isCharacterPart(part)
     end
     return false
 end
-
-local isScanning = false
 function refreshPartScanner()
     if not PartScannerFrame or not PartScannerFrame.Visible then return end
-    if isScanning then return end
-    isScanning = true
-    
+    if ScannerState.IsScanning then return end
+    ScannerState.IsScanning = true
     task.spawn(function()
         local lp = game:GetService("Players").LocalPlayer
         local lpPos = nil
@@ -14294,32 +12740,27 @@ function refreshPartScanner()
             local lpHrp = lp.Character:FindFirstChild("HumanoidRootPart") or lp.Character:FindFirstChild("Torso")
             if lpHrp then lpPos = lpHrp.Position end
         end
-
         local unanchoredParts = {}
         if scannerBroughtPart and scannerBroughtPart.Parent then
             table.insert(unanchoredParts, scannerBroughtPart)
         end
-
-        -- Pre-cache character set to avoid nested player loops
         local charSet = {}
         for _, plr in ipairs(game.Players:GetPlayers()) do
             if plr.Character then
                 charSet[plr.Character] = true
             end
         end
-
         local allDescendants = workspace:GetDescendants()
         for i, obj in ipairs(allDescendants) do
             if i % 2000 == 0 then
-                task.wait() -- Yield to next frame to prevent freeze/lag!
-                if not PartScannerFrame or not PartScannerFrame.Visible then 
-                    isScanning = false
-                    return 
+                task.wait()
+                if not PartScannerFrame or not PartScannerFrame.Visible then
+                    ScannerState.IsScanning = false
+                    return
                 end
             end
             if obj:IsA("BasePart") and not obj.Anchored and not obj:IsDescendantOf(workspace.CurrentCamera) then
                 if obj ~= scannerBroughtPart then
-                    -- Fast parent tree traversal check instead of slow IsDescendantOf nested loops
                     local belongsToChar = false
                     local p = obj.Parent
                     while p and p ~= workspace do
@@ -14329,14 +12770,12 @@ function refreshPartScanner()
                         end
                         p = p.Parent
                     end
-                    
                     if not belongsToChar and obj.Name ~= "HumanoidRootPart" and obj.Name ~= "Torso" then
                         table.insert(unanchoredParts, obj)
                     end
                 end
             end
         end
-
         table.sort(unanchoredParts, function(a, b)
             local aPos, bPos
             pcall(function() aPos = a.Position end)
@@ -14346,32 +12785,26 @@ function refreshPartScanner()
             end
             return a.Name < b.Name
         end)
-
-        -- Clean UI on main thread
-        for _, child in ipairs(PartScannerScroll:GetChildren()) do
+        for _, child in ipairs(ScannerState.Scroll:GetChildren()) do
             if child:IsA("Frame") and child.Name == "PartItem" then child:Destroy() end
         end
-
         local count = 0
         for _, part in ipairs(unanchoredParts) do
-            if count >= 100 then break end -- render closest 100 parts max to avoid UI lag
+            if count >= 100 then break end
             count = count + 1
-            
             local row = Instance.new("Frame")
             row.Name = "PartItem"
             row.Size = UDim2.new(1, -8, 0, 40)
             row.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
             row.BorderSizePixel = 0
             row.LayoutOrder = count
-            row:SetAttribute("PartRef", tostring(part)) -- untuk fitur klik-to-scan
-            row.Parent = PartScannerScroll
+            row:SetAttribute("PartRef", tostring(part))
+            row.Parent = ScannerState.Scroll
             Instance.new("UICorner", row).CornerRadius = UDim.new(0, 6)
-
             local distText = ""
             pcall(function()
                 if lpPos then distText = "[" .. math.floor((part.Position - lpPos).Magnitude) .. "m] " end
             end)
-
             local title = Instance.new("TextLabel", row)
             title.Size = UDim2.new(1, -230, 1, 0)
             title.Position = UDim2.new(0, 10, 0, 0)
@@ -14381,18 +12814,15 @@ function refreshPartScanner()
             title.TextColor3 = Color3.fromRGB(200, 200, 200)
             title.TextXAlignment = Enum.TextXAlignment.Left
             title.TextTruncate = Enum.TextTruncate.AtEnd
-            title.Text = "ðŸ§± " .. distText .. part.Name
-
+            title.Text = "🧱 " .. distText .. part.Name
             local btns = Instance.new("Frame", row)
             btns.Size = UDim2.new(0, 220, 1, 0)
             btns.Position = UDim2.new(1, -224, 0, 0)
             btns.BackgroundTransparency = 1
-
             local blay = Instance.new("UIListLayout", btns)
             blay.FillDirection = Enum.FillDirection.Horizontal
             blay.Padding = UDim.new(0, 4)
             blay.VerticalAlignment = Enum.VerticalAlignment.Center
-
             local function makeBtn(txt, col, w, strokeColor)
                 local b = Instance.new("TextButton", btns)
                 b.Size = UDim2.new(0, w, 0, 28)
@@ -14408,9 +12838,6 @@ function refreshPartScanner()
                 s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
                 return b
             end
-
-            -- BRING TOGGLE (pakai ForcePart â€” logika identik dengan BringPart utama)
-            -- Cek apakah part ini sedang di-bring (tidak perlu blackHoleActive)
             local partBeingBrought = (part == scannerBroughtPart) or (part:FindFirstChild("ScannerBringAlign") ~= nil) or (part:FindFirstChild("BringAlign") ~= nil)
             local bringBtn = makeBtn(partBeingBrought and "Stop" or "Bring", partBeingBrought and Color3.fromRGB(200, 100, 0) or Color3.fromRGB(50, 120, 220), 46, partBeingBrought and Color3.fromRGB(255, 150, 50) or Color3.fromRGB(100, 180, 255))
             bringBtn.MouseButton1Click:Connect(function()
@@ -14420,7 +12847,6 @@ function refreshPartScanner()
                         if scannerBroughtPart == part then
                             StopScannerBring()
                         end
-                        
                         local torq = part:FindFirstChild("BringTorque") or part:FindFirstChild("ScannerBringTorque")
                         local align = part:FindFirstChild("BringAlign") or part:FindFirstChild("ScannerBringAlign")
                         local att = part:FindFirstChild("BringAttachment") or part:FindFirstChild("ScannerBringAttachment")
@@ -14429,10 +12855,8 @@ function refreshPartScanner()
                             if align then align:Destroy() end
                             if att then att:Destroy() end
                         end)
-                        
                         part:SetAttribute("ScannerStopped", true)
                         part.Anchored = true
-                        
                         bringBtn.Text = "Bring"
                         bringBtn.BackgroundColor3 = Color3.fromRGB(50, 120, 220)
                         local stroke = bringBtn:FindFirstChildOfClass("UIStroke")
@@ -14445,7 +12869,6 @@ function refreshPartScanner()
                         else
                             StartScannerBring(part)
                         end
-                        
                         bringBtn.Text = "Stop"
                         bringBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
                         local stroke = bringBtn:FindFirstChildOfClass("UIStroke")
@@ -14453,130 +12876,69 @@ function refreshPartScanner()
                     end
                 end)
             end)
-
-            -- TELEPORT BUTTON
             local tpBtn = makeBtn("Teleport", Color3.fromRGB(150, 50, 150), 70, Color3.fromRGB(220, 100, 220))
             tpBtn.MouseButton1Click:Connect(function()
                 if lp and lp.Character then
+                    local wasFlyV1Active = getgenv().tpwalking
+                    if wasFlyV1Active then
+                        getgenv().tpwalking = false
+                        task.wait(0.1)
+                    end
                     local tHrp = lp.Character:FindFirstChild("HumanoidRootPart") or lp.Character:FindFirstChild("Torso")
                     if tHrp then
                         tHrp.CFrame = part.CFrame * CFrame.new(0, 3, 0)
                     end
+                    if wasFlyV1Active then
+                        task.wait(0.1)
+                        getgenv().tpwalking = true
+                    end
                 end
             end)
-
-            -- YEET: stop any active bring â†’ fling part sejauh mungkin â†’ anchor permanen
             local yeetBtn = makeBtn("Yeet", Color3.fromRGB(200, 40, 40), 42, Color3.fromRGB(255, 100, 100))
             yeetBtn.MouseButton1Click:Connect(function()
                 if scannerBroughtPart == part then
                     StopScannerBring()
                 end
                 pcall(function()
-                    -- One-shot klaim network ownership
                     pcall(function() sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge) end)
-                    -- Teleport dekat player untuk klaim ownership
                     local char = lp and lp.Character
                     local hrp = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Head"))
                     if hrp then
                         part.CFrame = hrp.CFrame * CFrame.new(0, 5, 0)
                     end
-                    -- Hapus joints/welds agar map tidak rusak saat terlempar
                     pcall(function() part:BreakJoints() end)
-                    for _, x in ipairs(part:GetChildren()) do
-                        if x:IsA("Weld") or x:IsA("WeldConstraint") or x:IsA("ManualWeld") or x:IsA("Motor6D")
-                            or x:IsA("BodyMover") or x:IsA("RocketPropulsion")
-                            or x.Name == "ScannerBringTorque" or x.Name == "ScannerBringAlign"
-                            or x.Name == "ScannerBringAttachment"
-                            or x.Name == "BringTorque" or x.Name == "BringAlign" or x.Name == "BringAttachment"
-                        then x:Destroy() end
-                    end
                     part.CanCollide = false
                     part.Anchored = false
-                    -- Fling SANGAT jauh ke void (hilang seketika)
-                    part.AssemblyLinearVelocity = Vector3.new(
-                        math.random(-20000, 20000), -50000, math.random(-20000, 20000)
-                    )
-                    part.AssemblyAngularVelocity = Vector3.new(
-                        math.random(-500, 500), math.random(-500, 500), math.random(-500, 500)
-                    )
-                    -- Keep updating position to void for 2.0s before anchoring (Y = -9999)
-                    task.spawn(function()
-                        local startYeet = tick()
-                        while tick() - startYeet < 2.0 do
-                            pcall(function()
-                                part.CanCollide = false
-                                part.Anchored = false
-                                part.CFrame = CFrame.new(part.Position.X, -9999, part.Position.Z)
-                                part.AssemblyLinearVelocity = Vector3.new(0, -100, 0)
-                            end)
-                            task.wait(0.05) -- 20 Hz, very lightweight
-                        end
-                        pcall(function()
-                            part.CFrame = CFrame.new(part.Position.X, -9999, part.Position.Z)
-                            part.Anchored = true
-                        end)
-                    end)
+                    part.CFrame = CFrame.new(99999, 9999, 99999)
+                    part.AssemblyLinearVelocity = Vector3.new(0, 50000, 0)
+                    task.wait(0.05)
+                    part:Destroy()
                 end)
                 task.delay(0.2, function() refreshPartScanner() end)
             end)
-
-            -- DESTROY: permanen delete part dari workspace (anti-visual)
             local destroyBtn = makeBtn("Destroy", Color3.fromRGB(150, 0, 0), 50, Color3.fromRGB(255, 50, 50))
             destroyBtn.MouseButton1Click:Connect(function()
                 if scannerBroughtPart == part then
                     StopScannerBring()
                 end
                 pcall(function()
-                    -- Create YeetedParts folder if not exists
-                    local yeetFolder = workspace:FindFirstChild("YeetedParts")
-                    if not yeetFolder then
-                        yeetFolder = Instance.new("Folder", workspace)
-                        yeetFolder.Name = "YeetedParts"
-                    end
-
-                    -- Claim network ownership (tanpa teleport)
                     pcall(function() sethiddenproperty(game.Players.LocalPlayer, "SimulationRadius", math.huge) end)
-
-                    -- Break joints
                     pcall(function() part:BreakJoints() end)
-                    for _, x in ipairs(part:GetChildren()) do
-                        if x:IsA("Weld") or x:IsA("WeldConstraint") or x:IsA("ManualWeld") or x:IsA("Motor6D")
-                            or x:IsA("Constraint") or x:IsA("Attachment")
-                            or x:IsA("BodyMover") or x:IsA("RocketPropulsion")
-                        then
-                            pcall(function() x:Destroy() end)
-                        end
-                    end
-
                     part.CanCollide = false
                     part.Anchored = false
-
-                    -- Set velocity random seperti OneTimeUnanchor (tanpa teleport)
-                    part.AssemblyLinearVelocity = Vector3.new(
-                        math.random(-50, 50),
-                        math.random(20, 100),
-                        math.random(-50, 50)
-                    )
-
-                    -- Move to YeetedParts folder
-                    part.Parent = yeetFolder
-
-                    -- Wait sebentar
-                    task.wait(0.2)
-
-                    -- Destroy permanen
+                    part.CFrame = CFrame.new(99999, 9999, 99999)
+                    part.AssemblyLinearVelocity = Vector3.new(0, 50000, 0)
+                    task.wait(0.05)
                     part:Destroy()
                 end)
                 task.delay(0.1, function() refreshPartScanner() end)
             end)
         end
-        isScanning = false
+        ScannerState.IsScanning = false
     end)
 end
-
 function createPartScannerWindow()
     if PartScannerFrame then return end
-
     PartScannerFrame = Instance.new("Frame", ScreenGui)
     PartScannerFrame.Name = "PartScannerFrame"
     PartScannerFrame.Size = UDim2.new(0, 420, 0, 380)
@@ -14589,25 +12951,20 @@ function createPartScannerWindow()
     PartScannerFrame.Active = true
     PartScannerFrame.Draggable = false
     Instance.new("UICorner", PartScannerFrame).CornerRadius = UDim.new(0, 12)
-
-    -- Modal invisible button: blok custom cursor agar tidak muncul di atas Part Scanner
     local scannerModal = Instance.new("TextButton", PartScannerFrame)
     scannerModal.Size = UDim2.new(0, 0, 0, 0)
     scannerModal.BackgroundTransparency = 1
     scannerModal.Text = ""
     scannerModal.Modal = true
-
     local stroke = Instance.new("UIStroke", PartScannerFrame)
     stroke.Color = Color3.fromRGB(255, 255, 255)
     stroke.Thickness = 2
-
     local topBar = Instance.new("Frame", PartScannerFrame)
     topBar.Size = UDim2.new(1, 0, 0, 30)
     topBar.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
     topBar.BorderSizePixel = 0
     Instance.new("UICorner", topBar).CornerRadius = UDim.new(0, 12)
     makeSmoothDraggable(PartScannerFrame, topBar)
-
     local title = Instance.new("TextLabel", topBar)
     title.Size = UDim2.new(1, -150, 1, 0)
     title.Position = UDim2.new(0, 12, 0, 0)
@@ -14617,7 +12974,6 @@ function createPartScannerWindow()
     title.TextSize = 14
     title.Font = Enum.Font.GothamBold
     title.TextXAlignment = Enum.TextXAlignment.Left
-
     local closeBtn = Instance.new("TextButton", topBar)
     closeBtn.Size = UDim2.new(0, 22, 0, 22)
     closeBtn.Position = UDim2.new(1, -28, 0.5, -11)
@@ -14631,12 +12987,11 @@ function createPartScannerWindow()
     closeStroke.Thickness = 1
     closeBtn.MouseButton1Click:Connect(function()
         PartScannerFrame.Visible = false
-        if PartScannerAutoRefresh then
-            task.cancel(PartScannerAutoRefresh)
-            PartScannerAutoRefresh = nil
+        if ScannerState.AutoRefresh then
+            task.cancel(ScannerState.AutoRefresh)
+            ScannerState.AutoRefresh = nil
         end
     end)
-
     local minBtn = Instance.new("TextButton", topBar)
     minBtn.Size = UDim2.new(0, 22, 0, 22)
     minBtn.Position = UDim2.new(1, -54, 0.5, -11)
@@ -14648,24 +13003,21 @@ function createPartScannerWindow()
     local minStroke = Instance.new("UIStroke", minBtn)
     minStroke.Color = Color3.fromRGB(255, 255, 255)
     minStroke.Thickness = 1
-    
     local isMinimized = false
     local normalSize = UDim2.new(0, 420, 0, 380)
     local minimizedSize = UDim2.new(0, 420, 0, 30)
-
     minBtn.MouseButton1Click:Connect(function()
         isMinimized = not isMinimized
         if isMinimized then
             minBtn.Text = "+"
             game:GetService("TweenService"):Create(PartScannerFrame, TweenInfo.new(0.25), {Size = minimizedSize}):Play()
-            PartScannerScroll.Visible = false
+            ScannerState.Scroll.Visible = false
         else
             minBtn.Text = "-"
             game:GetService("TweenService"):Create(PartScannerFrame, TweenInfo.new(0.25), {Size = normalSize}):Play()
-            PartScannerScroll.Visible = true
+            ScannerState.Scroll.Visible = true
         end
     end)
-
     local refreshBtn = Instance.new("TextButton", topBar)
     refreshBtn.Size = UDim2.new(0, 22, 0, 22)
     refreshBtn.Position = UDim2.new(1, -80, 0.5, -11)
@@ -14680,7 +13032,6 @@ function createPartScannerWindow()
     refreshBtn.MouseButton1Click:Connect(function()
         refreshPartScanner()
     end)
-
     local syncBtn = Instance.new("TextButton", topBar)
     syncBtn.Size = UDim2.new(0, 22, 0, 22)
     syncBtn.Position = UDim2.new(1, -106, 0.5, -11)
@@ -14692,7 +13043,6 @@ function createPartScannerWindow()
     local syncStroke = Instance.new("UIStroke", syncBtn)
     syncStroke.Color = Color3.fromRGB(255, 255, 255)
     syncStroke.Thickness = 1
-    
     syncBtn.MouseButton1Click:Connect(function()
         pcall(function()
             game:GetService("StarterGui"):SetCore("SendNotification", {
@@ -14700,13 +13050,10 @@ function createPartScannerWindow()
                 Text = "Menyelaraskan visual part dengan server...",
                 Duration = 1.5
             })
-            
             local charSet = {}
             for _, plr in ipairs(game.Players:GetPlayers()) do
                 if plr.Character then charSet[plr.Character] = true end
             end
-            
-            -- Reset parent lokal untuk memaksa Roblox mengambil CFrame asli dari server secara instan
             local count = 0
             for _, obj in ipairs(workspace:GetDescendants()) do
                 if obj:IsA("BasePart") and not obj:IsDescendantOf(workspace.CurrentCamera) then
@@ -14719,52 +13066,45 @@ function createPartScannerWindow()
                         end
                         p = p.Parent
                     end
-                    
                     if not isChar and string.lower(obj.Name) ~= "baseplate" and obj.Name ~= "Handle" then
                         pcall(function()
-                            local originalParent = obj.Parent
-                            if originalParent then
-                                obj.Parent = nil
-                                obj.Parent = originalParent
-                                count = count + 1
+                            if obj:IsA("BasePart") then
+                                local orig = obj.Transparency
+                                obj.Transparency = orig == 1 and 0.99 or 1
+                                obj.Transparency = orig
+                                obj.AssemblyLinearVelocity = obj.AssemblyLinearVelocity
                             end
+                            count = count + 1
                         end)
                     end
                 end
-                -- Yield occasionally if too many parts to prevent frame spikes
                 if count % 1000 == 0 then
                     task.wait()
                 end
             end
-            
             game:GetService("StarterGui"):SetCore("SendNotification", {
                 Title = "Visual Sync",
                 Text = "Visual sinkron selesai!",
                 Duration = 1.5
             })
-            
             pcall(refreshPartScanner)
         end)
     end)
-
-    PartScannerScroll = Instance.new("ScrollingFrame", PartScannerFrame)
-    PartScannerScroll.Size = UDim2.new(1, -16, 1, -42)
-    PartScannerScroll.Position = UDim2.new(0, 8, 0, 38)
-    PartScannerScroll.BackgroundTransparency = 1
-    PartScannerScroll.ScrollBarThickness = 4
-    
-    local lay = Instance.new("UIListLayout", PartScannerScroll)
+    ScannerState.Scroll = Instance.new("ScrollingFrame", PartScannerFrame)
+    ScannerState.Scroll.Size = UDim2.new(1, -16, 1, -42)
+    ScannerState.Scroll.Position = UDim2.new(0, 8, 0, 38)
+    ScannerState.Scroll.BackgroundTransparency = 1
+    ScannerState.Scroll.ScrollBarThickness = 4
+    local lay = Instance.new("UIListLayout", ScannerState.Scroll)
     lay.Padding = UDim.new(0, 6)
     lay.SortOrder = Enum.SortOrder.LayoutOrder
-
     lay:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        PartScannerScroll.CanvasSize = UDim2.new(0, 0, 0, lay.AbsoluteContentSize.Y + 10)
+        ScannerState.Scroll.CanvasSize = UDim2.new(0, 0, 0, lay.AbsoluteContentSize.Y + 10)
     end)
-
     PartScannerFrame:GetPropertyChangedSignal("Visible"):Connect(function()
         if PartScannerFrame.Visible then
-            if not PartScannerAutoRefresh then
-                PartScannerAutoRefresh = task.spawn(function()
+            if not ScannerState.AutoRefresh then
+                ScannerState.AutoRefresh = task.spawn(function()
                     while PartScannerFrame.Visible do
                         pcall(refreshPartScanner)
                         task.wait(2.5)
@@ -14772,33 +13112,23 @@ function createPartScannerWindow()
                 end)
             end
         else
-            if PartScannerAutoRefresh then
-                task.cancel(PartScannerAutoRefresh)
-                PartScannerAutoRefresh = nil
+            if ScannerState.AutoRefresh then
+                task.cancel(ScannerState.AutoRefresh)
+                ScannerState.AutoRefresh = nil
             end
         end
     end)
 end
-
--- ==============================================
--- FITUR KLIK PART DI DUNIA â†’ AUTO HIGHLIGHT DI PART SCANNER
--- Klik kiri saat Part Scanner terbuka â†’ bagian di list di-scroll & di-highlight
--- ==============================================
 do
     local Mouse = game:GetService("Players").LocalPlayer:GetMouse()
     Mouse.Button1Down:Connect(function()
-        -- Hanya aktif kalau Part Scanner sedang terbuka
         if not PartScannerFrame or not PartScannerFrame.Visible then return end
-        -- Jangan proses kalau klik di atas GUI
         local guiObjects = game:GetService("Players").LocalPlayer.PlayerGui:GetGuiObjectsAtPosition(Mouse.X, Mouse.Y)
         for _, obj in ipairs(guiObjects) do
             if obj:IsDescendantOf(PartScannerFrame) then return end
         end
-
         local target = Mouse.Target
         if not target or not target:IsA("BasePart") or target.Anchored then return end
-
-        -- Cek bukan bagian karakter
         local isChar = false
         for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
             if p.Character and target:IsDescendantOf(p.Character) then
@@ -14806,38 +13136,29 @@ do
             end
         end
         if isChar then return end
-
-        -- Cari row di Part Scanner yang sesuai dengan part ini
-        if not PartScannerScroll then return end
+        if not ScannerState.Scroll then return end
         local found = nil
-        for _, row in ipairs(PartScannerScroll:GetChildren()) do
+        for _, row in ipairs(ScannerState.Scroll:GetChildren()) do
             if row:IsA("Frame") and row.Name == "PartItem" then
-                -- Row menyimpan referensi part via tag/attribute
                 if row:GetAttribute("PartRef") == tostring(target) then
                     found = row
                     break
                 end
             end
         end
-
         if found then
-            -- Scroll ke row yang ditemukan
-            local rowPos = found.AbsolutePosition.Y - PartScannerScroll.AbsolutePosition.Y + PartScannerScroll.CanvasPosition.Y
-            game:GetService("TweenService"):Create(PartScannerScroll, TweenInfo.new(0.2), {
+            local rowPos = found.AbsolutePosition.Y - ScannerState.Scroll.AbsolutePosition.Y + ScannerState.Scroll.CanvasPosition.Y
+            game:GetService("TweenService"):Create(ScannerState.Scroll, TweenInfo.new(0.2), {
                 CanvasPosition = Vector2.new(0, math.max(0, rowPos - 40))
             }):Play()
-            -- Flash highlight kuning
             local origCol = found.BackgroundColor3
             found.BackgroundColor3 = Color3.fromRGB(200, 180, 0)
             task.delay(0.4, function()
                 pcall(function() found.BackgroundColor3 = origCol end)
             end)
         else
-            -- Part tidak ditemukan di list (mungkin baru unanchor), refresh dulu lalu coba lagi
-            isScanning = false
+            ScannerState.IsScanning = false
             refreshPartScanner()
         end
     end)
 end
--- Klik kiri saat Part Scanner terbuka â†’ bagian di list di-scroll & di-highlight
--- ==============================================
