@@ -12419,11 +12419,8 @@ Main = (function()
 	Main.SetMainGuiOpen = function(val)
 		Main.MainGuiOpen = val
 
-		Main.MainGui.OpenButton.Text = val and "X" or "Dex"
 		if val then Main.MainGui.OpenButton.MainFrame.Visible = true end
-		Main.MainGui.OpenButton.MainFrame:TweenSize(val and UDim2.new(0,224,0,200) or UDim2.new(0,0,0,0),Enum.EasingDirection.Out,Enum.EasingStyle.Quad,0.2,true)
-		--Main.MainGui.OpenButton.BackgroundTransparency = val and 0 or (Lib.CheckMouseInGui(Main.MainGui.OpenButton) and 0 or 0.2)
-		service.TweenService:Create(Main.MainGui.OpenButton,TweenInfo.new(0.2,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{BackgroundTransparency = val and 0 or (Lib.CheckMouseInGui(Main.MainGui.OpenButton) and 0 or 0.2)}):Play()
+		Main.MainGui.OpenButton.MainFrame:TweenSize(val and UDim2.new(0,224,0,200) or UDim2.new(0,224,0,0),Enum.EasingDirection.Out,Enum.EasingStyle.Quad,0.2,true)
 
 		if Main.MainGuiMouseEvent then Main.MainGuiMouseEvent:Disconnect() end
 
@@ -12434,30 +12431,29 @@ Main = (function()
 				Lib.FastWait(0.2)
 				if not Main.MainGuiOpen and startTime == Main.MainGuiCloseTime then Main.MainGui.OpenButton.MainFrame.Visible = false end
 			end)()
-		else
-			Main.MainGuiMouseEvent = service.UserInputService.InputBegan:Connect(function(input)
-				if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) and not Lib.CheckMouseInGui(Main.MainGui.OpenButton) and not Lib.CheckMouseInGui(Main.MainGui.OpenButton.MainFrame) then
-
-					Main.SetMainGuiOpen(false)
-				end
-			end)
 		end
 	end
 
 	Main.CreateMainGui = function()
 		local gui = create({
 			{1,"ScreenGui",{IgnoreGuiInset=true,Name="MainMenu",}},
-			{2,"TextButton",{AnchorPoint=Vector2.new(0.5,0),AutoButtonColor=false,BackgroundColor3=Color3.new(0.17647059261799,0.17647059261799,0.17647059261799),BorderSizePixel=0,Font=4,Name="OpenButton",Parent={1},Position=UDim2.new(0.5,0,0,2),Size=UDim2.new(0,32,0,32),Text="Dex",TextColor3=Color3.new(1,1,1),TextSize=16,TextTransparency=0.20000000298023,}},
-			{3,"UICorner",{CornerRadius=UDim.new(0,4),Parent={2},}},
-			{4,"Frame",{AnchorPoint=Vector2.new(0.5,0),BackgroundColor3=Color3.new(0.17647059261799,0.17647059261799,0.17647059261799),ClipsDescendants=true,Name="MainFrame",Parent={2},Position=UDim2.new(0.5,0,1,-4),Size=UDim2.new(0,224,0,200),}},
-			{5,"UICorner",{CornerRadius=UDim.new(0,4),Parent={4},}},
-			{6,"Frame",{BackgroundColor3=Color3.new(0.20392157137394,0.20392157137394,0.20392157137394),Name="BottomFrame",Parent={4},Position=UDim2.new(0,0,1,-24),Size=UDim2.new(1,0,0,24),}},
-			{7,"UICorner",{CornerRadius=UDim.new(0,4),Parent={6},}},
-			{8,"Frame",{BackgroundColor3=Color3.new(0.20392157137394,0.20392157137394,0.20392157137394),BorderSizePixel=0,Name="CoverFrame",Parent={6},Size=UDim2.new(1,0,0,4),}},
-			{9,"Frame",{BackgroundColor3=Color3.new(0.1294117718935,0.1294117718935,0.1294117718935),BorderSizePixel=0,Name="Line",Parent={8},Position=UDim2.new(0,0,0,-1),Size=UDim2.new(1,0,0,1),}},
-			{10,"TextButton",{BackgroundColor3=Color3.new(1,1,1),BackgroundTransparency=1,Font=3,Name="Settings",Parent={6},Position=UDim2.new(1,-48,0,0),Size=UDim2.new(0,24,1,0),Text="",TextColor3=Color3.new(1,1,1),TextSize=14,}},
+			{2,"TextButton",{Active=true,Draggable=true,AnchorPoint=Vector2.new(0.5,0),AutoButtonColor=false,BackgroundColor3=Color3.fromRGB(15, 15, 15),BorderSizePixel=0,Font=Enum.Font.GothamBold,Name="OpenButton",Parent={1},Position=UDim2.new(0.5,0,0,2),Size=UDim2.new(0,224,0,32),Text="   Dex Explorer",TextXAlignment=Enum.TextXAlignment.Left,TextColor3=Color3.fromRGB(255, 50, 50),TextSize=14,TextTransparency=0}},
+			{3,"UICorner",{CornerRadius=UDim.new(0,8),Parent={2},}},
+			{101,"UIStroke",{Color=Color3.fromRGB(255, 50, 50),Thickness=1,ApplyStrokeMode=Enum.ApplyStrokeMode.Border,Parent={2},}},
+			{111,"TextButton",{Name="MinimizeBtn",Parent={2},Position=UDim2.new(1,-50,0,6),Size=UDim2.new(0,20,0,20),BackgroundColor3=Color3.fromRGB(40,160,40),Text="-",TextColor3=Color3.new(1,1,1),Font=Enum.Font.GothamBold,TextSize=14}},
+			{112,"UICorner",{CornerRadius=UDim.new(0,6),Parent={111},}},
+			{113,"TextButton",{Name="CloseBtn",Parent={2},Position=UDim2.new(1,-25,0,6),Size=UDim2.new(0,20,0,20),BackgroundColor3=Color3.fromRGB(180,40,40),Text="X",TextColor3=Color3.new(1,1,1),Font=Enum.Font.GothamBold,TextSize=14}},
+			{114,"UICorner",{CornerRadius=UDim.new(0,6),Parent={113},}},
+			{4,"Frame",{AnchorPoint=Vector2.new(0.5,0),BackgroundColor3=Color3.fromRGB(5, 5, 5),ClipsDescendants=true,Name="MainFrame",Parent={2},Position=UDim2.new(0.5,0,1,6),Size=UDim2.new(0,224,0,200),}},
+			{5,"UICorner",{CornerRadius=UDim.new(0,8),Parent={4},}},
+			{102,"UIStroke",{Color=Color3.fromRGB(255, 50, 50),Thickness=1,ApplyStrokeMode=Enum.ApplyStrokeMode.Border,Parent={4},}},
+			{6,"Frame",{BackgroundColor3=Color3.fromRGB(15, 15, 15),Name="BottomFrame",Parent={4},Position=UDim2.new(0,0,1,-24),Size=UDim2.new(1,0,0,24),}},
+			{7,"UICorner",{CornerRadius=UDim.new(0,8),Parent={6},}},
+			{8,"Frame",{BackgroundColor3=Color3.fromRGB(15, 15, 15),BorderSizePixel=0,Name="CoverFrame",Parent={6},Size=UDim2.new(1,0,0,4),}},
+			{9,"Frame",{BackgroundColor3=Color3.fromRGB(40, 40, 40),BorderSizePixel=0,Name="Line",Parent={8},Position=UDim2.new(0,0,0,-1),Size=UDim2.new(1,0,0,1),Visible=false}},
+			{10,"TextButton",{BackgroundColor3=Color3.new(1,1,1),BackgroundTransparency=1,Font=3,Name="Settings",Parent={6},Position=UDim2.new(1,-48,0,0),Size=UDim2.new(0,24,1,0),Text="",TextColor3=Color3.new(1,1,1),TextSize=14,Visible=false}},
 			{11,"ImageLabel",{BackgroundColor3=Color3.new(1,1,1),BackgroundTransparency=1,Image="rbxassetid://6578871732",ImageTransparency=0.20000000298023,Name="Icon",Parent={10},Position=UDim2.new(0,4,0,4),Size=UDim2.new(0,16,0,16),}},
-			{12,"TextButton",{BackgroundColor3=Color3.new(1,1,1),BackgroundTransparency=1,Font=3,Name="Information",Parent={6},Position=UDim2.new(1,-24,0,0),Size=UDim2.new(0,24,1,0),Text="",TextColor3=Color3.new(1,1,1),TextSize=14,}},
+			{12,"TextButton",{BackgroundColor3=Color3.new(1,1,1),BackgroundTransparency=1,Font=3,Name="Information",Parent={6},Position=UDim2.new(1,-24,0,0),Size=UDim2.new(0,24,1,0),Text="",TextColor3=Color3.new(1,1,1),TextSize=14,Visible=false}},
 			{13,"ImageLabel",{BackgroundColor3=Color3.new(1,1,1),BackgroundTransparency=1,Image="rbxassetid://6578933307",ImageTransparency=0.20000000298023,Name="Icon",Parent={12},Position=UDim2.new(0,4,0,4),Size=UDim2.new(0,16,0,16),}},
 			{14,"ScrollingFrame",{Active=true,AnchorPoint=Vector2.new(0.5,0),BackgroundColor3=Color3.new(1,1,1),BackgroundTransparency=1,BorderColor3=Color3.new(0.1294117718935,0.1294117718935,0.1294117718935),BorderSizePixel=0,Name="AppsFrame",Parent={4},Position=UDim2.new(0.5,0,0,0),ScrollBarImageColor3=Color3.new(0,0,0),ScrollBarThickness=4,Size=UDim2.new(0,222,1,-25),}},
 			{15,"Frame",{BackgroundColor3=Color3.new(1,1,1),BackgroundTransparency=1,Name="Container",Parent={14},Position=UDim2.new(0,7,0,8),Size=UDim2.new(1,-14,0,2),}},
@@ -12476,23 +12472,15 @@ Main = (function()
 		Main.MainGuiOpen = false
 
 		local openButton = gui.OpenButton
-		openButton.BackgroundTransparency = 0.2
-		openButton.MainFrame.Size = UDim2.new(0,0,0,0)
+		openButton.BackgroundTransparency = 0
+		openButton.MainFrame.Size = UDim2.new(0,224,0,0)
 		openButton.MainFrame.Visible = false
-		openButton.MouseButton1Click:Connect(function()
+		
+		openButton.MinimizeBtn.MouseButton1Click:Connect(function()
 			Main.SetMainGuiOpen(not Main.MainGuiOpen)
 		end)
-
-		openButton.InputBegan:Connect(function(input)
-			if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-				service.TweenService:Create(Main.MainGui.OpenButton,TweenInfo.new(0,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{BackgroundTransparency = 0}):Play()
-			end
-		end)
-
-		openButton.InputEnded:Connect(function(input)
-			if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-				service.TweenService:Create(Main.MainGui.OpenButton,TweenInfo.new(0,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{BackgroundTransparency = Main.MainGuiOpen and 0 or 0.2}):Play()
-			end
+		openButton.CloseBtn.MouseButton1Click:Connect(function()
+			gui:Destroy()
 		end)
 
 		-- Create Main Apps
