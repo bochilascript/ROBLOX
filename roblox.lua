@@ -16,14 +16,17 @@ local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local LocalPlayer = Player
 local player = Player
-local showCommandsWindow
-local showCmdBar
-local CmdBarFrame
-local CmdsFrame
-local MiniUnanchorBtn
-local Attachment1 = nil
-local plistSendPartTarget = nil
-local plistSendPartDescendantConn = nil
+showCommandsWindow = nil
+showCmdBar = nil
+CmdBarFrame = nil
+CmdsFrame = nil
+MiniUnanchorBtn = nil
+Attachment1 = nil
+plistSendPartTarget = nil
+syncDanceTarget = nil
+syncDanceLoop = nil
+myPlayingTracks = {}
+plistSendPartDescendantConn = nil
 MainGuiToggleConn = nil
 ShiftLockShortcutConn = nil
 SpeedShortcutConn = nil
@@ -126,6 +129,8 @@ local LangDict = {
     ["Invisible_On"] = { EN = "Invisible Mode Activated!", ID = "FE Invisible Aktif!" },
     ["Visible_On"] = { EN = "Visible Mode Activated!", ID = "Karakter terlihat kembali!" },
     ["Teleporting"] = { EN = "Teleporting...", ID = "Melakukan Teleport..." },
+    ["SyncBtn"] = { EN = "Sync", ID = "Sinkron" },
+    ["Auto Clicker (PC)"] = { EN = "Auto Clicker (PC Only)", ID = "Auto Clicker (PC Only)" },
 }
 local translatableElements = {}
 local function OneTimeUnanchor()
@@ -447,7 +452,7 @@ pcall(function()
     local coreGui = game:GetService("CoreGui")
     local gethui = (gethui or function() return nil end)
     local hui = gethui()
-    for _, guiName in ipairs({"FlyGui", "CHCmdBarGUI", "PIXECUTE SPECTATE", "FriendListFrame", "PlayerListFrame", "CHCheatGUI"}) do
+    for _, guiName in ipairs({"CHCmdBarGUI", "PIXECUTE SPECTATE", "FriendListFrame", "PlayerListFrame", "CHCheatGUI"}) do
         for _, parent in ipairs({PlayerGui, coreGui, hui}) do
             if parent then
                 for _, child in ipairs(parent:GetChildren()) do
@@ -2023,6 +2028,7 @@ CloseBtn.MouseButton1Click:Connect(function()
         if flyV3Active then pcall(toggleFlyV3, false) end
         if aktif then pcall(toggleUnanchor, false) end
         if plistSendPartTarget then pcall(stopPlistSendPart) end
+        if syncDanceTarget then pcall(stopSyncDance) end
         if followTarget then pcall(stopFollow) end
         if headsitTarget then pcall(stopHeadsit) end
         if currentSpectateTarget then pcall(stopSpectate) end
@@ -2046,7 +2052,7 @@ CloseBtn.MouseButton1Click:Connect(function()
         if FreecamShortcutConn then pcall(function() FreecamShortcutConn:Disconnect() end) FreecamShortcutConn = nil end
         if MiniFrameToggleConn then pcall(function() MiniFrameToggleConn:Disconnect() end) MiniFrameToggleConn = nil end
         local coreGui = game:GetService("CoreGui")
-        for _, guiName in ipairs({"FlyGui", "CHCmdBarGUI", "PIXECUTE SPECTATE", "FriendListFrame", "PlayerListFrame"}) do
+        for _, guiName in ipairs({"CHCmdBarGUI", "PIXECUTE SPECTATE", "FriendListFrame", "PlayerListFrame"}) do
             local g = coreGui:FindFirstChild(guiName)
             if g then pcall(function() g:Destroy() end) end
         end
@@ -2055,7 +2061,7 @@ CloseBtn.MouseButton1Click:Connect(function()
         end
         local pGui = game.Players.LocalPlayer:FindFirstChild("PlayerGui")
         if pGui then
-            for _, guiName in ipairs({"FlyGui", "CHCmdBarGUI"}) do
+            for _, guiName in ipairs({"CHCmdBarGUI"}) do
                 local g = pGui:FindFirstChild(guiName)
                 if g then pcall(function() g:Destroy() end) end
             end
@@ -3508,6 +3514,71 @@ local function stopFollow()
         followConn = nil
     end
 end
+
+local function stopSyncDance()
+    if syncDanceLoop then task.cancel(syncDanceLoop) syncDanceLoop = nil end
+    syncDanceTarget = nil
+    for _, t in ipairs(myPlayingTracks) do pcall(function() t:Stop() end) end
+    table.clear(myPlayingTracks)
+end
+
+local function startSyncDance(targetPlayer)
+    stopSyncDance()
+    if not targetPlayer or not targetPlayer.Character then return end
+    syncDanceTarget = targetPlayer
+    local lastAnimId = nil
+    
+    syncDanceLoop = task.spawn(function()
+        while syncDanceTarget and syncDanceTarget.Character and syncDanceTarget.Character.Parent do
+            local hum = syncDanceTarget.Character:FindFirstChildOfClass("Humanoid")
+            local myChar = Player.Character
+            local myHum = myChar and myChar:FindFirstChildOfClass("Humanoid")
+            if hum and myHum then
+                local playing = hum:GetPlayingAnimationTracks()
+                local foundEmote = nil
+                for _, track in ipairs(playing) do
+                    if track.Weight > 0.1 and (tostring(track.Priority) == "Enum.AnimationPriority.Action" or tostring(track.Priority) == "Enum.AnimationPriority.Action4" or tostring(track.Priority) == "Enum.AnimationPriority.Action3" or tostring(track.Priority) == "Enum.AnimationPriority.Action2") then
+                        foundEmote = track
+                        break
+                    end
+                end
+                
+                if foundEmote then
+                    local id = ""
+                    if typeof(foundEmote.Animation) == "Instance" and foundEmote.Animation:IsA("Animation") then
+                        id = foundEmote.Animation.AnimationId
+                    end
+                    if id ~= "" and id ~= lastAnimId then
+                        for _, t in ipairs(myPlayingTracks) do pcall(function() t:Stop() end) end
+                        table.clear(myPlayingTracks)
+                        
+                        lastAnimId = id
+                        local anim = Instance.new("Animation")
+                        anim.AnimationId = lastAnimId
+                        local newTrack = myHum:LoadAnimation(anim)
+                        newTrack:Play()
+                        pcall(function() newTrack.TimePosition = foundEmote.TimePosition end)
+                        pcall(function() newTrack.Speed = foundEmote.Speed end)
+                        table.insert(myPlayingTracks, newTrack)
+                    elseif id ~= "" and id == lastAnimId then
+                        for _, t in ipairs(myPlayingTracks) do
+                            pcall(function() t.Speed = foundEmote.Speed end)
+                        end
+                    end
+                else
+                    if lastAnimId then
+                        for _, t in ipairs(myPlayingTracks) do pcall(function() t:Stop() end) end
+                        table.clear(myPlayingTracks)
+                        lastAnimId = nil
+                    end
+                end
+            end
+            task.wait(0.2)
+        end
+        stopSyncDance()
+    end)
+end
+
 local function startFollow(targetPlayer)
     stopFollow()
     local myChar = game.Players.LocalPlayer.Character
@@ -3918,7 +3989,7 @@ function createPlayerRow(targetPlayer, index)
     local function makeExActBtn2(text, color, strokeColor, order, sizeX)
         if color == Color3.fromRGB(15, 15, 15) then color = Color3.fromRGB(25, 25, 25) end
         local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(0.2, -4, 0, 26)
+        btn.Size = UDim2.new(0.166, -4, 0, 26)
         btn.BackgroundColor3 = color
         btn.Text = text
         btn.Font = Enum.Font.GothamBold
@@ -4145,6 +4216,26 @@ function createPlayerRow(targetPlayer, index)
             sendBtn.Text = tr("SendingOnBtn")
             sendBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
             local stroke = sendBtn:FindFirstChildOfClass("UIStroke")
+            if stroke then stroke.Color = Color3.fromRGB(255, 150, 50) end
+        end
+    end)
+    local isSyncing = (syncDanceTarget == targetPlayer)
+    local syncBtnText = isSyncing and "Stop" or tr("SyncBtn")
+    local syncBtnColor = isSyncing and Color3.fromRGB(200, 100, 0) or Color3.fromRGB(0, 100, 150)
+    local syncBtnStroke = isSyncing and Color3.fromRGB(255, 150, 50) or Color3.fromRGB(0, 160, 220)
+    local syncBtn = makeExActBtn2(syncBtnText, syncBtnColor, syncBtnStroke, 5, 45)
+    syncBtn.MouseButton1Click:Connect(function()
+        if syncDanceTarget == targetPlayer then
+            stopSyncDance()
+            syncBtn.Text = tr("SyncBtn")
+            syncBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 150)
+            local stroke = syncBtn:FindFirstChildOfClass("UIStroke")
+            if stroke then stroke.Color = Color3.fromRGB(0, 160, 220) end
+        else
+            startSyncDance(targetPlayer)
+            syncBtn.Text = "Stop"
+            syncBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
+            local stroke = syncBtn:FindFirstChildOfClass("UIStroke")
             if stroke then stroke.Color = Color3.fromRGB(255, 150, 50) end
         end
     end)
@@ -6105,7 +6196,7 @@ function toggleHitbox(state)
 end
 HitboxBtn.MouseButton1Click:Connect(function() toggleHitbox() end)
 
-AutoClickerBtn = createButton("Auto Clicker (PC Only)", "Auto Clicker")
+AutoClickerBtn = createButton("", "Auto Clicker (PC)")
 AutoClickerBtn.Name = "AutoClickerBtn"
 autoClickerActive = false
 autoClickerConnection = nil
@@ -6113,20 +6204,30 @@ function toggleAutoClicker(state)
     if state == nil then autoClickerActive = not autoClickerActive else autoClickerActive = state end
     setButtonActive(AutoClickerBtn, autoClickerActive)
     if autoClickerActive then
-        autoClickerConnection = RunService.RenderStepped:Connect(function()
-            if mouse1click then
-                pcall(function() mouse1click() end)
-            else
+        autoClickerConnection = task.spawn(function()
+            while autoClickerActive do
+                if mouse1click then
+                    pcall(function() mouse1click() end)
+                else
+                    pcall(function()
+                        local vu = game:GetService("VirtualUser")
+                        vu:CaptureController()
+                        vu:ClickButton1(Vector2.new())
+                    end)
+                end
                 pcall(function()
-                    local vu = game:GetService("VirtualUser")
-                    vu:CaptureController()
-                    vu:ClickButton1(Vector2.new())
+                    local char = Player.Character
+                    if char then
+                        local tool = char:FindFirstChildOfClass("Tool")
+                        if tool then tool:Activate() end
+                    end
                 end)
+                task.wait(0.05)
             end
         end)
     else
         if autoClickerConnection then 
-            autoClickerConnection:Disconnect() 
+            task.cancel(autoClickerConnection) 
             autoClickerConnection = nil 
         end
     end
@@ -6572,6 +6673,7 @@ local freecamYaw, freecamPitch = 0, 0
 local freecamPos
 local freecamSpeed = 1
 local clickTpConnection = nil
+local freecamInputConn = nil
 function toggleClickTP(state)
     if state == nil then
         clickTpOn = not clickTpOn
@@ -6636,6 +6738,25 @@ function setFreecam(state)
         local rx, ry = cam.CFrame:ToOrientation()
         freecamPitch, freecamYaw = rx, ry
         setButtonActive(FreeCamBtn, true)
+        
+        if not freecamInputConn then
+            freecamInputConn = UserInputService.InputChanged:Connect(function(input, gpe)
+                if not freecamOn then return end
+                if input.UserInputType == Enum.UserInputType.MouseMovement and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+                    local md = input.Delta
+                    freecamYaw = freecamYaw - (md.X/300)
+                    freecamPitch = math.clamp(freecamPitch - (md.Y/300), -math.rad(89), math.rad(89))
+                elseif input.UserInputType == Enum.UserInputType.Touch and not gpe then
+                    local viewportWidth = workspace.CurrentCamera.ViewportSize.X
+                    if input.Position.X > viewportWidth / 2 then
+                        local md = input.Delta
+                        freecamYaw = freecamYaw - (md.X/300)
+                        freecamPitch = math.clamp(freecamPitch - (md.Y/300), -math.rad(89), math.rad(89))
+                    end
+                end
+            end)
+        end
+        
         task.spawn(function()
             while freecamOn do
                 if not UserInputService:GetFocusedTextBox() then
@@ -6649,19 +6770,20 @@ function setFreecam(state)
                     
                     local hum = char and char:FindFirstChildOfClass("Humanoid")
                     if hum and hum.MoveDirection.Magnitude > 0 then
-                        local localMove = cam.CFrame:VectorToObjectSpace(hum.MoveDirection)
-                        delta += (cam.CFrame.LookVector * -localMove.Z) + (cam.CFrame.RightVector * localMove.X)
+                        local flatLook = (cam.CFrame.LookVector * Vector3.new(1, 0, 1)).Unit
+                        local flatRight = (cam.CFrame.RightVector * Vector3.new(1, 0, 1)).Unit
+                        local forwardInput = hum.MoveDirection:Dot(flatLook)
+                        local rightInput = hum.MoveDirection:Dot(flatRight)
+                        delta += (cam.CFrame.LookVector * forwardInput) + (cam.CFrame.RightVector * rightInput)
                     end
                     
                     if delta.Magnitude > 0 then
                         delta = delta.Unit
                     end
                     freecamPos += delta * freecamSpeed
+                    
                     if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-                        local md = UserInputService:GetMouseDelta()
                         UserInputService.MouseBehavior = Enum.MouseBehavior.LockCurrentPosition
-                        freecamYaw = freecamYaw - (md.X/300)
-                        freecamPitch = math.clamp(freecamPitch - (md.Y/300), -math.rad(89), math.rad(89))
                     else
                         UserInputService.MouseBehavior = Enum.MouseBehavior.Default
                     end
@@ -6671,6 +6793,10 @@ function setFreecam(state)
             end
         end)
     else
+        if freecamInputConn then
+            freecamInputConn:Disconnect()
+            freecamInputConn = nil
+        end
         if hrp then hrp.Anchored = false end
         workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
         UserInputService.MouseBehavior = Enum.MouseBehavior.Default
@@ -6856,44 +6982,9 @@ local moving = false
 local savedOrientation = nil
 local oldGravity = Workspace.Gravity
 local frozenPos = nil
-local gui = Instance.new("ScreenGui")
-gui.Name = "FlyGui"
-gui.ResetOnSpawn = false
-gui.Parent = game:GetService("CoreGui")
-local DPad = Instance.new("Frame")
-DPad.Size = UDim2.new(0,140,0,140)
-DPad.Position = UDim2.new(0,15,1,-155)
-DPad.BackgroundColor3 = Color3.fromRGB(25,25,25)
-DPad.BackgroundTransparency = 0.05
-DPad.Visible = false
-DPad.Parent = gui
-Instance.new("UICorner", DPad).CornerRadius = UDim.new(0,12)
-function createBtn(txt,pos)
-    local btn = Instance.new("TextButton")
-    btn.Text = txt
-    btn.Size = UDim2.new(0,45,0,45)
-    btn.Position = pos
-    btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
-    btn.TextColor3 = Color3.fromRGB(255,255,255)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 20
-    btn.Parent = DPad
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,8)
-    return btn
-end
-local UpBtn = createBtn("^", UDim2.new(0.5,-22,0,8))
-local DownBtn = createBtn("v", UDim2.new(0.5,-22,1,-53))
-local LeftBtn = createBtn("<", UDim2.new(0,8,0.5,-22))
-local RightBtn = createBtn(">", UDim2.new(1,-53,0.5,-22))
-function connectBtn(btn,key)
-    btn.MouseButton1Down:Connect(function() pressed[key]=true btn.BackgroundColor3=Color3.fromRGB(90,90,90) end)
-    btn.MouseButton1Up:Connect(function() pressed[key]=false btn.BackgroundColor3=Color3.fromRGB(50,50,50) end)
-end
-connectBtn(UpBtn,"Up")
-connectBtn(DownBtn,"Down")
-connectBtn(LeftBtn,"Left")
-connectBtn(RightBtn,"Right")
-local FlyBtn = createButton("", "Fly")
+
+
+local FlyV1Btn = createButton("", "Fly V1")
 function noclip(state)
     for _,v in pairs(character:GetDescendants()) do
         if v:IsA("BasePart") and not v:FindFirstAncestorOfClass("Accessory") then
@@ -6903,12 +6994,11 @@ function noclip(state)
 end
 function enableFly()
     flying = true
-    DPad.Visible = true
     humanoid.PlatformStand = true
     noclipActive = true
     if enableNoclip then enableNoclip() else noclip(true) end
     Workspace.Gravity = 0
-    setButtonActive(FlyBtn, true)
+    setButtonActive(FlyV1Btn, true)
     frozenPos = root.Position
     local _, y, _ = root.CFrame:ToOrientation()
     savedOrientation = CFrame.Angles(0, math.rad(y), 0)
@@ -6916,7 +7006,6 @@ function enableFly()
 end
 function disableFly()
     flying = false
-    DPad.Visible = false
     humanoid.PlatformStand = false
     if not blackHoleActive then
         noclipActive = false
@@ -6941,10 +7030,10 @@ function disableFly()
         end
         pcall(function() humanoid:ChangeState(Enum.HumanoidStateType.GettingUp) end)
     end
-    setButtonActive(FlyBtn, false)
+    setButtonActive(FlyV1Btn, false)
     for _, t in pairs(animTracks) do if t.IsPlaying then t:Stop() end end
 end
-FlyBtn.MouseButton1Click:Connect(function()
+FlyV1Btn.MouseButton1Click:Connect(function()
     if flying then
         disableFly()
     else
@@ -6986,8 +7075,11 @@ RunService.Heartbeat:Connect(function(dt)
     
     local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
     if hum and hum.MoveDirection.Magnitude > 0 then
-        local localMove = cam.CFrame:VectorToObjectSpace(hum.MoveDirection)
-        dir += (lookVec * -localMove.Z) + (rightVec * localMove.X)
+        local flatLook = (cam.CFrame.LookVector * Vector3.new(1, 0, 1)).Unit
+        local flatRight = (cam.CFrame.RightVector * Vector3.new(1, 0, 1)).Unit
+        local forwardInput = hum.MoveDirection:Dot(flatLook)
+        local rightInput = hum.MoveDirection:Dot(flatRight)
+        dir += (lookVec * forwardInput) + (rightVec * rightInput)
     end
     if dir.Magnitude > 0 then
         moving = true
@@ -7015,7 +7107,7 @@ RunService.Heartbeat:Connect(function(dt)
 end)
 humanoid.Died:Connect(function()
     disableFly()
-    setButtonActive(FlyBtn, false)
+    setButtonActive(FlyV1Btn, false)
 end)
 player.CharacterAdded:Connect(function(char)
     character = char
@@ -7024,11 +7116,11 @@ player.CharacterAdded:Connect(function(char)
     setupAnimator(humanoid)
     humanoid.Died:Connect(function()
         disableFly()
-        setButtonActive(FlyBtn, false)
+        setButtonActive(FlyV1Btn, false)
     end)
-    setButtonActive(FlyBtn, false)
+    setButtonActive(FlyV1Btn, false)
 end)
-setButtonActive(FlyBtn, false)
+setButtonActive(FlyV1Btn, false)
 UnanchorBtn = createButton("", "Unanchor")
 local aktif = false
 local folder, attachment1, koneksi1
@@ -10085,7 +10177,7 @@ local function updateRigStatus()
         if btnPlay then
             btnPlay.Active = true
             btnPlay.BackgroundColor3 = Color3.fromRGB(15,15,15)
-            btnPlay.TextColor3 = Color3.fromRGB(255, 255, 255)
+            btnPlay.TextColor3 = Color3.fromRGB(255,255,255)
             btnPlay.TextTransparency = 0
         end
     end
@@ -10499,12 +10591,12 @@ function launchFlyV2()
 	local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
 	local nowe = false
 	local noclipConnectionFly2 = nil
-    local flyV1CustomIdleId = "102256275785620"
-    local flyV1CustomFlyId = "100132174228207"
-    local flyV1IdleTrack = nil
-    local flyV1FlyTrack = nil
+    local flyV2CustomIdleId = "102256275785620"
+    local flyV2CustomFlyId = "100132174228207"
+    local flyV2IdleTrack = nil
+    local flyV2FlyTrack = nil
 	game:GetService("StarterGui"):SetCore("SendNotification", {
-		Title = "GUI TERBANG V3";
+		Title = "GUI TERBANG V2";
 		Text = "by Mannn";
 		Icon = "rbxthumb://type=Asset&id=5107182114&w=150&h=150"})
 	local Duration = 5;
@@ -10517,8 +10609,8 @@ function launchFlyV2()
 				noclipConnectionFly2:Disconnect()
 				noclipConnectionFly2 = nil
 			end
-			if flyV1IdleTrack then pcall(function() flyV1IdleTrack:Stop() end) end
-			if flyV1FlyTrack then pcall(function() flyV1FlyTrack:Stop() end) end
+            if flyV2IdleTrack then pcall(function() flyV2IdleTrack:Stop() end) end
+            if flyV2FlyTrack then pcall(function() flyV2FlyTrack:Stop() end) end
 			speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing,true)
 			speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown,true)
 			speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Flying,true)
@@ -10824,6 +10916,13 @@ function toggleVehicleFly(state)
         if not seat or (not seat:IsA("VehicleSeat") and not seat:IsA("Seat")) then
             vFlyActive = false
             setButtonActive(VehicleFlyBtn, false)
+            pcall(function()
+                game:GetService("StarterGui"):SetCore("SendNotification", {
+                    Title = "Vehicle Fly",
+                    Text = "Anda harus duduk di dalam kendaraan terlebih dahulu!",
+                    Duration = 3
+                })
+            end)
             return
         end
         
@@ -10867,6 +10966,17 @@ function toggleVehicleFly(state)
             if d then moveVector = moveVector + cam.CFrame.RightVector end
             if space then moveVector = moveVector + Vector3.new(0, 1, 0) end
             if lctrl then moveVector = moveVector + Vector3.new(0, -1, 0) end
+            
+            local isPC = w or s or a or d
+            if not isPC then
+                if hum and hum.MoveDirection.Magnitude > 0 then
+                    local flatLook = (cam.CFrame.LookVector * Vector3.new(1, 0, 1)).Unit
+                    local flatRight = (cam.CFrame.RightVector * Vector3.new(1, 0, 1)).Unit
+                    local forwardInput = hum.MoveDirection:Dot(flatLook)
+                    local rightInput = hum.MoveDirection:Dot(flatRight)
+                    moveVector += (cam.CFrame.LookVector * forwardInput) + (cam.CFrame.RightVector * rightInput)
+                end
+            end
             
             if moveVector.Magnitude > 0 then
                 bv.velocity = moveVector.Unit * speed
@@ -11423,9 +11533,12 @@ do
             if not isPC then
                 local hum = char and char:FindFirstChild("Humanoid")
                 if hum and hum.MoveDirection.Magnitude > 0 then
-                    local localMove = camCFrame:VectorToObjectSpace(hum.MoveDirection)
-                    velocity += (camCFrame.LookVector * -localMove.Z) + (camCFrame.RightVector * localMove.X)
-                    rotation *= CFrame.Angles(math.rad(-40 * -localMove.Z), 0, math.rad(-40 * localMove.X))
+                    local flatLook = (camCFrame.LookVector * Vector3.new(1, 0, 1)).Unit
+                    local flatRight = (camCFrame.RightVector * Vector3.new(1, 0, 1)).Unit
+                    local forwardInput = hum.MoveDirection:Dot(flatLook)
+                    local rightInput = hum.MoveDirection:Dot(flatRight)
+                    velocity += (camCFrame.LookVector * forwardInput) + (camCFrame.RightVector * rightInput)
+                    rotation *= CFrame.Angles(math.rad(-40 * forwardInput), 0, math.rad(-40 * rightInput))
                 end
             end
             local tweenInfo = TweenInfo.new(0.5)
@@ -11440,7 +11553,7 @@ JumpBtn.LayoutOrder = 4
 SpeedBtn.LayoutOrder = 5
 NoclipBtn.LayoutOrder = 7
 FlingBtn.LayoutOrder = 8
-FlyBtn.LayoutOrder = 9
+FlyV1Btn.LayoutOrder = 9
 UnanchorBtn.LayoutOrder = 10
 BringPartBtn.LayoutOrder = 11
 AntiLagBtn.LayoutOrder = 12
@@ -11459,7 +11572,7 @@ ChatLogsBtn.MouseButton1Click:Connect(function()
 end);
 task.spawn(function()
     local btns = {
-        AirwalkBtn, ESPBtn, ESPTeamBtn, LampBtn, JumpBtn, SpeedBtn, NoclipBtn, FlingBtn, FlyBtn,
+        AirwalkBtn, ESPBtn, ESPTeamBtn, LampBtn, JumpBtn, SpeedBtn, NoclipBtn, FlingBtn, FlyV1Btn,
         UnanchorBtn, BringPartBtn, AntiLagBtn, SpectatorBtn,
         AnimasiBtn, CloneAvatarBtn, EmoteBtn, FlyV2Btn, FlyV3Btn, RealFlyV3Btn, VehicleFlyBtn, ClickTPBtn, FreeCamBtn, TweenTPBtn, ServerHopBtn, SWPBtn, DexBtn, CmdBarBtn,
         BToolsBtn, ShiftLockBtn, JumpPowerBtn, TPToolBtn, ChatLogsBtn,
@@ -11727,7 +11840,9 @@ local success, err = pcall(function()
         { name = "fps", aliases = {"fpsmonitor"}, desc = "Tampilkan/sembunyikan monitor FPS.", usage = "" },
         { name = "chatlogs", aliases = {"logs", "clogs", "clog"}, desc = "Menampilkan/menyembunyikan catatan chat (Chat Logs).", usage = "" },
         { name = "maxzoom", aliases = {"mz"}, desc = "Bypass batas jarak zoom kamera.", usage = "" },
-        { name = "autoclicker", aliases = {"clicker", "autoclick"}, desc = "Mengaktifkan/mematikan Auto Clicker (PC Only).", usage = "" }
+        { name = "autoclicker", aliases = {"clicker", "autoclick"}, desc = "Mengaktifkan/mematikan Auto Clicker (PC Only).", usage = "" },
+        { name = "sync", aliases = {"syncdance", "copyemote"}, desc = "Menyalin/sinkronisasi animasi dengan pemain lain.", usage = " [nama]" },
+        { name = "unsync", aliases = {}, desc = "Berhenti sinkronisasi animasi.", usage = "" }
     }
     table.sort(commandsList, function(a, b)
         return a.name < b.name
@@ -12349,6 +12464,11 @@ local success, err = pcall(function()
             if toggleAutoClicker then
                 toggleAutoClicker()
             end
+        elseif cmd == "sync" or cmd == "syncdance" or cmd == "copyemote" then
+            local target = getTargetPlayer(args[1])
+            if target then startSyncDance(target) end
+        elseif cmd == "unsync" then
+            stopSyncDance()
         end
     end
     local CmdBarGuiParent = nil
