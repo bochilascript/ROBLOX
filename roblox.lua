@@ -7006,7 +7006,7 @@ local function resolveCatalogAnimationId(assetId)
     return finalId
 end
 local animations = {
-    Idle = 76361248833307,
+    Idle = 105221645767714,
     Fly = 88952942370104,
 }
 local animTracks = {}
