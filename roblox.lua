@@ -107,7 +107,7 @@ local LangDict = {
     ["PartName"] = { EN = "Part Name", ID = "Nama Objek" },
     ["ClassName"] = { EN = "Class Name", ID = "Tipe Objek" },
     ["ToggleCollision"] = { EN = "Toggle Collision", ID = "Ubah Tabrakan (CanCollide)" },
-    ["SearchCmds"] = { EN = "🔍 Search commands...", ID = "🔍 Cari perintah..." },
+    ["SearchCmds"] = { EN = "Search commands...", ID = "Cari perintah..." },
     ["Click Yeet"] = { EN = "Click Yeet", ID = "Klik Lempar" },
     ["Crash Server"] = { EN = "Crash Server", ID = "Lag Server" },
     ["SearchPlayers"] = { EN = "Search players...", ID = "Cari pemain..." },
@@ -11612,29 +11612,30 @@ do
             local camCFrame = camera.CFrame
             local velocity = Vector3.zero
             local rotation = camCFrame.Rotation
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+            local isFocused = UserInputService:GetFocusedTextBox() ~= nil
+            if not isFocused and UserInputService:IsKeyDown(Enum.KeyCode.W) then
                 velocity += camCFrame.LookVector
                 rotation *= CFrame.Angles(math.rad(-40), 0, 0)
             end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+            if not isFocused and UserInputService:IsKeyDown(Enum.KeyCode.S) then
                 velocity -= camCFrame.LookVector
                 rotation *= CFrame.Angles(math.rad(40), 0, 0)
             end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+            if not isFocused and UserInputService:IsKeyDown(Enum.KeyCode.D) then
                 velocity += camCFrame.RightVector
                 rotation *= CFrame.Angles(0, 0, math.rad(-40))
             end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+            if not isFocused and UserInputService:IsKeyDown(Enum.KeyCode.A) then
                 velocity -= camCFrame.RightVector
                 rotation *= CFrame.Angles(0, 0, math.rad(40))
             end
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+            if not isFocused and UserInputService:IsKeyDown(Enum.KeyCode.Space) then
                 velocity += Vector3.yAxis
             end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+            if not isFocused and UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
                 velocity -= Vector3.yAxis
             end
-            local isPC = UserInputService:IsKeyDown(Enum.KeyCode.W) or UserInputService:IsKeyDown(Enum.KeyCode.S) or UserInputService:IsKeyDown(Enum.KeyCode.A) or UserInputService:IsKeyDown(Enum.KeyCode.D)
+            local isPC = not isFocused and (UserInputService:IsKeyDown(Enum.KeyCode.W) or UserInputService:IsKeyDown(Enum.KeyCode.S) or UserInputService:IsKeyDown(Enum.KeyCode.A) or UserInputService:IsKeyDown(Enum.KeyCode.D))
             if not isPC then
                 local hum = char and char:FindFirstChild("Humanoid")
                 if hum and hum.MoveDirection.Magnitude > 0 then
