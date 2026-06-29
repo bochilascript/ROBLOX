@@ -7573,12 +7573,38 @@ function DisableNetwork()
 		NetworkConnection = nil
 	end
 end
+local function hasHumanoidAncestor(v)
+	local p = v.Parent
+	while p and p ~= Workspace do
+		if p:FindFirstChildOfClass("Humanoid") then
+			return true
+		end
+		p = p.Parent
+	end
+	return false
+end
+
+local function isPlayerOrAccessory(v)
+	local p = v
+	while p and p ~= Workspace do
+		if p:IsA("Model") then
+			if game:GetService("Players"):GetPlayerFromCharacter(p) then
+				return true
+			end
+			if game:GetService("Players"):FindFirstChild(p.Name) then
+				return true
+			end
+		end
+		p = p.Parent
+	end
+	return false
+end
+
 function ForcePart(v)
 	if v:IsA("BasePart") 
 	and not v.Anchored 
-	and not v.Parent:FindFirstChildOfClass("Humanoid") 
-	and not v.Parent:FindFirstChild("Head") 
 	and v.Name ~= "Handle" then
+		if hasHumanoidAncestor(v) or isPlayerOrAccessory(v) then return end
 
 		for _, x in ipairs(v:GetChildren()) do
 			if x:IsA("BodyMover") or x:IsA("RocketPropulsion") then
@@ -7586,15 +7612,18 @@ function ForcePart(v)
 			end
 		end
 
-		if v:FindFirstChild("Attachment") then v:FindFirstChild("Attachment"):Destroy() end
-		if v:FindFirstChild("AlignPosition") then v:FindFirstChild("AlignPosition"):Destroy() end
-		if v:FindFirstChild("Torque") then v:FindFirstChild("Torque"):Destroy() end
+		if v:FindFirstChild("BringAttachment") then v:FindFirstChild("BringAttachment"):Destroy() end
+		if v:FindFirstChild("BringAlign") then v:FindFirstChild("BringAlign"):Destroy() end
+		if v:FindFirstChild("BringTorque") then v:FindFirstChild("BringTorque"):Destroy() end
 
 		v.CanCollide = false
 		local Torque = Instance.new("Torque", v)
+		Torque.Name = "BringTorque"
 		Torque.Torque = Vector3.new(100000, 100000, 100000)
 		local AlignPosition = Instance.new("AlignPosition", v)
+		AlignPosition.Name = "BringAlign"
 		local Attachment2 = Instance.new("Attachment", v)
+		Attachment2.Name = "BringAttachment"
 		Torque.Attachment0 = Attachment2
 		AlignPosition.MaxForce = math.huge
 		AlignPosition.MaxVelocity = math.huge
@@ -7640,11 +7669,13 @@ function OneTimeUnanchor()
 
 			for _, part in pairs(Workspace:GetDescendants()) do
 				if part:IsA("BasePart") and not part.Anchored then
-					part.AssemblyLinearVelocity = Vector3.new(
-						math.random(-50, 50),
-						math.random(20, 100),
-						math.random(-50, 50)
-					)
+					if not hasHumanoidAncestor(part) and not isPlayerOrAccessory(part) then
+						part.AssemblyLinearVelocity = Vector3.new(
+							math.random(-50, 50),
+							math.random(20, 100),
+							math.random(-50, 50)
+						)
+					end
 				end
 			end
 
@@ -7752,12 +7783,18 @@ function toggleBringPart(state)
 		OneTimeUnanchor()
 
 		for _, v in ipairs(GetAllPartsRecursive(Workspace)) do
+			if v:GetAttribute("WasBrought") then
+				v.Anchored = false
+			end
 			ForcePart(v)
 		end
 
 		if DescendantAddedConnection then DescendantAddedConnection:Disconnect() end
 		DescendantAddedConnection = Workspace.DescendantAdded:Connect(function(v)
 			if blackHoleActive and v:IsA("BasePart") then
+				if v:GetAttribute("WasBrought") then
+					v.Anchored = false
+				end
 				ForcePart(v)
 			end
 		end)
@@ -7777,7 +7814,6 @@ function toggleBringPart(state)
             MiniBringBtn.Text = "Bring Part: OFF"
             MiniBringBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
         end
-		DisableNetwork()
 		if DescendantAddedConnection then
 			DescendantAddedConnection:Disconnect()
 			DescendantAddedConnection = nil
@@ -7785,17 +7821,24 @@ function toggleBringPart(state)
 		if not noclipActive and not flying and disableNoclip then
 			disableNoclip()
 		end
-		for v, _ in pairs(broughtParts) do
-			if v and v.Parent then
-				local torq = v:FindFirstChild("Torque")
-				local align = v:FindFirstChild("AlignPosition")
-				local att = v:FindFirstChild("Attachment")
-				if torq then torq:Destroy() end
-				if align then align:Destroy() end
-				if att then att:Destroy() end
+		for _, v in ipairs(Workspace:GetDescendants()) do
+			if v:IsA("BasePart") then
+				local torq = v:FindFirstChild("BringTorque")
+				local align = v:FindFirstChild("BringAlign")
+				local att = v:FindFirstChild("BringAttachment")
+				if torq or align or att then
+					pcall(function()
+						if torq then torq:Destroy() end
+						if align then align:Destroy() end
+						if att then att:Destroy() end
+						v:SetAttribute("WasBrought", true)
+						v.Anchored = true
+					end)
+				end
 			end
 		end
 		broughtParts = {}
+		DisableNetwork()
 	end
 end
 BringPartBtn.MouseButton1Click:Connect(function()
