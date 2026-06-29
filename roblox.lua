@@ -7296,6 +7296,12 @@ UserInputService.InputEnded:Connect(function(input)
 end)
 RunService.Heartbeat:Connect(function(dt)
     if not flying or not root then return end
+    
+    -- Fix teleporting: update frozenPos if player's root position changed significantly
+    if frozenPos and (root.Position - frozenPos).Magnitude > 10 then
+        frozenPos = root.Position
+    end
+
     root.AssemblyLinearVelocity = Vector3.zero
     root.AssemblyAngularVelocity = Vector3.zero
     local cam = workspace.CurrentCamera
