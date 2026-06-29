@@ -33,9 +33,11 @@ SpeedShortcutConn = nil
 FlyV3ShortcutConn = nil
 FreecamShortcutConn = nil
 MiniFrameToggleConn = nil
+flingAllActive = false
 local currentLanguage = "EN"
 local LangDict = {
     ["Menu"] = { EN = "Menu", ID = "Menu" },
+    ["Fling All"] = { EN = "Fling All", ID = "Fling Semua" },
     ["Rusuh"] = { EN = "Combat", ID = "Rusuh" },
     ["Utility"] = { EN = "Utility", ID = "Utilitas" },
     ["Waypoints"] = { EN = "Waypoints", ID = "Titik Lokasi" },
@@ -328,6 +330,108 @@ function executeInstantFling(targetPlayer)
             myHrp.Anchored = false
         end)
     end)
+end
+function executeInstantFlingAll()
+    local lp = Players.LocalPlayer
+    local myChar = lp and lp.Character
+    local myHrp = myChar and (myChar:FindFirstChild("HumanoidRootPart") or myChar:FindFirstChild("Torso"))
+    if not myHrp then 
+        flingAllActive = false
+        if FlingAllBtn then
+            setButtonActive(FlingAllBtn, false)
+        end
+        return 
+    end
+    task.spawn(function()
+        local origCF = myHrp.CFrame
+        local origGrav = workspace.Gravity
+        workspace.Gravity = 0
+        local myHum = myChar:FindFirstChildOfClass("Humanoid")
+        if myHum then
+            myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+        end
+        local targets = {}
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= lp then
+                table.insert(targets, p)
+            end
+        end
+        for _, targetPlayer in ipairs(targets) do
+            if not flingAllActive then break end
+            local tChar = targetPlayer.Character
+            local tHrp = tChar and (tChar:FindFirstChild("HumanoidRootPart") or tChar:FindFirstChild("Torso"))
+            if tHrp and tHrp.Parent then
+                local flingPart = Instance.new("Part")
+                flingPart.Anchored = false
+                flingPart.CanCollide = false
+                flingPart.Transparency = 1
+                flingPart.Size = Vector3.new(1, 1, 1)
+                flingPart.CFrame = myHrp.CFrame
+                flingPart.Parent = workspace
+                local flingWeld = Instance.new("WeldConstraint")
+                flingWeld.Part0 = flingPart
+                flingWeld.Part1 = myHrp
+                flingWeld.Parent = flingPart
+                local BV = Instance.new("BodyVelocity")
+                BV.Parent = flingPart
+                BV.Velocity = Vector3.new(9e8, 9e8, 9e8)
+                BV.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                local startFling = tick()
+                local angle = 0
+                while tick() - startFling < 1.5 and tHrp and tHrp.Parent and flingAllActive do
+                    angle = angle + 100
+                    pcall(function()
+                        local offset = CFrame.new(0, 0.5, 0)
+                        if angle % 400 == 0 then
+                            offset = CFrame.new(0, 1.5, 0)
+                        elseif angle % 400 == 100 then
+                            offset = CFrame.new(0, -1.5, 0)
+                        elseif angle % 400 == 200 then
+                            offset = CFrame.new(2.25, 1.5, -2.25)
+                        elseif angle % 400 == 300 then
+                            offset = CFrame.new(-2.25, -1.5, 2.25)
+                        end
+                        myHrp.CFrame = tHrp.CFrame * offset * CFrame.Angles(math.rad(angle), 0, 0)
+                        flingPart.AssemblyLinearVelocity = Vector3.new(9e7, 9e8, 9e7)
+                        flingPart.AssemblyAngularVelocity = Vector3.new(9e8, 9e8, 9e8)
+                    end)
+                    RunService.Heartbeat:Wait()
+                end
+                pcall(function() flingPart:Destroy() end)
+                task.wait(0.05)
+            end
+        end
+        workspace.Gravity = origGrav
+        if myHum then
+            myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+        end
+        pcall(function()
+            myHrp.Anchored = true
+            myHrp.AssemblyLinearVelocity = Vector3.zero
+            myHrp.AssemblyAngularVelocity = Vector3.zero
+            myHrp.CFrame = origCF
+            task.wait(0.1)
+            myHrp.Anchored = false
+        end)
+        flingAllActive = false
+        if FlingAllBtn then
+            setButtonActive(FlingAllBtn, false)
+        end
+    end)
+end
+function toggleFlingAll(state)
+    if state == nil then
+        flingAllActive = not flingAllActive
+    else
+        flingAllActive = state
+    end
+    if flingAllActive then
+        setButtonActive(FlingAllBtn, true)
+        executeInstantFlingAll()
+    else
+        flingAllActive = false
+        setButtonActive(FlingAllBtn, false)
+    end
 end
 function tr(key)
     local entry = LangDict[key]
@@ -740,7 +844,7 @@ do
             end
         end
     end
-    local rusuhKeywords = {"bringpart", "tarik objek", "spectator", "penonton", "noclip", "tembus tembok", "tendang", "unanchor", "lepas kunci", "fly", "terbang", "esp", "esp team", "quick tools", "quick", "anti fling", "antifling", "fling aura", "aura fling", "orbit fling", "orbit", "click yeet", "crash server", "touch fling", "touchfling", "vehicle fly", "terbang kendaraan", "auto clicker", "autoclicker", "spam click", "walk fling", "walkfling", "hitbox", "aimbot"}
+    local rusuhKeywords = {"bringpart", "tarik objek", "spectator", "penonton", "noclip", "tembus tembok", "tendang", "unanchor", "lepas kunci", "fly", "terbang", "esp", "esp team", "quick tools", "quick", "anti fling", "antifling", "fling aura", "aura fling", "orbit fling", "orbit", "click yeet", "crash server", "touch fling", "touchfling", "vehicle fly", "terbang kendaraan", "auto clicker", "autoclicker", "spam click", "walk fling", "walkfling", "hitbox", "aimbot", "fling all", "flingall", "iflingall", "ifling all", "fling semua"}
     local utilityKeywords = {"free cam", "freecam", "kamera bebas", "click tp", "clicktp", "klik tp", "speed", "kecepatan", "save wp", "savewp", "swp", "simpan lokasi", "btools", "tween tp", "tweentp", "jump power", "jumppower", "jp", "tp tool", "tptool", "invisible", "tak terlihat", "visible", "terlihat", "fps & ping", "chat logs", "chatlogs", "part inspector", "inspektur objek", "shift lock", "shiftlock", "respawn", "anti afk", "antiafk", "command bar", "cmd", "infinite jump", "lampu"}
     local function matchesAny(text, keywords)
         local lower = string.lower(text or "")
@@ -817,7 +921,7 @@ do
                 child.Visible = false
             end
         end
-        if cat == "Menu" then
+        if cat == "Menu" or cat == "Rusuh" then
             local btns = {}
             for _, ch in ipairs(ScrollFrame:GetChildren()) do
                 if ch:IsA("TextButton") and ch.Visible and type(ch.Text) == "string" then
@@ -2061,6 +2165,7 @@ CloseBtn.MouseButton1Click:Connect(function()
         if orbitFlingActive then pcall(toggleOrbitFling, false) end
         if walkFlingActive then pcall(toggleWalkFling, false) end
         if antiFlingActive then pcall(toggleAntiFling, false) end
+        if flingAllActive then pcall(toggleFlingAll, false) end
         if godModeActive then pcall(toggleGodMode, false) end
         if jumpPowerOn then pcall(toggleJumpPower, false) end
         unanchorV2Active = false
@@ -6684,6 +6789,11 @@ LagServerBtn.MouseButton1Click:Connect(function()
             Duration = 3
         })
     end
+end)
+FlingAllBtn = createButton("", "Fling All")
+FlingAllBtn.Name = "FlingAllBtn"
+FlingAllBtn.MouseButton1Click:Connect(function()
+    toggleFlingAll()
 end)
 OrbitFlingBtn.MouseButton1Click:Connect(function()
     toggleOrbitFling()
@@ -11907,6 +12017,7 @@ local success, err = pcall(function()
         { name = "unanchor", aliases = {}, desc = "Aktifkan/nonaktifkan fitur unanchor parts.", usage = "" },
         { name = "fling", aliases = {"tendang"}, desc = "Aktifkan/nonaktifkan mode fling untuk lempar pemain.", usage = "" },
         { name = "ifling", aliases = {"instantfling"}, desc = "Teleport ke pemain, fling secara instan, lalu balik ke posisi semula.", usage = " [nama]" },
+        { name = "flingall", aliases = {"iflingall", "instantflingall"}, desc = "Fling semua pemain di server secara bergiliran.", usage = "" },
         { name = "walkfling", aliases = {"wfling", "wf", "unwalkfling", "unwfling", "unwf"}, desc = "Aktifkan/nonaktifkan mode walkfling (menendang objek/orang saat berjalan).", usage = "" },
         { name = "antifling", aliases = {"af", "unantifling"}, desc = "Aktifkan/nonaktifkan mode anti-fling agar tidak bisa terlempar oleh orang lain.", usage = "" },
         { name = "flingaura", aliases = {"fa", "unflingaura"}, desc = "Aktifkan/nonaktifkan Fling Aura (menendang musuh yang mendekat secara otomatis).", usage = "" },
@@ -12426,6 +12537,8 @@ local success, err = pcall(function()
         elseif cmd == "unorbitfling" or cmd == "unorbit" or cmd == "noorbit" then
             toggleOrbitFling(false)
             notifyPlayer("Orbit Fling", "Orbit Fling mati.")
+        elseif cmd == "flingall" or cmd == "iflingall" or cmd == "instantflingall" then
+            toggleFlingAll()
         elseif cmd == "fling" or cmd == "tendang" then
             hiddenfling = not hiddenfling
             if hiddenfling then
