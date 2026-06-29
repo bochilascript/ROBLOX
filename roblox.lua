@@ -737,8 +737,8 @@ do
             end
         end
     end
-    local rusuhKeywords = {"bringpart", "tarik objek", "spectator", "penonton", "noclip", "tembus tembok", "tendang", "unanchor", "lepas kunci", "fly", "terbang", "esp", "esp team", "quick tools", "quick", "anti fling", "antifling", "fling aura", "aura fling", "orbit fling", "orbit", "click yeet", "crash server", "touch fling", "touchfling", "vehicle fly", "terbang kendaraan", "auto clicker", "autoclicker", "spam click"}
-    local utilityKeywords = {"free cam", "freecam", "kamera bebas", "click tp", "clicktp", "klik tp", "speed", "kecepatan", "save wp", "savewp", "swp", "simpan lokasi", "btools", "tween tp", "tweentp", "jump power", "jumppower", "jp", "tp tool", "tptool", "invisible", "tak terlihat", "visible", "terlihat", "fps & ping", "chat logs", "chatlogs", "part inspector", "inspektur objek"}
+    local rusuhKeywords = {"bringpart", "tarik objek", "spectator", "penonton", "noclip", "tembus tembok", "tendang", "unanchor", "lepas kunci", "fly", "terbang", "esp", "esp team", "quick tools", "quick", "anti fling", "antifling", "fling aura", "aura fling", "orbit fling", "orbit", "click yeet", "crash server", "touch fling", "touchfling", "vehicle fly", "terbang kendaraan", "auto clicker", "autoclicker", "spam click", "walk fling", "walkfling", "hitbox", "aimbot"}
+    local utilityKeywords = {"free cam", "freecam", "kamera bebas", "click tp", "clicktp", "klik tp", "speed", "kecepatan", "save wp", "savewp", "swp", "simpan lokasi", "btools", "tween tp", "tweentp", "jump power", "jumppower", "jp", "tp tool", "tptool", "invisible", "tak terlihat", "visible", "terlihat", "fps & ping", "chat logs", "chatlogs", "part inspector", "inspektur objek", "shift lock", "shiftlock", "respawn", "anti afk", "antiafk", "command bar", "cmd", "infinite jump", "lampu"}
     local function matchesAny(text, keywords)
         local lower = string.lower(text or "")
         for _, k in ipairs(keywords) do
@@ -885,22 +885,40 @@ do
             local fpsBtn = UtilityScroll:FindFirstChild("FPSPingBtn") or ScrollFrame:FindFirstChild("FPSPingBtn") or findBtn("FPS & Ping")
             local chatLogsBtn = UtilityScroll:FindFirstChild("ChatLogsBtn") or ScrollFrame:FindFirstChild("ChatLogsBtn") or findBtn("Chat Logs")
             local partInspectorBtn = UtilityScroll:FindFirstChild("PartInspectorBtn") or ScrollFrame:FindFirstChild("PartInspectorBtn") or findBtn("Part Inspector")
+            
+            local cmdBarBtn = UtilityScroll:FindFirstChild("CmdBarBtn") or ScrollFrame:FindFirstChild("CmdBarBtn") or findBtn("Command Bar")
+            local shiftLockBtn = UtilityScroll:FindFirstChild("ShiftLockBtn") or ScrollFrame:FindFirstChild("ShiftLockBtn") or findBtn("Shift Lock")
+            local infJumpBtn = UtilityScroll:FindFirstChild("JumpBtn") or ScrollFrame:FindFirstChild("JumpBtn") or findBtn("Infinite Jump")
+            local antiAFKBtn = UtilityScroll:FindFirstChild("AntiAFKBtn") or ScrollFrame:FindFirstChild("AntiAFKBtn") or findBtn("Anti AFK")
+            local respawnBtn = UtilityScroll:FindFirstChild("RespawnBtn") or ScrollFrame:FindFirstChild("RespawnBtn") or findBtn("Respawn")
+            local lampBtn = UtilityScroll:FindFirstChild("LampBtn") or ScrollFrame:FindFirstChild("LampBtn") or findBtn("Lampu")
+
             local function moveToUtil(child, order)
                 if child then child.Parent = UtilityScroll child.Visible = true child.LayoutOrder = order end
             end
+            
+            -- TextBoxes (order 1 to 10)
             moveToUtil(clickBtn, 1); moveToUtil(tpBox, 2)
             moveToUtil(freeBtn, 3);  moveToUtil(fcBox, 4)
-            moveToUtil(spdBtn, 5);   moveToUtil(spdBox, 6)
-            moveToUtil(jumpBtn, 7);  moveToUtil(jumpBox, 8)
-            moveToUtil(swpBtn, 9);   moveToUtil(swpBox, 10)
-            moveToUtil(btoolsBtn, 11)
-            moveToUtil(chatLogsBtn, 12)
-            moveToUtil(fpsBtn, 13)
-            moveToUtil(invisBtn, 14)
-            moveToUtil(tptoolBtn, 15)
-            moveToUtil(tweenBtn, 16)
-            moveToUtil(visBtn, 17)
-            moveToUtil(partInspectorBtn, 18)
+            moveToUtil(jumpBtn, 5);  moveToUtil(jumpBox, 6)
+            moveToUtil(swpBtn, 7);   moveToUtil(swpBox, 8)
+            moveToUtil(spdBtn, 9);   moveToUtil(spdBox, 10)
+            
+            -- Alphabetically Sorted (order 11+)
+            moveToUtil(antiAFKBtn, 11)
+            moveToUtil(btoolsBtn, 12)
+            moveToUtil(chatLogsBtn, 13)
+            moveToUtil(cmdBarBtn, 14)
+            moveToUtil(fpsBtn, 15)
+            moveToUtil(infJumpBtn, 16)
+            moveToUtil(invisBtn, 17)
+            moveToUtil(lampBtn, 18)
+            moveToUtil(partInspectorBtn, 19)
+            moveToUtil(respawnBtn, 20)
+            moveToUtil(shiftLockBtn, 21)
+            moveToUtil(tptoolBtn, 22)
+            moveToUtil(tweenBtn, 23)
+            moveToUtil(visBtn, 24)
             for _, ch in ipairs(UtilityScroll:GetChildren()) do
                 if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
                     ch.Parent = ScrollFrame
@@ -2365,9 +2383,17 @@ function toggleESP(state)
         ESPTeamMode = false
         setButtonActive(ESPBtn, true)
         setButtonActive(ESPTeamBtn, false)
+        if MiniEspBtn then
+            MiniEspBtn.Text = "ESP: ON"
+            MiniEspBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        end
         startESP()
     else
         setButtonActive(ESPBtn, false)
+        if MiniEspBtn then
+            MiniEspBtn.Text = "ESP: OFF"
+            MiniEspBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
+        end
         stopESP()
     end
 end
@@ -6279,6 +6305,10 @@ function toggleMaxZoom(state)
     if MaxZoomBtn then
         setButtonActive(MaxZoomBtn, maxZoomActive)
     end
+    if MiniMaxZoomBtn then
+        MiniMaxZoomBtn.Text = maxZoomActive and "Max Zoom: ON" or "Max Zoom: OFF"
+        MiniMaxZoomBtn.TextColor3 = maxZoomActive and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(255, 50, 50)
+    end
     if maxZoomActive then
         Player.CameraMaxZoomDistance = 100000
         Player.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Invisicam
@@ -7019,6 +7049,10 @@ function enableFly()
     if enableNoclip then enableNoclip() else noclip(true) end
     Workspace.Gravity = 0
     setButtonActive(FlyV1Btn, true)
+    if MiniFlyTapBtn then
+        MiniFlyTapBtn.Text = "Fly (Mobile): ON"
+        MiniFlyTapBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    end
     frozenPos = root.Position
     local _, y, _ = root.CFrame:ToOrientation()
     savedOrientation = CFrame.Angles(0, math.rad(y), 0)
@@ -7051,6 +7085,10 @@ function disableFly()
         pcall(function() humanoid:ChangeState(Enum.HumanoidStateType.GettingUp) end)
     end
     setButtonActive(FlyV1Btn, false)
+    if MiniFlyTapBtn then
+        MiniFlyTapBtn.Text = "Fly (Mobile): OFF"
+        MiniFlyTapBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
+    end
     for _, t in pairs(animTracks) do if t.IsPlaying then t:Stop() end end
 end
 FlyV1Btn.MouseButton1Click:Connect(function()
@@ -7494,6 +7532,10 @@ function toggleBringPart(state)
 	end
 	if blackHoleActive then
 		setButtonActive(BringPartBtn, true)
+		if MiniBringBtn then
+            MiniBringBtn.Text = "Bring Part: ON"
+            MiniBringBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        end
 		EnableNetwork()
 		if enableNoclip then enableNoclip() end
 		character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
@@ -7528,6 +7570,10 @@ function toggleBringPart(state)
 		end)
 	else
 		setButtonActive(BringPartBtn, false)
+        if MiniBringBtn then
+            MiniBringBtn.Text = "Bring Part: OFF"
+            MiniBringBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
+        end
 		if DescendantAddedConnection then
 			DescendantAddedConnection:Disconnect()
 			DescendantAddedConnection = nil
@@ -7832,14 +7878,32 @@ function createPartInspectorWindow()
     closeBtn.TextSize = 11
     Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 5)
     
+    local minBtn = Instance.new("TextButton", header)
+    minBtn.Size = UDim2.new(0, 20, 0, 20)
+    minBtn.Position = UDim2.new(1, -50, 0.5, -10)
+    minBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
+    minBtn.Text = "-"
+    minBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    minBtn.Font = Enum.Font.GothamBold
+    minBtn.TextSize = 14
+    Instance.new("UICorner", minBtn).CornerRadius = UDim.new(0, 5)
+    
     closeBtn.MouseButton1Click:Connect(function()
-        PartInspectorFrame.Visible = false
+        togglePartInspector(false)
     end)
     
     local content = Instance.new("Frame", PartInspectorFrame)
     content.Size = UDim2.new(1, -20, 1, -40)
     content.Position = UDim2.new(0, 10, 0, 35)
     content.BackgroundTransparency = 1
+    
+    local isMin = false
+    minBtn.MouseButton1Click:Connect(function()
+        isMin = not isMin
+        minBtn.Text = isMin and "+" or "-"
+        content.Visible = not isMin
+        PartInspectorFrame.Size = isMin and UDim2.new(0, 260, 0, 30) or UDim2.new(0, 260, 0, 200)
+    end)
     
     local layout = Instance.new("UIListLayout", content)
     layout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -7902,6 +7966,10 @@ function togglePartInspector(state)
     
     if PartInspectorBtn then
         setButtonActive(PartInspectorBtn, partInspectorActive)
+    end
+    if MiniPartInspectorBtn then
+        MiniPartInspectorBtn.Text = partInspectorActive and "Part Inspector: ON" or "Part Inspector: OFF"
+        MiniPartInspectorBtn.TextColor3 = partInspectorActive and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(255, 50, 50)
     end
     
     if partInspectorActive then
@@ -8294,9 +8362,17 @@ function toggleNoclip(state)
     if noclipActive then
         enableNoclip()
         setButtonActive(NoclipBtn, true)
+        if MiniNoclipBtn then
+            MiniNoclipBtn.Text = "Noclip: ON"
+            MiniNoclipBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        end
     else
         disableNoclip()
         setButtonActive(NoclipBtn, false)
+        if MiniNoclipBtn then
+            MiniNoclipBtn.Text = "Noclip: OFF"
+            MiniNoclipBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
+        end
     end
 end
 NoclipBtn.MouseButton1Click:Connect(function()
@@ -11115,7 +11191,7 @@ do
         end
     end
     MiniPanelFrame = Instance.new("Frame")
-    MiniPanelFrame.Size = UDim2.new(0, 250, 0, 320)
+    MiniPanelFrame.Size = UDim2.new(0, 250, 0, 390)
     MiniPanelFrame.Position = UDim2.new(1, -260, 0.5, -50)
     MiniPanelFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
     MiniPanelFrame.BackgroundTransparency = 0.1
@@ -11184,14 +11260,17 @@ do
     MiniContent.BackgroundTransparency = 1
     local buttonsData = {
         {name = "MiniBringBtn", text = "Bring Part: OFF"},
+        {name = "MiniDexBtn", text = "Dex Explorer"},
         {name = "MiniEspBtn", text = "ESP: OFF"},
         {name = "MiniFlingAuraBtn", text = "Fling Aura: OFF"},
         {name = "MiniFlyTapBtn", text = "Fly (Mobile): OFF"},
         {name = "MiniFlyV3Btn", text = "Fly PC: OFF  [E]"},
         {name = "MiniFlyV3SpeedBtn", text = "Fly V3: OFF  [Q]"},
         {name = "MiniGodBtn", text = "HP: 100"},
+        {name = "MiniMaxZoomBtn", text = "Max Zoom: OFF"},
         {name = "MiniNoclipBtn", text = "Noclip: OFF"},
         {name = "MiniOrbitFlingBtn", text = "Orbit Fling: OFF"},
+        {name = "MiniPartInspectorBtn", text = "Part Inspector: OFF"},
         {name = "MiniScannerBtn", text = "Part Scanner: OFF"},
         {name = "MiniPlayerListBtn", text = "Player List: OFF"},
         {name = "MiniRefreshBtn", text = "Refresh Char"},
@@ -11239,7 +11318,13 @@ do
     MiniGodBtn = MiniButtons["MiniGodBtn"]
     MiniFlingAuraBtn = MiniButtons["MiniFlingAuraBtn"]
     MiniOrbitFlingBtn = MiniButtons["MiniOrbitFlingBtn"]
+    MiniDexBtn = MiniButtons["MiniDexBtn"]
+    MiniMaxZoomBtn = MiniButtons["MiniMaxZoomBtn"]
+    MiniPartInspectorBtn = MiniButtons["MiniPartInspectorBtn"]
     flyV1PCEnabled = false
+    MiniDexBtn.MouseButton1Click:Connect(launchDex)
+    MiniMaxZoomBtn.MouseButton1Click:Connect(function() toggleMaxZoom() end)
+    MiniPartInspectorBtn.MouseButton1Click:Connect(function() togglePartInspector() end)
     MiniFlyV3Btn.MouseButton1Click:Connect(function()
         flyV1PCEnabled = not flyV1PCEnabled
         if not flyV1PCEnabled and flying then disableFly() end
@@ -11383,7 +11468,7 @@ do
         if not MiniPanelFrame.Visible then
             isMinPanelMinimized = false
             MiniMinimizeBtn.Text = "-"
-            MiniPanelFrame.Size = UDim2.new(0, 250, 0, 320)
+            MiniPanelFrame.Size = UDim2.new(0, 250, 0, 390)
             MiniContent.Visible = true
         end
     end)
@@ -11400,7 +11485,7 @@ do
             MiniContent.Visible = false
         else
             MiniMinimizeBtn.Text = "-"
-            game:GetService("TweenService"):Create(MiniPanelFrame, TweenInfo.new(0.25), {Size = UDim2.new(0, 250, 0, 320)}):Play()
+            game:GetService("TweenService"):Create(MiniPanelFrame, TweenInfo.new(0.25), {Size = UDim2.new(0, 250, 0, 390)}):Play()
             MiniContent.Visible = true
         end
     end)
