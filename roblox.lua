@@ -6734,12 +6734,16 @@ function setFreecam(state)
     local char = player.Character or player.CharacterAdded:Wait()
     local hrp = char:FindFirstChild("HumanoidRootPart")
     local hum = char:FindFirstChildOfClass("Humanoid")
+    local animateScript = char:FindFirstChild("Animate")
     if freecamOn then
         if hum then
             savedFreecamWalkSpeed = hum.WalkSpeed
             savedFreecamJumpPower = hum.JumpPower
             hum.WalkSpeed = 0
             hum.JumpPower = 0
+        end
+        if animateScript then
+            animateScript.Disabled = true
         end
         if hrp then hrp.Anchored = true end
         cam.CameraType = Enum.CameraType.Scriptable
@@ -6810,6 +6814,9 @@ function setFreecam(state)
         if hum then
             if savedFreecamWalkSpeed then hum.WalkSpeed = savedFreecamWalkSpeed end
             if savedFreecamJumpPower then hum.JumpPower = savedFreecamJumpPower end
+        end
+        if animateScript then
+            animateScript.Disabled = false
         end
         workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
         UserInputService.MouseBehavior = Enum.MouseBehavior.Default
