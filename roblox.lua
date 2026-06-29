@@ -194,6 +194,9 @@ local function EnableNetworkStabilizer()
         end)
     end)
 end
+local flying = false
+local frozenPos = nil
+
 local function DisableNetworkStabilizer()
     if NetworkConnection then
         NetworkConnection:Disconnect()
@@ -4914,6 +4917,9 @@ function safeTeleportToCFrame(cf)
     local char = lplr.Character or lplr.CharacterAdded:Wait()
     local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso"))
     if not root then return end
+    if flying then
+        frozenPos = cf.Position
+    end
     local targetPos = cf.Position
     local startPos = root.Position
     local dist = (targetPos - startPos).Magnitude
@@ -7024,14 +7030,14 @@ function setupAnimator(hum)
     end
 end
 setupAnimator(humanoid)
-local flying = false
+flying = false
 local flySpeed = 2
 local currentFlySpeed = 2
 local pressed = {Up=false,Down=false,Left=false,Right=false}
 local moving = false
 local savedOrientation = nil
 local oldGravity = Workspace.Gravity
-local frozenPos = nil
+frozenPos = nil
 
 
 local FlyV1Btn = createButton("", "Fly V1")
@@ -11264,8 +11270,8 @@ do
         {name = "MiniEspBtn", text = "ESP: OFF"},
         {name = "MiniFlingAuraBtn", text = "Fling Aura: OFF"},
         {name = "MiniFlyTapBtn", text = "Fly (Mobile): OFF"},
-        {name = "MiniFlyV3Btn", text = "Fly PC: OFF  [E]"},
-        {name = "MiniFlyV3SpeedBtn", text = "Fly V3: OFF  [Q]"},
+        {name = "MiniFlyV3Btn", text = "Fly PC: OFF  [Q]"},
+        {name = "MiniFlyV3SpeedBtn", text = "Fly V3: OFF  [E]"},
         {name = "MiniGodBtn", text = "HP: 100"},
         {name = "MiniMaxZoomBtn", text = "Max Zoom: OFF"},
         {name = "MiniNoclipBtn", text = "Noclip: OFF"},
@@ -11495,10 +11501,10 @@ do
     end)
     FlyV3ShortcutConn = UserInputService.InputBegan:Connect(function(input, gpe)
         if gpe then return end
-        if input.KeyCode == Enum.KeyCode.E and flyV1PCEnabled then
+        if input.KeyCode == Enum.KeyCode.Q and flyV1PCEnabled then
             if flying then disableFly() else enableFly() end
         end
-        if input.KeyCode == Enum.KeyCode.Q and flyV3Enabled then
+        if input.KeyCode == Enum.KeyCode.E and flyV3Enabled then
             toggleFlyV3()
         end
     end)
@@ -11506,17 +11512,17 @@ do
         while ScreenGui and ScreenGui.Parent and task.wait(0.1) do
             pcall(function()
                 if flyV1PCEnabled then
-                    MiniFlyV3Btn.Text = "Fly PC: ON  [E]"
+                    MiniFlyV3Btn.Text = "Fly PC: ON  [Q]"
                     MiniFlyV3Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
                 else
-                    MiniFlyV3Btn.Text = "Fly PC: OFF  [E]"
+                    MiniFlyV3Btn.Text = "Fly PC: OFF  [Q]"
                     MiniFlyV3Btn.TextColor3 = Color3.fromRGB(255, 50, 50)
                 end
                 if flyV3Enabled then
-                    MiniFlyV3SpeedBtn.Text = "Fly V3: ON  [Q]"
+                    MiniFlyV3SpeedBtn.Text = "Fly V3: ON  [E]"
                     MiniFlyV3SpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
                 else
-                    MiniFlyV3SpeedBtn.Text = "Fly V3: OFF  [Q]"
+                    MiniFlyV3SpeedBtn.Text = "Fly V3: OFF  [E]"
                     MiniFlyV3SpeedBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
                 end
                 if PartScannerFrame and PartScannerFrame.Visible then
@@ -13112,7 +13118,11 @@ function refreshPartScanner()
                     end
                     local tHrp = lp.Character:FindFirstChild("HumanoidRootPart") or lp.Character:FindFirstChild("Torso")
                     if tHrp then
-                        tHrp.CFrame = part.CFrame * CFrame.new(0, 3, 0)
+                        local targetCF = part.CFrame * CFrame.new(0, 3, 0)
+                        if flying then
+                            frozenPos = targetCF.Position
+                        end
+                        tHrp.CFrame = targetCF
                     end
                     if wasFlyV1Active then
                         task.wait(0.1)
