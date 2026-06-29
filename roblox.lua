@@ -249,11 +249,38 @@ local function sendUnanchoredPartsToTarget(target)
                 if v and v.Parent then
                     pcall(function() v.CanCollide = originalCanCollide end)
                 end
+                if blackHoleActive and broughtParts and broughtParts[v] then
+                    v.Anchored = false
+                    ForcePart(v)
+                end
             end)
         end)
     end
-    local parts = GetAllPartsRecursive(Workspace)
-    for _, p in ipairs(parts) do
+    local partsToSend = {}
+    if blackHoleActive and broughtParts then
+        for v, _ in pairs(broughtParts) do
+            table.insert(partsToSend, v)
+        end
+    else
+        local char = LocalPlayer.Character
+        local hrp = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
+        if hrp then
+            for _, v in ipairs(GetAllPartsRecursive(Workspace)) do
+                if v:IsA("BasePart") and not v.Anchored
+                and v.Transparency < 1
+                and not v.Parent:FindFirstChildOfClass("Humanoid")
+                and not v.Parent:FindFirstChild("Head")
+                and v.Name ~= "Handle"
+                and string.lower(v.Name) ~= "baseplate" then
+                    local dist = (v.Position - hrp.Position).Magnitude
+                    if dist <= 1000 then
+                        table.insert(partsToSend, v)
+                    end
+                end
+            end
+        end
+    end
+    for _, p in ipairs(partsToSend) do
         pcall(function()
             if not p.Anchored then
                 SendForcePart(p)
@@ -3741,31 +3768,27 @@ local function stopPlistSendPart()
             plistSendPartDescendantConn = nil
         end
         if not blackHoleActive then
-            for _, v in ipairs(Workspace:GetDescendants()) do
-                if v:IsA("BasePart") then
+            for v, _ in pairs(broughtParts) do
+                if v and v.Parent then
                     local torq = v:FindFirstChild("BringTorque")
                     local align = v:FindFirstChild("BringAlign")
                     local att = v:FindFirstChild("BringAttachment")
-                    if torq or align or att then
-                        pcall(function()
-                            if torq then torq:Destroy() end
-                            if align then align:Destroy() end
-                            if att then att:Destroy() end
-                            v:SetAttribute("WasBrought", true)
-                            v.Anchored = true
-                        end)
-                    end
+                    pcall(function()
+                        if torq then torq:Destroy() end
+                        if align then align:Destroy() end
+                        if att then att:Destroy() end
+                        v:SetAttribute("WasBrought", true)
+                        v.Anchored = true
+                    end)
                 end
             end
+            broughtParts = {}
             DisableNetwork()
         else
-            for _, v in ipairs(Workspace:GetDescendants()) do
-                if v:IsA("BasePart") then
-                    local torq = v:FindFirstChild("BringTorque")
-                    local align = v:FindFirstChild("BringAlign")
-                    if torq or align then
-                        v.Anchored = false
-                    end
+            for v, _ in pairs(broughtParts) do
+                if v and v.Parent then
+                    v.Anchored = false
+                    ForcePart(v)
                 end
             end
         end
@@ -3775,20 +3798,59 @@ local function startPlistSendPart(targetPlayer)
     stopPlistSendPart()
     plistSendPartTarget = targetPlayer
     EnableNetwork()
-    OneTimeUnanchor()
-    for _, v in ipairs(GetAllPartsRecursive(Workspace)) do
-        if v:GetAttribute("WasBrought") then
-            v.Anchored = false
+    if not blackHoleActive then
+        broughtParts = {}
+        local char = LocalPlayer.Character
+        local hrp = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
+        if hrp then
+            local overlapParams = OverlapParams.new()
+            overlapParams.FilterType = Enum.RaycastFilterType.Exclude
+            overlapParams.FilterDescendantsInstances = {char}
+            local rawParts = workspace:GetPartBoundsInRadius(hrp.Position, 1000, overlapParams)
+            for _, v in ipairs(rawParts) do
+                if v:IsA("BasePart") and not v.Anchored
+                and v.Transparency < 1
+                and not v.Parent:FindFirstChildOfClass("Humanoid")
+                and not v.Parent:FindFirstChild("Head")
+                and v.Name ~= "Handle"
+                and string.lower(v.Name) ~= "baseplate" then
+                    broughtParts[v] = true
+                    breakPartConstraints(v)
+                end
+            end
         end
-        ForcePart(v)
+    end
+    for v, _ in pairs(broughtParts) do
+        if v and v.Parent then
+            v.Anchored = false
+            breakPartConstraints(v)
+            ForcePart(v)
+        end
     end
     if plistSendPartDescendantConn then plistSendPartDescendantConn:Disconnect() end
     plistSendPartDescendantConn = Workspace.DescendantAdded:Connect(function(v)
+        if v:IsA("Constraint") or v:IsA("WeldConstraint") or v:IsA("Weld") or v:IsA("JointInstance") then
+            table.insert(allConstraints, v)
+        end
         if plistSendPartTarget and v:IsA("BasePart") then
-            if v:GetAttribute("WasBrought") then
-                v.Anchored = false
+            local char = LocalPlayer.Character
+            local hrp = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
+            if hrp then
+                if not v.Anchored
+                and v.Transparency < 1
+                and not v.Parent:FindFirstChildOfClass("Humanoid")
+                and not v.Parent:FindFirstChild("Head")
+                and v.Name ~= "Handle"
+                and string.lower(v.Name) ~= "baseplate" then
+                    local dist = (v.Position - hrp.Position).Magnitude
+                    if dist <= 1000 then
+                        broughtParts[v] = true
+                        v.Anchored = false
+                        breakPartConstraints(v)
+                        ForcePart(v)
+                    end
+                end
             end
-            ForcePart(v)
         end
     end)
     task.delay(3, function()
@@ -7453,6 +7515,30 @@ blackHoleActive = false
 scannerBroughtPart = nil
 local DescendantAddedConnection
 local NetworkConnection
+local broughtParts = {}
+local allConstraints = {}
+local function cacheAllConstraints()
+	allConstraints = {}
+	for _, obj in ipairs(Workspace:GetDescendants()) do
+		if obj:IsA("Constraint") or obj:IsA("WeldConstraint") or obj:IsA("Weld") or obj:IsA("JointInstance") then
+			table.insert(allConstraints, obj)
+		end
+	end
+end
+task.spawn(function()
+	cacheAllConstraints()
+end)
+Workspace.DescendantAdded:Connect(function(obj)
+	if obj:IsA("Constraint") or obj:IsA("WeldConstraint") or obj:IsA("Weld") or obj:IsA("JointInstance") then
+		table.insert(allConstraints, obj)
+	end
+end)
+Workspace.DescendantRemoving:Connect(function(obj)
+	local idx = table.find(allConstraints, obj)
+	if idx then
+		table.remove(allConstraints, idx)
+	end
+end)
 local Folder = Instance.new("Folder", Workspace)
 Folder.Name = "BringPartFolder"
 local TargetPart = Instance.new("Part", Folder)
@@ -7479,6 +7565,22 @@ RunService.RenderStepped:Connect(function()
 				Attachment1.WorldCFrame = target.CFrame
 			else
 				Attachment1.WorldCFrame = target.CFrame * CFrame.new(0, 10, 0)
+			end
+		end
+	end
+end)
+RunService.Stepped:Connect(function()
+	if (blackHoleActive or plistSendPartTarget) and Attachment1 then
+		for v, _ in pairs(broughtParts) do
+			if v and v.Parent then
+				pcall(function()
+					v.CanCollide = false
+					local dist = (v.Position - Attachment1.WorldPosition).Magnitude
+					if dist <= 1000 then
+						local arah = (Attachment1.WorldPosition - v.Position).Unit
+						v.AssemblyLinearVelocity = arah * 200
+					end
+				end)
 			end
 		end
 	end
@@ -7640,6 +7742,41 @@ function GetAllPartsRecursive(parent)
 	end
 	return parts
 end
+local function breakPartConstraints(v)
+	if not v or not v.Parent then return end
+	pcall(function() v:BreakJoints() end)
+	for _, child in ipairs(v:GetChildren()) do
+		if child:IsA("Constraint") or child:IsA("Weld") or child:IsA("WeldConstraint") or child:IsA("JointInstance") then
+			pcall(function() child:Destroy() end)
+		end
+	end
+	local targetAttachments = {}
+	for _, child in ipairs(v:GetChildren()) do
+		if child:IsA("Attachment") then
+			targetAttachments[child] = true
+		end
+	end
+	for _, obj in ipairs(allConstraints) do
+		if obj and obj.Parent then
+			local isConnected = false
+			pcall(function()
+				if targetAttachments[obj.Attachment0] or targetAttachments[obj.Attachment1] or obj:IsDescendantOf(v) then
+					isConnected = true
+				end
+			end)
+			pcall(function()
+				if obj:IsA("Weld") or obj:IsA("WeldConstraint") or obj:IsA("JointInstance") then
+					if obj.Part0 == v or obj.Part1 == v then
+						isConnected = true
+					end
+				end
+			end)
+			if isConnected then
+				pcall(function() obj:Destroy() end)
+			end
+		end
+	end
+end
 function toggleBringPart(state)
 	if state == nil then
 		blackHoleActive = not blackHoleActive
@@ -7657,31 +7794,69 @@ function toggleBringPart(state)
 		character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 		humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 		head = character:WaitForChild("Head")
-		OneTimeUnanchor()
+		broughtParts = {}
 		for _, v in ipairs(Workspace:GetDescendants()) do
 			if v:IsA("BasePart") then
 				v:SetAttribute("ScannerStopped", nil)
 			end
 		end
+		
+		local function checkVicinity(radius)
+			local char = LocalPlayer.Character
+			local hrp = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
+			if hrp then
+				local overlapParams = OverlapParams.new()
+				overlapParams.FilterType = Enum.RaycastFilterType.Exclude
+				overlapParams.FilterDescendantsInstances = {char}
+				local rawParts = workspace:GetPartBoundsInRadius(hrp.Position, radius, overlapParams)
+				for _, v in ipairs(rawParts) do
+					if not blackHoleActive then break end
+					if v:IsA("BasePart") then
+						if not broughtParts[v] then
+							if not v.Anchored
+							and v.Transparency < 1
+							and not v.Parent:FindFirstChildOfClass("Humanoid")
+							and not v.Parent:FindFirstChild("Head")
+							and v.Name ~= "Handle"
+							and string.lower(v.Name) ~= "baseplate" then
+								broughtParts[v] = true
+								breakPartConstraints(v)
+								v.Anchored = false
+								ForcePart(v)
+							end
+						end
+					end
+				end
+			end
+		end
+
+		-- Scan immediately on start (1000 radius is extremely fast and lag-free)
+		checkVicinity(1000)
+
 		task.spawn(function()
 			while blackHoleActive do
-				for _, v in ipairs(GetAllPartsRecursive(Workspace)) do
-					if not blackHoleActive then break end
-					if v:GetAttribute("WasBrought") then
-						v.Anchored = false
-					end
-					ForcePart(v)
-				end
+				checkVicinity(1000)
 				task.wait(1.5)
 			end
 		end)
+
 		if DescendantAddedConnection then DescendantAddedConnection:Disconnect() end
 		DescendantAddedConnection = Workspace.DescendantAdded:Connect(function(v)
+			if v:IsA("Constraint") or v:IsA("WeldConstraint") or v:IsA("Weld") or v:IsA("JointInstance") then
+				table.insert(allConstraints, v)
+			end
 			if blackHoleActive and v:IsA("BasePart") then
-				if v:GetAttribute("WasBrought") then
+				if not v.Anchored
+				and v.Transparency < 1
+				and not v.Parent:FindFirstChildOfClass("Humanoid")
+				and not v.Parent:FindFirstChild("Head")
+				and v.Name ~= "Handle"
+				and string.lower(v.Name) ~= "baseplate" then
+					broughtParts[v] = true
 					v.Anchored = false
+					breakPartConstraints(v)
+					ForcePart(v)
 				end
-				ForcePart(v)
 			end
 		end)
 	else
@@ -7697,22 +7872,18 @@ function toggleBringPart(state)
 		if not noclipActive and not flying and disableNoclip then
 			disableNoclip()
 		end
-		for _, v in ipairs(Workspace:GetDescendants()) do
-			if v:IsA("BasePart") then
+		for v, _ in pairs(broughtParts) do
+			if v and v.Parent then
+				v.Anchored = false
 				local torq = v:FindFirstChild("BringTorque")
 				local align = v:FindFirstChild("BringAlign")
 				local att = v:FindFirstChild("BringAttachment")
-				if torq or align or att then
-					pcall(function()
-						if torq then torq:Destroy() end
-						if align then align:Destroy() end
-						if att then att:Destroy() end
-						v:SetAttribute("WasBrought", true)
-						v.Anchored = true
-					end)
-				end
+				if torq then torq:Destroy() end
+				if align then align:Destroy() end
+				if att then att:Destroy() end
 			end
 		end
+		broughtParts = {}
 		DisableNetwork()
 	end
 end
