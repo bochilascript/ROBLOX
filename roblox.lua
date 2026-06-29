@@ -6674,6 +6674,8 @@ local freecamPos
 local freecamSpeed = 1
 local clickTpConnection = nil
 local freecamInputConn = nil
+local savedFreecamWalkSpeed = nil
+local savedFreecamJumpPower = nil
 function toggleClickTP(state)
     if state == nil then
         clickTpOn = not clickTpOn
@@ -6731,7 +6733,14 @@ function setFreecam(state)
     local cam = workspace.CurrentCamera
     local char = player.Character or player.CharacterAdded:Wait()
     local hrp = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChildOfClass("Humanoid")
     if freecamOn then
+        if hum then
+            savedFreecamWalkSpeed = hum.WalkSpeed
+            savedFreecamJumpPower = hum.JumpPower
+            hum.WalkSpeed = 0
+            hum.JumpPower = 0
+        end
         if hrp then hrp.Anchored = true end
         cam.CameraType = Enum.CameraType.Scriptable
         freecamPos = cam.CFrame.Position
@@ -6798,6 +6807,10 @@ function setFreecam(state)
             freecamInputConn = nil
         end
         if hrp then hrp.Anchored = false end
+        if hum then
+            if savedFreecamWalkSpeed then hum.WalkSpeed = savedFreecamWalkSpeed end
+            if savedFreecamJumpPower then hum.JumpPower = savedFreecamJumpPower end
+        end
         workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
         UserInputService.MouseBehavior = Enum.MouseBehavior.Default
         setButtonActive(FreeCamBtn, false)
