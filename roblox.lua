@@ -11270,8 +11270,8 @@ do
         {name = "MiniEspBtn", text = "ESP: OFF"},
         {name = "MiniFlingAuraBtn", text = "Fling Aura: OFF"},
         {name = "MiniFlyTapBtn", text = "Fly (Mobile): OFF"},
-        {name = "MiniFlyV3Btn", text = "Fly PC: OFF  [Q]"},
-        {name = "MiniFlyV3SpeedBtn", text = "Fly V3: OFF  [E]"},
+        {name = "MiniFlyV3Btn", text = "Fly PC: OFF  [E]"},
+        {name = "MiniFlyV3SpeedBtn", text = "Fly V3: OFF  [Q]"},
         {name = "MiniGodBtn", text = "HP: 100"},
         {name = "MiniMaxZoomBtn", text = "Max Zoom: OFF"},
         {name = "MiniNoclipBtn", text = "Noclip: OFF"},
@@ -11501,10 +11501,10 @@ do
     end)
     FlyV3ShortcutConn = UserInputService.InputBegan:Connect(function(input, gpe)
         if gpe then return end
-        if input.KeyCode == Enum.KeyCode.Q and flyV1PCEnabled then
+        if input.KeyCode == Enum.KeyCode.E and flyV1PCEnabled then
             if flying then disableFly() else enableFly() end
         end
-        if input.KeyCode == Enum.KeyCode.E and flyV3Enabled then
+        if input.KeyCode == Enum.KeyCode.Q and flyV3Enabled then
             toggleFlyV3()
         end
     end)
@@ -11512,17 +11512,17 @@ do
         while ScreenGui and ScreenGui.Parent and task.wait(0.1) do
             pcall(function()
                 if flyV1PCEnabled then
-                    MiniFlyV3Btn.Text = "Fly PC: ON  [Q]"
+                    MiniFlyV3Btn.Text = "Fly PC: ON  [E]"
                     MiniFlyV3Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
                 else
-                    MiniFlyV3Btn.Text = "Fly PC: OFF  [Q]"
+                    MiniFlyV3Btn.Text = "Fly PC: OFF  [E]"
                     MiniFlyV3Btn.TextColor3 = Color3.fromRGB(255, 50, 50)
                 end
                 if flyV3Enabled then
-                    MiniFlyV3SpeedBtn.Text = "Fly V3: ON  [E]"
+                    MiniFlyV3SpeedBtn.Text = "Fly V3: ON  [Q]"
                     MiniFlyV3SpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
                 else
-                    MiniFlyV3SpeedBtn.Text = "Fly V3: OFF  [E]"
+                    MiniFlyV3SpeedBtn.Text = "Fly V3: OFF  [Q]"
                     MiniFlyV3SpeedBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
                 end
                 if PartScannerFrame and PartScannerFrame.Visible then
