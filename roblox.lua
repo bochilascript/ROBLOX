@@ -63,6 +63,8 @@ local LangDict = {
     ["Unanchor"] = { EN = "Unanchor", ID = "Lepas Kunci" },
     ["Spectator"] = { EN = "Spectator", ID = "Penonton" },
     ["Bring Part"] = { EN = "Bring Part", ID = "Tarik Objek" },
+    ["Speed Trail"] = { EN = "Speed Trail", ID = "Jejak Speed" },
+    ["Jump Trail"] = { EN = "Jump Trail", ID = "Jejak Lompat" },
     ["ESP"] = { EN = "ESP", ID = "ESP" },
     ["ESP Team"] = { EN = "ESP Team", ID = "ESP Team" },
     ["Server Hop"] = { EN = "Server Hop", ID = "Pindah Server" },
@@ -117,7 +119,7 @@ local LangDict = {
     ["CmdBarPH"] = { EN = "Type command... (ex: swp name)", ID = "Ketik perintah... (cth: swp nama)" },
     ["FriendList"] = { EN = "Friend List", ID = "Daftar Teman" },
     ["ShortcutsKey"] = { EN = "Shortcuts", ID = "Shortcut PC" },
-    ["ShortcutsDesc"] = { EN = "<b><font color=\"rgb(255, 60, 60)\">[</font></b>  - Open / Close GUI\n<b><font color=\"rgb(255, 60, 60)\">]</font></b>  - Toggle Speed Hack\n<b><font color=\"rgb(255, 60, 60)\">\\</font></b>  - Toggle Jump Power\n<b><font color=\"rgb(255, 60, 60)\">'</font></b>  - Open Command Bar\n<b><font color=\"rgb(255, 60, 60)\">T</font></b>  - Toggle Free Cam\n<b><font color=\"rgb(255, 60, 60)\">RightCtrl</font></b>  - Toggle Floating Logo\n\n*Note for <b>\\</b>: Disable 'UI Navigation Toggle' in Roblox Settings for it to work properly.", ID = "<b><font color=\"rgb(255, 60, 60)\">[</font></b>  - Buka / Tutup GUI\n<b><font color=\"rgb(255, 60, 60)\">]</font></b>  - Aktif / Matikan Speed Hack\n<b><font color=\"rgb(255, 60, 60)\">\\</font></b>  - Aktif / Matikan Jump Power\n<b><font color=\"rgb(255, 60, 60)\">'</font></b>  - Buka Command Bar\n<b><font color=\"rgb(255, 60, 60)\">T</font></b>  - Aktif / Matikan Free Cam\n<b><font color=\"rgb(255, 60, 60)\">RightCtrl</font></b>  - Sembunyikan Logo\n\n*Catatan untuk <b>\\</b>: Matikan 'Tombol Navigasi UI' di Pengaturan Roblox agar pintasan berfungsi." },
+    ["ShortcutsDesc"] = { EN = "<b><font color=\"rgb(255, 60, 60)\">[</font></b>  - Open / Close GUI\n<b><font color=\"rgb(255, 60, 60)\">]</font></b>  - Toggle Speed Hack\n<b><font color=\"rgb(255, 60, 60)\">\\</font></b>  - Toggle Jump Power\n<b><font color=\"rgb(255, 60, 60)\">-</font></b>  - Toggle Speed Trail\n<b><font color=\"rgb(255, 60, 60)\">=</font></b>  - Toggle Jump Trail\n<b><font color=\"rgb(255, 60, 60)\">'</font></b>  - Open Command Bar\n<b><font color=\"rgb(255, 60, 60)\">T</font></b>  - Toggle Free Cam\n<b><font color=\"rgb(255, 60, 60)\">RightCtrl</font></b>  - Toggle Floating Logo\n\n*Note for <b>\\</b>: Disable 'UI Navigation Toggle' in Roblox Settings for it to work properly.", ID = "<b><font color=\"rgb(255, 60, 60)\">[</font></b>  - Buka / Tutup GUI\n<b><font color=\"rgb(255, 60, 60)\">]</font></b>  - Aktif / Matikan Speed Hack\n<b><font color=\"rgb(255, 60, 60)\">\\</font></b>  - Aktif / Matikan Jump Power\n<b><font color=\"rgb(255, 60, 60)\">-</font></b>  - Aktif / Matikan Speed Trail\n<b><font color=\"rgb(255, 60, 60)\">=</font></b>  - Aktif / Matikan Jump Trail\n<b><font color=\"rgb(255, 60, 60)\">'</font></b>  - Buka Command Bar\n<b><font color=\"rgb(255, 60, 60)\">T</font></b>  - Kamera Bebas (Free Cam)\n<b><font color=\"rgb(255, 60, 60)\">RightCtrl</font></b>  - Sembunyikan Logo\n\n*Catatan untuk <b>\\</b>: Matikan 'Tombol Navigasi UI' di Pengaturan Roblox agar pintasan berfungsi." },
     ["CL_370"] = { EN = "- Massive UI update: Mobile draggable sliders for Speed & Jump Power\n- Safe Raycast landing algorithm for Fly V1 to prevent clipping\n- Draggable Mobile Command Bar\n- Added Config System (Auto-saves your settings locally)\n- Tab Rusuh Expansion: Added Hitbox Expander & Silent Aim\n- Custom Keybind Settings (Change hotkeys dynamically)\n- Added Free Cam shortcut (T), Hide Logo (RightCtrl) & Max Zoom noclip\n- Incremented version to v3.7.0", ID = "- Pembaruan UI Masif: Slider Mobile yang bisa digeser untuk Speed & Jump Power\n- Algoritma pendaratan aman Raycast untuk Fly V1 agar tidak nyangkut\n- Command Bar Mobile yang bisa di-drag\n- Sistem Config (Otomatis save settingan script)\n- Ekspansi Tab Rusuh: Menambahkan Hitbox Expander & Silent Aim\n- Kustomisasi Tombol/Keybind (Ganti pintasan sesuka hati)\n- Menambahkan shortcut Free Cam (T), Hide Logo (RightCtrl) & noclip Max Zoom\n- Menaikkan versi script menjadi v3.7.0" },
     ["CL_360"] = { EN = "- Added Shortcuts PC category to easily view keybinds\n- Added \\ shortcut to toggle Jump Power on/off\n- Improved Jump Trail size to be smaller and sleeker\n- Fixed active features cleanup not working properly when closing the GUI\n- Incremented version to v3.6.0", ID = "- Menambahkan kategori Shortcut PC untuk melihat pintasan keyboard\n- Menambahkan shortcut tombol \\ untuk mengaktifkan/mematikan Jump Power\n- Memperbaiki ukuran trail lompat agar lebih kecil dan ramping\n- Memperbaiki pembersihan fitur yang aktif saat GUI utama ditutup agar langsung mati\n- Menaikkan versi script menjadi v3.6.0" },
     ["CL_350"] = { EN = "- Renamed Fly V3 button in main GUI to Quick Tools\n- Added Spectate and Refresh buttons to Quick Tools\n- Switched Mobile Fly in Quick Tools to Fly V1 (better compatibility)\n- Fixed active Send Part button overlay color in Player List\n- Fixed Noclip movement bugs when disabling fly/noclip\n- Fixed Bring Part getting stuck after Send Part finishes\n- Changed Send Part to continuous loop mode\n- Updated Refresh button in Quick Tools to use refresh instead of respawn\n- Fixed local register limit error in Quick Tools\n- Added Fling (one-shot instant fling) to Spectate and Player List\n- Optimized Player List layout and removed redundant Kick button\n- Added joint-breaking to Part Scanner Bring to prevent map damage\n- Kept currently brought part at the top of the Part Scanner list\n- Improved Yeet in Part Scanner to instantly fling and vanish the part\n- Added ;ifling, ;walkfling, and ;antifling commands to Command Bar/List\n- Fixed Spectate & Player List flings by welding separate flingPart (preventing self-fling) and extending duration to 2s\n- Added God Mode (Kebal) & Health Monitor button to Quick Tools\n- Optimized Part Scanner lag by caching players and walking parent trees\n- Improved Yeet to teleport parts to sky boundary (99999, 9999, 99999) to bypass anti-void resets\n- Increased unanchor and yeet radius to 1000 studs\n- Reworked Part Scanner Unanchor to target unanchored parts and loop for 2.5s\n- Fixed Fly V3 fling when turning off and optimized main GUI startup rendering speed\n- Fixed top-clipped category buttons by adding padding to ScrollFrame and UtilityScroll\n- Added Fling Aura and Orbit Fling features to Combat category and Quick Tools\n- Added ;flingaura and ;orbitfling commands to Command Bar/List", ID = "- Mengubah tombol Fly V3 di GUI utama menjadi Quick Tools\n- Menambahkan tombol Spectate dan Refresh ke Quick Tools\n- Mengubah tombol Terbang mobile di Quick Tools menjadi Fly V1 (lebih kompatibel)\n- Memperbaiki warna tombol aktif Send Part pada Player List agar tidak menyatu/putih polos\n- Perbaikan bug gerakan Noclip setelah mematikan fly/noclip\n- Perbaikan Bring Part tersangkut setelah Send Part selesai\n- Mengubah Send Part menjadi mode loop terus-menerus\n- Memperbarui tombol Refresh di Quick Tools menggunakan metode refresh asli, bukan respawn\n- Memperbaiki error limit register lokal pada Quick Tools\n- Menambahkan Fling (instant fling sekali jalan) pada Spectate dan Player List\n- Mengoptimalkan tata letak Player List dan menghapus tombol Kick\n- Menambahkan pemutusan sambungan objek (BreakJoints) pada Bring Part Scanner agar map tidak rusak\n- Mengunci posisi part yang sedang di-bring di baris teratas Part Scanner\n- Memperbarui fungsi Yeet di Part Scanner agar langsung terlempar dan hilang seketika\n- Menambahkan perintah ;ifling, ;walkfling, dan ;antifling ke Command Bar/List\n- Memperbaiki Fling Spectate & Player List menggunakan metode welded flingPart (anti mati) dan durasi 2 detik\n- Menambahkan tombol Kebal (God Mode) & Health Monitor di Quick Tools\n- Mengoptimalkan lag Part Scanner dengan cache player dan penelusuran parent\n- Memperbarui Yeet untuk memindahkan part ke koordinat langit (99999, 9999, 99999) agar tidak reset\n- Meningkatkan radius unanchor dan yeet menjadi 1000 studs\n- Merombak Unanchor Part Scanner untuk part terlepas dan melakukan loop selama 2.5 detik\n- Perbaikan karakter terlempar saat mematikan Fly V3 dan optimasi kecepatan render awal GUI\n- Memperbaiki tombol kategori yang terlalu ke atas dengan menambahkan padding pada ScrollFrame dan UtilityScroll\n- Menambahkan fitur Fling Aura dan Orbit Fling pada kategori Rusuh dan Quick Tools\n- Menambahkan perintah ;flingaura dan ;orbitfling ke Command Bar/List" },
@@ -996,63 +998,59 @@ do
                 end
                 return nil
             end
-            local clickBtn = UtilityScroll:FindFirstChild("ClickTPBtn") or ScrollFrame:FindFirstChild("ClickTPBtn") or findBtn("Click TP")
-            local tpBox    = UtilityScroll:FindFirstChild("TPBox")     or ScrollFrame:FindFirstChild("TPBox")
-            local freeBtn  = UtilityScroll:FindFirstChild("FreeCamBtn") or ScrollFrame:FindFirstChild("FreeCamBtn") or findBtn("Free Cam")
-            local fcBox    = UtilityScroll:FindFirstChild("FCBox")      or ScrollFrame:FindFirstChild("FCBox")
-            local spdBtn   = UtilityScroll:FindFirstChild("SpeedBtn")   or ScrollFrame:FindFirstChild("SpeedBtn") or findBtn("Speed")
-            local spdBox   = UtilityScroll:FindFirstChild("SpeedBox")   or ScrollFrame:FindFirstChild("SpeedBox")
+            local function moveBtnByNames(nameId, textId, order)
+                local btn = UtilityScroll:FindFirstChild(nameId) or ScrollFrame:FindFirstChild(nameId) or findBtn(textId)
+                if btn then
+                    btn.Parent = UtilityScroll
+                    btn.Visible = true
+                    btn.LayoutOrder = order
+                end
+            end
+            local function moveBox(nameId, order)
+                local box = UtilityScroll:FindFirstChild(nameId) or ScrollFrame:FindFirstChild(nameId)
+                if box then
+                    box.Parent = UtilityScroll
+                    box.Visible = true
+                    box.LayoutOrder = order
+                end
+            end
+            
+            -- TextBoxes (order 1 to 10)
+            moveBtnByNames("ClickTPBtn", "Click TP", 1)
+            moveBox("TPBox", 2)
+            moveBtnByNames("FreeCamBtn", "Free Cam", 3)
+            moveBox("FCBox", 4)
+            moveBtnByNames("JumpPowerBtn", "Jump Power", 5)
+            moveBox("JumpPowerBox", 6)
+            moveBtnByNames("SWPBtn", "Save WP", 7)
+            moveBox("SWPBox", 8)
+            moveBtnByNames("SpeedBtn", "Speed", 9)
+            
+            local spdBox = UtilityScroll:FindFirstChild("SpeedBox") or ScrollFrame:FindFirstChild("SpeedBox")
             if not spdBox then
                 for _, ch in ipairs(ScrollFrame:GetChildren()) do
                     if ch:IsA("TextBox") and string.lower(tostring(ch.PlaceholderText)) == "speed" then spdBox = ch break end
                 end
             end
-            local swpBtn   = UtilityScroll:FindFirstChild("SWPBtn")   or ScrollFrame:FindFirstChild("SWPBtn") or findBtn("Save WP")
-            local swpBox   = UtilityScroll:FindFirstChild("SWPBox")   or ScrollFrame:FindFirstChild("SWPBox")
-            local tweenBtn = UtilityScroll:FindFirstChild("TweenTPBtn") or ScrollFrame:FindFirstChild("TweenTPBtn") or findBtn("Tween TP")
-            local btoolsBtn = UtilityScroll:FindFirstChild("BToolsBtn") or ScrollFrame:FindFirstChild("BToolsBtn") or findBtn("BTools")
-            local jumpBtn  = UtilityScroll:FindFirstChild("JumpPowerBtn") or ScrollFrame:FindFirstChild("JumpPowerBtn") or findBtn("Jump Power")
-            local jumpBox  = UtilityScroll:FindFirstChild("JumpPowerBox") or ScrollFrame:FindFirstChild("JumpPowerBox")
-            local tptoolBtn = UtilityScroll:FindFirstChild("TPToolBtn") or ScrollFrame:FindFirstChild("TPToolBtn") or findBtn("TP Tool")
-            local invisBtn = UtilityScroll:FindFirstChild("InvisibleBtn") or ScrollFrame:FindFirstChild("InvisibleBtn") or findBtn("Invisible")
-            local visBtn = UtilityScroll:FindFirstChild("VisibleBtn") or ScrollFrame:FindFirstChild("VisibleBtn") or findBtn("Visible")
-            local fpsBtn = UtilityScroll:FindFirstChild("FPSPingBtn") or ScrollFrame:FindFirstChild("FPSPingBtn") or findBtn("FPS & Ping")
-            local chatLogsBtn = UtilityScroll:FindFirstChild("ChatLogsBtn") or ScrollFrame:FindFirstChild("ChatLogsBtn") or findBtn("Chat Logs")
-            local partInspectorBtn = UtilityScroll:FindFirstChild("PartInspectorBtn") or ScrollFrame:FindFirstChild("PartInspectorBtn") or findBtn("Part Inspector")
-            
-            local cmdBarBtn = UtilityScroll:FindFirstChild("CmdBarBtn") or ScrollFrame:FindFirstChild("CmdBarBtn") or findBtn("Command Bar")
-            local shiftLockBtn = UtilityScroll:FindFirstChild("ShiftLockBtn") or ScrollFrame:FindFirstChild("ShiftLockBtn") or findBtn("Shift Lock")
-            local infJumpBtn = UtilityScroll:FindFirstChild("JumpBtn") or ScrollFrame:FindFirstChild("JumpBtn") or findBtn("Infinite Jump")
-            local antiAFKBtn = UtilityScroll:FindFirstChild("AntiAFKBtn") or ScrollFrame:FindFirstChild("AntiAFKBtn") or findBtn("Anti AFK")
-            local respawnBtn = UtilityScroll:FindFirstChild("RespawnBtn") or ScrollFrame:FindFirstChild("RespawnBtn") or findBtn("Respawn")
-            local lampBtn = UtilityScroll:FindFirstChild("LampBtn") or ScrollFrame:FindFirstChild("LampBtn") or findBtn("Lampu")
+            if spdBox then spdBox.Parent = UtilityScroll spdBox.Visible = true spdBox.LayoutOrder = 10 end
 
-            local function moveToUtil(child, order)
-                if child then child.Parent = UtilityScroll child.Visible = true child.LayoutOrder = order end
-            end
-            
-            -- TextBoxes (order 1 to 10)
-            moveToUtil(clickBtn, 1); moveToUtil(tpBox, 2)
-            moveToUtil(freeBtn, 3);  moveToUtil(fcBox, 4)
-            moveToUtil(jumpBtn, 5);  moveToUtil(jumpBox, 6)
-            moveToUtil(swpBtn, 7);   moveToUtil(swpBox, 8)
-            moveToUtil(spdBtn, 9);   moveToUtil(spdBox, 10)
-            
             -- Alphabetically Sorted (order 11+)
-            moveToUtil(antiAFKBtn, 11)
-            moveToUtil(btoolsBtn, 12)
-            moveToUtil(chatLogsBtn, 13)
-            moveToUtil(cmdBarBtn, 14)
-            moveToUtil(fpsBtn, 15)
-            moveToUtil(infJumpBtn, 16)
-            moveToUtil(invisBtn, 17)
-            moveToUtil(lampBtn, 18)
-            moveToUtil(partInspectorBtn, 19)
-            moveToUtil(respawnBtn, 20)
-            moveToUtil(shiftLockBtn, 21)
-            moveToUtil(tptoolBtn, 22)
-            moveToUtil(tweenBtn, 23)
-            moveToUtil(visBtn, 24)
+            moveBtnByNames("AntiAFKBtn", "Anti AFK", 11)
+            moveBtnByNames("BToolsBtn", "BTools", 12)
+            moveBtnByNames("ChatLogsBtn", "Chat Logs", 13)
+            moveBtnByNames("CmdBarBtn", "Command Bar", 14)
+            moveBtnByNames("FPSPingBtn", "FPS & Ping", 15)
+            moveBtnByNames("JumpBtn", "Infinite Jump", 16)
+            moveBtnByNames("InvisibleBtn", "Invisible", 17)
+            moveBtnByNames("JumpTrailBtn", "Jump Trail", 18)
+            moveBtnByNames("LampBtn", "Lampu", 19)
+            moveBtnByNames("PartInspectorBtn", "Part Inspector", 20)
+            moveBtnByNames("RespawnBtn", "Respawn", 21)
+            moveBtnByNames("ShiftLockBtn", "Shift Lock", 22)
+            moveBtnByNames("SpeedTrailBtn", "Speed Trail", 23)
+            moveBtnByNames("TPToolBtn", "TP Tool", 24)
+            moveBtnByNames("TweenTPBtn", "Tween TP", 25)
+            moveBtnByNames("VisibleBtn", "Visible", 26)
             for _, ch in ipairs(UtilityScroll:GetChildren()) do
                 if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
                     ch.Parent = ScrollFrame
@@ -1271,7 +1269,7 @@ do
         local title = Instance.new("TextLabel")
         title.Size = UDim2.new(1, 0, 0.6, 0)
         title.BackgroundTransparency = 1
-        title.Text = "Chil Script Universal"
+        title.Text = "🌟 Chil Script Universal 🌟"
         title.TextColor3 = Color3.fromRGB(255, 50, 50)
         title.Font = Enum.Font.GothamBlack
         title.TextSize = 20
@@ -1280,10 +1278,10 @@ do
         subtitle.Size = UDim2.new(1, 0, 0.4, 0)
         subtitle.Position = UDim2.new(0, 0, 0.6, 0)
         subtitle.BackgroundTransparency = 1
-        subtitle.Text = "by Pixecute"
+        subtitle.Text = "Created with ❤️ by Pixecute"
         subtitle.TextColor3 = Color3.fromRGB(180, 180, 180)
         subtitle.Font = Enum.Font.GothamMedium
-        subtitle.TextSize = 11
+        subtitle.TextSize = 12
         subtitle.Parent = header
         local staffCard = Instance.new("Frame")
         staffCard.Size = UDim2.new(1, -10, 0, 70)
@@ -1298,24 +1296,24 @@ do
         devRole.Size = UDim2.new(1, -20, 0, 20)
         devRole.Position = UDim2.new(0, 10, 0, 10)
         devRole.BackgroundTransparency = 1
-        devRole.Text = "👑 OWNER & DEVELOPER"
+        devRole.Text = "👑 LEAD DEVELOPER & OWNER"
         devRole.TextColor3 = Color3.fromRGB(255, 200, 50)
         devRole.Font = Enum.Font.GothamBold
-        devRole.TextSize = 11
+        devRole.TextSize = 12
         devRole.TextXAlignment = Enum.TextXAlignment.Left
         devRole.Parent = staffCard
         local devName = Instance.new("TextLabel")
         devName.Size = UDim2.new(1, -20, 0, 30)
         devName.Position = UDim2.new(0, 10, 0, 28)
         devName.BackgroundTransparency = 1
-        devName.Text = "PIXECUTE"
+        devName.Text = "PIXECUTE / PIX"
         devName.TextColor3 = Color3.fromRGB(255, 255, 255)
         devName.Font = Enum.Font.GothamBlack
         devName.TextSize = 18
         devName.TextXAlignment = Enum.TextXAlignment.Left
         devName.Parent = staffCard
         local disclaimerCard = Instance.new("Frame")
-        disclaimerCard.Size = UDim2.new(1, -10, 0, 75)
+        disclaimerCard.Size = UDim2.new(1, -10, 0, 85)
         disclaimerCard.BackgroundColor3 = Color3.fromRGB(25, 15, 15)
         disclaimerCard.LayoutOrder = 3
         disclaimerCard.Parent = scrollFrame
@@ -1327,17 +1325,17 @@ do
         discTitle.Size = UDim2.new(1, -20, 0, 20)
         discTitle.Position = UDim2.new(0, 10, 0, 8)
         discTitle.BackgroundTransparency = 1
-        discTitle.Text = "⚠️ DISCLAIMER"
+        discTitle.Text = "⚠️ IMPORTANT DISCLAIMER"
         discTitle.TextColor3 = Color3.fromRGB(255, 100, 100)
         discTitle.Font = Enum.Font.GothamBold
-        discTitle.TextSize = 11
+        discTitle.TextSize = 12
         discTitle.TextXAlignment = Enum.TextXAlignment.Left
         discTitle.Parent = disclaimerCard
         local discText = Instance.new("TextLabel")
-        discText.Size = UDim2.new(1, -20, 0, 40)
+        discText.Size = UDim2.new(1, -20, 0, 45)
         discText.Position = UDim2.new(0, 10, 0, 26)
         discText.BackgroundTransparency = 1
-        discText.Text = "Use this script responsibly. We are not responsible for any actions taken against your Roblox account."
+        discText.Text = "This script is provided 'as is'. We are not responsible for any bans or actions taken against your Roblox account. Please use it responsibly and have fun!"
         discText.TextColor3 = Color3.fromRGB(255, 200, 200)
         discText.Font = Enum.Font.Gotham
         discText.TextSize = 9
@@ -1633,6 +1631,7 @@ do
             { titleEN = "Tween TP", titleID = "Tween TP", descEN = "Teleports smoothly avoiding anti-cheats instead of instantly blinking.", descID = "Teleport secara perlahan (terbang lurus) menuju target biar nggak gampang terdeteksi anti-cheat." },
             { titleEN = "Save WP", titleID = "Simpan Lokasi", descEN = "Saves your current location so you can easily teleport back anytime.", descID = "Nyimpen posisi lu berdiri saat ini, biar nanti gampang teleport balik ke tempat yang sama." },
             { titleEN = "Jump Power & Speed", titleID = "Jump Power & Kecepatan", descEN = "Adjust how fast and high you can go. Can be configured in the Utility Tab.", descID = "Bisa diatur di Tab Utility buat ngubah seberapa kencang lari lu dan setinggi apa lu bisa lompat." },
+            { titleEN = "Speed & Jump Trail", titleID = "Jejak Lari & Lompat", descEN = "Adds cosmetic visual trails when you activate Speed or Jump Power.", descID = "Nambahin efek visual jejak warna saat lu mengaktifkan Speed (Hitam) atau Jump Power (Marun)." },
             { titleEN = "ESP & ESP Team", titleID = "ESP & ESP Team", descEN = "Wallhack that highlights all players (or team only) displaying their names, health, and distance.", descID = "Fitur wallhack (tembus dinding) yang nampilin nama, darah, dan jarak pemain lain/tim." },
             { titleEN = "Hitbox Expander", titleID = "Hitbox", descEN = "Expands the hitbox (HumanoidRootPart) of all other players making it extremely easy to hit them.", descID = "Membesarkan ukuran hitbox (badan) pemain lain, bikin serangan/tembakan lu pasti kena walau meleset dikit." },
             { titleEN = "Aimbot (Silent Aim)", titleID = "Aimbot", descEN = "Automatically locks your camera to the closest player. Best used for shooting games.", descID = "Otomatis ngunci arah kamera lu ke pemain terdekat. Sangat cocok buat main game tembak-tembakan FPS." },
@@ -2204,6 +2203,25 @@ CloseBtn.MouseButton1Click:Connect(function()
         if JumpPowerShortcutConn then pcall(function() JumpPowerShortcutConn:Disconnect() end) JumpPowerShortcutConn = nil end
         if FreecamShortcutConn then pcall(function() FreecamShortcutConn:Disconnect() end) FreecamShortcutConn = nil end
         if MiniFrameToggleConn then pcall(function() MiniFrameToggleConn:Disconnect() end) MiniFrameToggleConn = nil end
+        if speedTrailOn then pcall(toggleSpeedTrail) end
+        if jumpTrailOn then pcall(toggleJumpTrail) end
+        if SpeedTrailShortcutConn then pcall(function() SpeedTrailShortcutConn:Disconnect() end) SpeedTrailShortcutConn = nil end
+        if JumpTrailShortcutConn then pcall(function() JumpTrailShortcutConn:Disconnect() end) JumpTrailShortcutConn = nil end
+        if lampOn then pcall(toggleLampu, false) end
+        if infiniteJumpEnabled then pcall(toggleInfiniteJump, false) end
+        if isAirwalkActive then pcall(toggleAirwalk, false) end
+        if hitboxActive then pcall(toggleHitbox, false) end
+        if aimbotEnabled or aimbotActive then pcall(toggleAimbot, false) end
+        if autoClickerActive then pcall(toggleAutoClicker, false) end
+        if maxZoomActive then pcall(toggleMaxZoom, false) end
+        if touchFlingActive then pcall(toggleTouchFling, false) end
+        if clickTPEnabled then pcall(toggleClickTP, false) end
+        if BToolsActive then pcall(toggleBTools, false) end
+        if PartInspectorFrame and PartInspectorFrame.Visible then pcall(togglePartInspector, false) end
+        if tpToolEnabled then pcall(toggleTPTool, false) end
+        if shiftLockEnabled then pcall(toggleShiftLock, false) end
+        if vehicleFlyActive then pcall(toggleVehicleFly, false) end
+        if SendPartActive then SendPartActive = false end
         local coreGui = game:GetService("CoreGui")
         for _, guiName in ipairs({"CHCmdBarGUI", "PIXECUTE SPECTATE", "FriendListFrame", "PlayerListFrame"}) do
             local g = coreGui:FindFirstChild(guiName)
@@ -3695,7 +3713,9 @@ local function startSyncDance(targetPlayer)
             local myChar = Player.Character
             local myHum = myChar and myChar:FindFirstChildOfClass("Humanoid")
             if hum and myHum then
-                local playing = hum:GetPlayingAnimationTracks()
+                local targetAnimator = hum:FindFirstChildOfClass("Animator")
+                local myAnimator = myHum:FindFirstChildOfClass("Animator")
+                local playing = targetAnimator and targetAnimator:GetPlayingAnimationTracks() or hum:GetPlayingAnimationTracks()
                 local foundEmote = nil
                 for _, track in ipairs(playing) do
                     if track.Weight > 0.1 and (tostring(track.Priority) == "Enum.AnimationPriority.Action" or tostring(track.Priority) == "Enum.AnimationPriority.Action4" or tostring(track.Priority) == "Enum.AnimationPriority.Action3" or tostring(track.Priority) == "Enum.AnimationPriority.Action2") then
@@ -3716,7 +3736,7 @@ local function startSyncDance(targetPlayer)
                         lastAnimId = id
                         local anim = Instance.new("Animation")
                         anim.AnimationId = lastAnimId
-                        local newTrack = myHum:LoadAnimation(anim)
+                        local newTrack = (myAnimator or myHum):LoadAnimation(anim)
                         newTrack:Play()
                         pcall(function() newTrack.TimePosition = foundEmote.TimePosition end)
                         pcall(function() newTrack.Speed = foundEmote.Speed end)
@@ -5974,7 +5994,7 @@ end)
 SpeedBtn = createButton("", "Speed")
 SpeedBtn.Name = "SpeedBtn"
 SpeedBtn.LayoutOrder = 5
-local desiredSpeed = 50
+local desiredSpeed = 25
 do
     SpeedBox = Instance.new("TextBox")
     SpeedBox.Name = "SpeedBox"
@@ -6011,8 +6031,8 @@ end
 local speedOn = false
 local selendangPart = nil
 local colors = {
-	Color3.fromRGB(255, 255, 255),
-	Color3.fromRGB(150, 200, 255)
+	Color3.fromRGB(0, 0, 0),
+	Color3.fromRGB(5, 5, 5)
 }
 function lerpColor(c1, c2, t)
 	return Color3.new(
@@ -6053,9 +6073,10 @@ function addSelendang(char)
 		newTrail1.Attachment1 = attBottom1
 		newTrail1.Lifetime = 1.2
 		newTrail1.MinLength = 0.05
-		newTrail1.LightEmission = 0.8
+		newTrail1.LightEmission = 0
+		newTrail1.LightInfluence = 1
 		newTrail1.Transparency = NumberSequence.new({
-			NumberSequenceKeypoint.new(0, 0.2),
+			NumberSequenceKeypoint.new(0, 0.1),
 			NumberSequenceKeypoint.new(1, 1)
 		})
 		newTrail1.WidthScale = NumberSequence.new({
@@ -6079,9 +6100,10 @@ function addSelendang(char)
 		newTrail2.Attachment1 = attBottom2
 		newTrail2.Lifetime = 1.2
 		newTrail2.MinLength = 0.05
-		newTrail2.LightEmission = 0.8
+		newTrail2.LightEmission = 0
+		newTrail2.LightInfluence = 1
 		newTrail2.Transparency = NumberSequence.new({
-			NumberSequenceKeypoint.new(0, 0.2),
+			NumberSequenceKeypoint.new(0, 0.1),
 			NumberSequenceKeypoint.new(1, 1)
 		})
 		newTrail2.WidthScale = NumberSequence.new({
@@ -6156,7 +6178,7 @@ function toggleSpeed()
 	local char = Player.Character or Player.CharacterAdded:Wait()
 	local hum = char:FindFirstChild("Humanoid")
 	if speedOn then
-		addSelendang(char)
+		if speedTrailOn then addSelendang(char) end
 		setButtonActive(SpeedBtn, true)
 		if hum then
 			updatingSpeed = true
@@ -6186,6 +6208,34 @@ SpeedShortcutConn = UserInputService.InputBegan:Connect(function(input, gameProc
 	if UserInputService:GetFocusedTextBox() then return end
 	if input.KeyCode == Enum.KeyCode.RightBracket then
 		toggleSpeed()
+	end
+end)
+
+SpeedTrailBtn = createButton("", "Speed Trail")
+SpeedTrailBtn.Name = "SpeedTrailBtn"
+speedTrailOn = true  -- default ON (Trail menyala)
+function toggleSpeedTrail()
+	speedTrailOn = not speedTrailOn
+	local char = Player.Character
+	if speedTrailOn then
+		setButtonActive(SpeedTrailBtn, false) -- Trail ON = Tombol Merah
+		if speedOn and char then addSelendang(char) end
+	else
+		setButtonActive(SpeedTrailBtn, true) -- Trail OFF = Tombol Putih
+		removeSelendang()
+	end
+end
+SpeedTrailBtn.MouseButton1Click:Connect(toggleSpeedTrail)
+SpeedTrailShortcutConn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if UserInputService:GetFocusedTextBox() then return end
+	if input.KeyCode == Enum.KeyCode.Minus then
+		toggleSpeedTrail()
+	end
+end)
+Player.CharacterAdded:Connect(function(char)
+	if speedTrailOn then
+		task.wait(0.5)
+		addSelendang(char)
 	end
 end)
 Player.CharacterAdded:Connect(function(char)
@@ -7805,15 +7855,8 @@ function toggleBringPart(state)
 			end
 		end)
 
-		task.spawn(function()
-			while blackHoleActive and RunService.RenderStepped:Wait() do
-				if head then
-					Attachment1.WorldCFrame = head.CFrame * CFrame.new(0, 10, 0)
-				else
-					Attachment1.WorldCFrame = humanoidRootPart.CFrame * CFrame.new(0, 10, 0)
-				end
-			end
-		end)
+
+
 	else
 		setButtonActive(BringPartBtn, false)
         if MiniBringBtn then
@@ -8253,7 +8296,7 @@ end)
 
 JumpPowerBtn = createButton("", "Jump Power")
 JumpPowerBtn.Name = "JumpPowerBtn"
-local desiredJumpPower = 50
+local desiredJumpPower = 55
 local jumpPowerOn = false
 do
     JumpPowerBox = Instance.new("TextBox")
@@ -8326,10 +8369,11 @@ local function addJumpTrail(char)
 		newTrail1.Attachment1 = attBottom1
 		newTrail1.Lifetime = 1.2
 		newTrail1.MinLength = 0.05
-		newTrail1.LightEmission = 0.1
-		newTrail1.Color = ColorSequence.new(Color3.fromRGB(220, 20, 20))
+		newTrail1.LightEmission = 0
+		newTrail1.LightInfluence = 1
+		newTrail1.Color = ColorSequence.new(Color3.fromRGB(80, 0, 0))
 		newTrail1.Transparency = NumberSequence.new({
-			NumberSequenceKeypoint.new(0, 0.2),
+			NumberSequenceKeypoint.new(0, 0.1),
 			NumberSequenceKeypoint.new(1, 1)
 		})
 		newTrail1.WidthScale = NumberSequence.new({
@@ -8354,10 +8398,11 @@ local function addJumpTrail(char)
 		newTrail2.Attachment1 = attBottom2
 		newTrail2.Lifetime = 1.2
 		newTrail2.MinLength = 0.05
-		newTrail2.LightEmission = 0.1
-		newTrail2.Color = ColorSequence.new(Color3.fromRGB(220, 20, 20))
+		newTrail2.LightEmission = 0
+		newTrail2.LightInfluence = 1
+		newTrail2.Color = ColorSequence.new(Color3.fromRGB(80, 0, 0))
 		newTrail2.Transparency = NumberSequence.new({
-			NumberSequenceKeypoint.new(0, 0.2),
+			NumberSequenceKeypoint.new(0, 0.1),
 			NumberSequenceKeypoint.new(1, 1)
 		})
 		newTrail2.WidthScale = NumberSequence.new({
@@ -8420,6 +8465,34 @@ JumpPowerShortcutConn = UserInputService.InputBegan:Connect(function(input, game
         toggleJumpPower()
     end
 end)
+
+JumpTrailBtn = createButton("", "Jump Trail")
+JumpTrailBtn.Name = "JumpTrailBtn"
+jumpTrailOn = true  -- default ON (Trail menyala)
+function toggleJumpTrail()
+	jumpTrailOn = not jumpTrailOn
+	local char = Player.Character
+	if jumpTrailOn then
+		setButtonActive(JumpTrailBtn, false) -- Trail ON = Tombol Merah
+		if jumpPowerOn and char then addJumpTrail(char) end
+	else
+		setButtonActive(JumpTrailBtn, true) -- Trail OFF = Tombol Putih
+		removeJumpTrail()
+	end
+end
+JumpTrailBtn.MouseButton1Click:Connect(toggleJumpTrail)
+JumpTrailShortcutConn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if UserInputService:GetFocusedTextBox() then return end
+	if input.KeyCode == Enum.KeyCode.Equals then
+		toggleJumpTrail()
+	end
+end)
+Player.CharacterAdded:Connect(function(char)
+	if jumpTrailOn then
+		task.wait(0.5)
+		addJumpTrail(char)
+	end
+end)
 Player.CharacterAdded:Connect(function(char)
     local hum = char:WaitForChild("Humanoid", 5)
     if hum and jumpPowerOn then
@@ -8427,7 +8500,7 @@ Player.CharacterAdded:Connect(function(char)
         if jumpPowerOn then
             hum.UseJumpPower = true
             hum.JumpPower = desiredJumpPower
-            addJumpTrail(char)
+            if jumpTrailOn then addJumpTrail(char) end
         end
     end
 end)
