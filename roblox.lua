@@ -601,7 +601,9 @@ pcall(function()
     end
 end)
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Parent = PlayerGui
+local safeParent = nil
+pcall(function() safeParent = gethui and gethui() or game:GetService("CoreGui") end)
+ScreenGui.Parent = safeParent or PlayerGui
 ScreenGui.Enabled = true
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Name = "CHCheatGUI"
