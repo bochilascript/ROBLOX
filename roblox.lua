@@ -13218,27 +13218,31 @@ local success, err = pcall(function()
             oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
                 local method = getnamecallmethod()
                 local args = {...}
-                if method == "FireServer" and self.Name == "SayMessageRequest" then
-                    local msg = args[1]
-                    if type(msg) == "string" and string.sub(msg, 1, 1) == ";" then
-                        task.spawn(function()
-                            if not executingFromCmdBar then
-                                pcall(handleChatCommand, msg)
-                            end
-                        end)
-                        return
-                    end
-                elseif method == "SendAsync" and self.ClassName == "TextChannel" then
-                    local msg = args[1]
-                    if type(msg) == "string" and string.sub(msg, 1, 1) == ";" then
-                        task.spawn(function()
-                            if not executingFromCmdBar then
-                                pcall(handleChatCommand, msg)
-                            end
-                        end)
-                        return
+                
+                if typeof(self) == "Instance" then
+                    if method == "FireServer" and self.Name == "SayMessageRequest" then
+                        local msg = args[1]
+                        if type(msg) == "string" and string.sub(msg, 1, 1) == ";" then
+                            task.spawn(function()
+                                if not executingFromCmdBar then
+                                    pcall(handleChatCommand, msg)
+                                end
+                            end)
+                            return
+                        end
+                    elseif method == "SendAsync" and self.ClassName == "TextChannel" then
+                        local msg = args[1]
+                        if type(msg) == "string" and string.sub(msg, 1, 1) == ";" then
+                            task.spawn(function()
+                                if not executingFromCmdBar then
+                                    pcall(handleChatCommand, msg)
+                                end
+                            end)
+                            return
+                        end
                     end
                 end
+                
                 return oldNamecall(self, ...)
             end)
         end
