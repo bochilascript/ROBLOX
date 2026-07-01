@@ -4752,7 +4752,7 @@ function createPlayerListWindow()
     searchStroke.Parent = searchFrame
     local searchBox = Instance.new("TextBox")
     searchBox.Name = "SearchBox"
-    searchBox.Size = UDim2.new(1, -20, 1, 0)
+    searchBox.Size = UDim2.new(1, -45, 1, 0)
     searchBox.Position = UDim2.new(0, 10, 0, 0)
     searchBox.BackgroundTransparency = 1
     searchBox.Font = Enum.Font.GothamBold
@@ -4765,7 +4765,27 @@ function createPlayerListWindow()
     searchBox.ClearTextOnFocus = false
     searchBox.Parent = searchFrame
     PlayerListSearchBox = searchBox
-    searchBox:GetPropertyChangedSignal("Text"):Connect(refreshPlayerList)
+
+    local clearBtn = Instance.new("TextButton")
+    clearBtn.Name = "ClearBtn"
+    clearBtn.Size = UDim2.new(0, 20, 0, 20)
+    clearBtn.Position = UDim2.new(1, -25, 0.5, -10)
+    clearBtn.BackgroundTransparency = 1
+    clearBtn.Text = "X"
+    clearBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+    clearBtn.Font = Enum.Font.GothamBold
+    clearBtn.TextSize = 14
+    clearBtn.Visible = false
+    clearBtn.Parent = searchFrame
+
+    clearBtn.MouseButton1Click:Connect(function()
+        searchBox.Text = ""
+    end)
+
+    searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+        clearBtn.Visible = (searchBox.Text ~= "")
+        refreshPlayerList()
+    end)
     local scroll = Instance.new("ScrollingFrame")
     scroll.Size = UDim2.new(1, -20, 1, -85)
     scroll.Position = UDim2.new(0, 10, 0, 78)
@@ -13189,6 +13209,37 @@ local success, err = pcall(function()
                         pcall(handleChatCommand, textChatMessage.Text)
                     end
                 end
+            end)
+        end
+    end)
+    pcall(function()
+        if typeof(hookmetamethod) == "function" and typeof(getnamecallmethod) == "function" then
+            local oldNamecall
+            oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+                local method = getnamecallmethod()
+                local args = {...}
+                if method == "FireServer" and self.Name == "SayMessageRequest" then
+                    local msg = args[1]
+                    if type(msg) == "string" and string.sub(msg, 1, 1) == ";" then
+                        task.spawn(function()
+                            if not executingFromCmdBar then
+                                pcall(handleChatCommand, msg)
+                            end
+                        end)
+                        return
+                    end
+                elseif method == "SendAsync" and self.ClassName == "TextChannel" then
+                    local msg = args[1]
+                    if type(msg) == "string" and string.sub(msg, 1, 1) == ";" then
+                        task.spawn(function()
+                            if not executingFromCmdBar then
+                                pcall(handleChatCommand, msg)
+                            end
+                        end)
+                        return
+                    end
+                end
+                return oldNamecall(self, ...)
             end)
         end
     end)
