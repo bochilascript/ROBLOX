@@ -610,9 +610,10 @@ local LightingContainer = Instance.new("Frame")
 LightingContainer.Size = UDim2.new(1, 0, 1, 0)
 LightingContainer.BackgroundTransparency = 1
 LightingContainer.Parent = ScreenGui
+MainFrameSize = UDim2.new(0, 700, 0, 420)
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 600, 0, 340)
-MainFrame.Position = UDim2.new(0.5, -300, 0.5, -170)
+MainFrame.Size = MainFrameSize
+MainFrame.Position = UDim2.new(0.5, -350, 0.5, -210)
 MainFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
 MainFrame.BackgroundTransparency = 0.1
 MainFrame.Active = true
@@ -636,7 +637,7 @@ MainGuiToggleConn = UserInputService.InputBegan:Connect(function(input, gameProc
         else
             MainFrame.Visible = true
             MainFrame.Size = UDim2.new(0, 0, 0, 0)
-            TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 600, 0, 340)}):Play()
+            TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = MainFrameSize}):Play()
             pcall(function() updateExternalCursorVisibility() end)
         end
     end
@@ -658,17 +659,76 @@ mainStroke.Thickness = 2
 mainStroke.Transparency = 0
 mainStroke.Parent = MainFrame
 local VersionLabel = Instance.new("TextLabel")
-VersionLabel.Size = UDim2.new(0, 100, 0, 20)
-VersionLabel.Position = UDim2.new(1, -110, 1, -25)
+VersionLabel.Size = UDim2.new(0, 100, 0, 22)
+VersionLabel.Position = UDim2.new(1, -145, 1, -32)
 VersionLabel.BackgroundTransparency = 1
 VersionLabel.Font = Enum.Font.GothamBold
-VersionLabel.TextSize = 11
+VersionLabel.TextSize = 14
 VersionLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 VersionLabel.TextXAlignment = Enum.TextXAlignment.Right
-VersionLabel.TextYAlignment = Enum.TextYAlignment.Bottom
+VersionLabel.TextYAlignment = Enum.TextYAlignment.Center
 VersionLabel.Text = "v3.7.0"
 VersionLabel.ZIndex = 15
 VersionLabel.Parent = MainFrame
+do
+    local ResizeHandle = Instance.new("Frame")
+    ResizeHandle.Active = true
+    ResizeHandle.Size = UDim2.new(0, 28, 0, 28)
+    ResizeHandle.Position = UDim2.new(1, -32, 1, -32)
+    ResizeHandle.BackgroundTransparency = 0.1
+    ResizeHandle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    ResizeHandle.ZIndex = 20
+    local rhCorner = Instance.new("UICorner")
+    rhCorner.CornerRadius = UDim.new(0, 6)
+    rhCorner.Parent = ResizeHandle
+    local ResizeIcon = Instance.new("ImageLabel")
+    ResizeIcon.Size = UDim2.new(1, -8, 1, -8)
+    ResizeIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
+    ResizeIcon.AnchorPoint = Vector2.new(0.5, 0.5)
+    ResizeIcon.BackgroundTransparency = 1
+    ResizeIcon.ZIndex = 21
+    ResizeIcon.Parent = ResizeHandle
+    task.spawn(function()
+        local ok, data = pcall(function() return game:HttpGet("https://files.catbox.moe/xw1ggt.webp") end)
+        if ok and data and type(writefile) == "function" then
+            local fileName = "resize_icon_v3.webp"
+            pcall(function() writefile(fileName, data) end)
+            local getasset = (typeof(getcustomasset) == "function" and getcustomasset)
+                or (typeof(getsynasset) == "function" and getsynasset)
+            if getasset then
+                local assetPath = getasset(fileName)
+                if assetPath and assetPath ~= "" then
+                    ResizeIcon.Image = assetPath
+                end
+            end
+        end
+    end)
+    ResizeHandle.Parent = MainFrame
+    local resizing = false
+    local resizeStartPos = nil
+    local resizeStartSize = nil
+    ResizeHandle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            resizing = true
+            resizeStartPos = input.Position
+            resizeStartSize = MainFrame.Size
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    resizing = false
+                end
+            end)
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if resizing and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - resizeStartPos
+            local newWidth = math.max(500, resizeStartSize.X.Offset + delta.X)
+            local newHeight = math.max(300, resizeStartSize.Y.Offset + delta.Y)
+            MainFrame.Size = UDim2.new(0, newWidth, 0, newHeight)
+            MainFrameSize = MainFrame.Size
+        end
+    end)
+end
 local Container = Instance.new("Frame")
 Container.Size = UDim2.new(1, 0, 1, -30)
 Container.Position = UDim2.new(0, 0, 0, 30)
@@ -748,6 +808,8 @@ ScrollFrame.Parent = ButtonsFrame
 local ScrollPadding = Instance.new("UIPadding")
 ScrollPadding.PaddingTop = UDim.new(0, 10)
 ScrollPadding.PaddingBottom = UDim.new(0, 10)
+ScrollPadding.PaddingLeft = UDim.new(0, 8)
+ScrollPadding.PaddingRight = UDim.new(0, 8)
 ScrollPadding.Parent = ScrollFrame
 local UtilityFrame = Instance.new("Frame")
 UtilityFrame.Name = "UtilityFrame"
@@ -768,9 +830,11 @@ UtilityScroll.Parent = UtilityFrame
 local UtilityPadding = Instance.new("UIPadding")
 UtilityPadding.PaddingTop = UDim.new(0, 10)
 UtilityPadding.PaddingBottom = UDim.new(0, 10)
+UtilityPadding.PaddingLeft = UDim.new(0, 8)
+UtilityPadding.PaddingRight = UDim.new(0, 8)
 UtilityPadding.Parent = UtilityScroll
 local UtilityGrid = Instance.new("UIGridLayout")
-UtilityGrid.CellSize = UDim2.new(0, 150, 0, 35)
+UtilityGrid.CellSize = UDim2.new(0.5, -4, 0, 35)
 UtilityGrid.CellPadding = UDim2.new(0, 8, 0, 8)
 UtilityGrid.FillDirection = Enum.FillDirection.Horizontal
 UtilityGrid.FillDirectionMaxCells = 2
@@ -1909,7 +1973,7 @@ do
     end)
 end
 local ButtonGrid = Instance.new("UIGridLayout")
-ButtonGrid.CellSize = UDim2.new(0, 150, 0, 35)
+ButtonGrid.CellSize = UDim2.new(0.5, -4, 0, 35)
 ButtonGrid.CellPadding = UDim2.new(0, 8, 0, 8)
 ButtonGrid.HorizontalAlignment = Enum.HorizontalAlignment.Center
 ButtonGrid.VerticalAlignment = Enum.VerticalAlignment.Top
@@ -2254,7 +2318,7 @@ MiniFrame.MouseButton1Click:Connect(function()
     else
         MainFrame.Visible = true
         MainFrame.Size = UDim2.new(0, 0, 0, 0)
-        local tween = TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 600, 0, 340)})
+        local tween = TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = MainFrameSize})
         tween:Play()
     end
 end)
@@ -6233,16 +6297,10 @@ SpeedTrailShortcutConn = UserInputService.InputBegan:Connect(function(input, gam
 	end
 end)
 Player.CharacterAdded:Connect(function(char)
-	if speedTrailOn then
-		task.wait(0.5)
-		addSelendang(char)
-	end
-end)
-Player.CharacterAdded:Connect(function(char)
 	task.wait(0.5)
 	setupSpeedListener(char)
 	if speedOn then
-		addSelendang(char)
+		if speedTrailOn then addSelendang(char) end
 		setButtonActive(SpeedBtn, true)
 	else
 		setButtonActive(SpeedBtn, false)
@@ -8487,12 +8545,7 @@ JumpTrailShortcutConn = UserInputService.InputBegan:Connect(function(input, game
 		toggleJumpTrail()
 	end
 end)
-Player.CharacterAdded:Connect(function(char)
-	if jumpTrailOn then
-		task.wait(0.5)
-		addJumpTrail(char)
-	end
-end)
+
 Player.CharacterAdded:Connect(function(char)
     local hum = char:WaitForChild("Humanoid", 5)
     if hum and jumpPowerOn then
