@@ -690,10 +690,19 @@ do
     ResizeIcon.BackgroundTransparency = 1
     ResizeIcon.ZIndex = 21
     ResizeIcon.Parent = ResizeHandle
+    local FallbackIcon = Instance.new("TextLabel")
+    FallbackIcon.Size = UDim2.new(1, 0, 1, 0)
+    FallbackIcon.BackgroundTransparency = 1
+    FallbackIcon.Text = "⤡"
+    FallbackIcon.TextColor3 = Color3.fromRGB(150, 150, 150)
+    FallbackIcon.TextSize = 20
+    FallbackIcon.Font = Enum.Font.GothamBold
+    FallbackIcon.Parent = ResizeHandle
+    
     task.spawn(function()
         local ok, data = pcall(function() return game:HttpGet("https://files.catbox.moe/xw1ggt.webp") end)
         if ok and data and type(writefile) == "function" then
-            local fileName = "resize_icon_v3.webp"
+            local fileName = "pixecute_resize.png"
             pcall(function() writefile(fileName, data) end)
             local getasset = (typeof(getcustomasset) == "function" and getcustomasset)
                 or (typeof(getsynasset) == "function" and getsynasset)
@@ -701,6 +710,7 @@ do
                 local assetPath = getasset(fileName)
                 if assetPath and assetPath ~= "" then
                     ResizeIcon.Image = assetPath
+                    FallbackIcon.Visible = false
                 end
             end
         end
@@ -793,7 +803,7 @@ local dividerCorner = Instance.new("UICorner")
 dividerCorner.CornerRadius = UDim.new(1, 0)
 dividerCorner.Parent = Divider
 local ButtonsFrame = Instance.new("Frame")
-ButtonsFrame.Size = UDim2.new(1, -190, 1, -30)
+ButtonsFrame.Size = UDim2.new(1, -190, 1, -45)
 ButtonsFrame.Position = UDim2.new(0, 180, 0, 15)
 ButtonsFrame.BackgroundTransparency = 1
 ButtonsFrame.ClipsDescendants = true
@@ -2125,13 +2135,13 @@ RunService.RenderStepped:Connect(function()
         ExternalCursor.Position = UDim2.fromOffset(pos.X, pos.Y)
     end
 end)
-do
-    local url = "https://files.catbox.moe/xuvh8s.jpg"
+task.spawn(function()
+    local url = "https://files.catbox.moe/pp4n3w.webp"
     local ok, data = pcall(function()
         return game:HttpGet(url)
     end)
     if ok and data and type(writefile) == "function" then
-        local fileName = "mini_logo_v3.png"
+        local fileName = "pixecute_logo.png"
         pcall(function() writefile(fileName, data) end)
         local getasset = (typeof(getcustomasset) == "function" and getcustomasset)
             or (typeof(getsynasset) == "function" and getsynasset)
@@ -2142,7 +2152,7 @@ do
             end
         end
     end
-end
+end)
 do
     local function makeCustomWPBtn(name, comps)
         local btn = Instance.new("TextButton")
@@ -3842,7 +3852,9 @@ local function startFollow(targetPlayer)
         local tChar = targetPlayer.Character
         local tHrp = tChar and (tChar:FindFirstChild("HumanoidRootPart") or tChar:FindFirstChild("Torso"))
         if tHrp then
-            hrp.CFrame = tHrp.CFrame * CFrame.new(0, 0, 3)
+            hrp.CFrame = tHrp.CFrame * CFrame.new(0, 0, 1) -- Nempel di belakang badan (1 offset)
+            hrp.AssemblyLinearVelocity = Vector3.zero
+            hrp.AssemblyAngularVelocity = Vector3.zero
         end
     end)
 end
@@ -9547,7 +9559,9 @@ local function startFollowToTarget(target)
         if not target.Character then stopFollow() return end
         local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
         if not targetHRP then stopFollow() return end
-        rootPart.CFrame = targetHRP.CFrame * CFrame.new(0, 0, 3)
+        rootPart.CFrame = targetHRP.CFrame * CFrame.new(0, 0, 1) -- Nempel di belakang badan (1 offset)
+        rootPart.AssemblyLinearVelocity = Vector3.zero
+        rootPart.AssemblyAngularVelocity = Vector3.zero
     end)
 end
 FollowBtn.MouseButton1Click:Connect(function()
@@ -13823,5 +13837,11 @@ do
             ScannerState.IsScanning = false
             refreshPartScanner()
         end
+    end)
+end
+
+if setCategory then
+    task.spawn(function()
+        setCategory("Menu")
     end)
 end
