@@ -2079,9 +2079,12 @@ local EmbeddedModules = {
 					})
 					Explorer.SelectionVisualGui = guiTemplate
 
-					local boxTemplate = Instance.new("SelectionBox")
-					boxTemplate.LineThickness = 0.03
-					boxTemplate.Color3 = Color3.fromRGB(0, 170, 255)
+					local boxTemplate = Instance.new("Highlight")
+					boxTemplate.FillColor = Color3.fromRGB(0, 170, 255)
+					boxTemplate.OutlineColor = Color3.fromRGB(0, 170, 255)
+					boxTemplate.FillTransparency = 0.5
+					boxTemplate.OutlineTransparency = 0
+					boxTemplate.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
 					Explorer.SelectionVisualBox = boxTemplate
 				end
 				holder:ClearAllChildren()
@@ -11573,12 +11576,12 @@ DefaultSettings = (function()
 		Properties = {
 			_Recurse = true,
 			MaxConflictCheck = 50,
-			ShowDeprecated = false,
-			ShowHidden = false,
+			ShowDeprecated = true,
+			ShowHidden = true,
 			ClearOnFocus = false,
 			LoadstringInput = true,
 			NumberRounding = 3,
-			ShowAttributes = false,
+			ShowAttributes = true,
 			MaxAttributes = 50,
 			ScaleType = 1 -- 0 Full Name Shown, 1 Equal Halves
 		},
@@ -11854,7 +11857,7 @@ Main = (function()
 			return success and name or "Your executor"
 		end)()
 
-		Main.GuiHolder = Main.Elevated and service.CoreGui or plr:FindFirstChildWhichIsA("PlayerGui")
+		Main.GuiHolder = (type(gethui) == "function" and gethui()) or (Main.Elevated and service.CoreGui) or plr:FindFirstChildWhichIsA("PlayerGui")
 
 		setmetatable(env, nil)
 	end
