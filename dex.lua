@@ -936,6 +936,7 @@ local EmbeddedModules = {
 
 				if presentClasses["BasePart"] or presentClasses["Model"] then
 					context:AddRegistered("TELEPORT_TO")
+					context:AddRegistered("ADD_TO_WAYPOINT")
 					context:AddRegistered("VIEW_OBJECT")
 				end
 				if presentClasses["Tween"] then context:AddRegistered("PLAY_TWEEN") end
@@ -1202,6 +1203,49 @@ local EmbeddedModules = {
 									plrRP.CFrame = Obj.WorldPivot
 								end
 							end
+						end
+					end
+				end})
+
+				context:Register("ADD_TO_WAYPOINT",{Name = "Add to Waypoint", IconMap = Explorer.MiscIcons, Icon = "Save", OnClick = function()
+					local sList = selection.List
+					for _,node in next, sList do
+						local Obj = node.Obj
+						local cframe = nil
+						if Obj:IsA("BasePart") then
+							cframe = Obj.CFrame
+						elseif Obj:IsA("Model") then
+							if Obj.PrimaryPart then
+								cframe = Obj.PrimaryPart.CFrame
+							elseif Obj.WorldPivot then
+								cframe = Obj.WorldPivot
+							end
+						end
+						if cframe then
+							if typeof(_G.saveCustomWaypointWithCFrame) == "function" then
+								_G.saveCustomWaypointWithCFrame(Obj.Name, cframe)
+							end
+							-- Save directly to ch_waypoints.json to ensure it works even if global is missing
+							pcall(function()
+								if writefile then
+									local HttpService = game:GetService("HttpService")
+									local allData = {}
+									if isfile and isfile("ch_waypoints.json") then
+										local content = readfile("ch_waypoints.json")
+										if content then
+											local ok, decoded = pcall(function() return HttpService:JSONDecode(content) end)
+											if ok and type(decoded) == "table" then
+												allData = decoded
+											end
+										end
+									end
+									local currentPlaceId = tostring(game.PlaceId)
+									local wps = allData[currentPlaceId] or {}
+									wps[Obj.Name] = {cframe:GetComponents()}
+									allData[currentPlaceId] = wps
+									writefile("ch_waypoints.json", HttpService:JSONEncode(allData))
+								end
+							end)
 						end
 					end
 				end})
