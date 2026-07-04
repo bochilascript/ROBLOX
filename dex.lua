@@ -2123,13 +2123,26 @@ local EmbeddedModules = {
 					})
 					Explorer.SelectionVisualGui = guiTemplate
 
-					local boxTemplate = Instance.new("Highlight")
-					boxTemplate.FillColor = Color3.fromRGB(0, 170, 255)
-					boxTemplate.OutlineColor = Color3.fromRGB(0, 170, 255)
-					boxTemplate.FillTransparency = 0.5
-					boxTemplate.OutlineTransparency = 0
-					boxTemplate.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+					local boxTemplate = Instance.new("SelectionBox")
+					boxTemplate.Color3 = Color3.fromRGB(0, 170, 255)
+					boxTemplate.LineThickness = 0.05
+					boxTemplate.SurfaceColor3 = Color3.fromRGB(0, 170, 255)
+					boxTemplate.SurfaceTransparency = 0.8
 					Explorer.SelectionVisualBox = boxTemplate
+
+					local textTemplate = Instance.new("BillboardGui")
+					textTemplate.AlwaysOnTop = true
+					textTemplate.Size = UDim2.new(0, 200, 0, 50)
+					local tl = Instance.new("TextLabel")
+					tl.BackgroundTransparency = 1
+					tl.Size = UDim2.new(1, 0, 1, 0)
+					tl.TextColor3 = Color3.fromRGB(0, 170, 255)
+					tl.TextStrokeTransparency = 0
+					tl.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+					tl.Font = Enum.Font.GothamBold
+					tl.TextSize = 14
+					tl.Parent = textTemplate
+					Explorer.SelectionVisualText = textTemplate
 				end
 				holder:ClearAllChildren()
 
@@ -2143,6 +2156,12 @@ local EmbeddedModules = {
 					attachCons[i].Destroy()
 				end
 				table.clear(attachCons)
+				
+				if Explorer.SelectionVisualTextUpdater then
+					Explorer.SelectionVisualTextUpdater:Disconnect()
+					Explorer.SelectionVisualTextUpdater = nil
+				end
+				local activeLabels = {}
 
 				local partEnabled = Settings.Explorer.PartSelectionBox
 				local guiEnabled = Settings.Explorer.GuiSelectionBox
@@ -2167,13 +2186,67 @@ local EmbeddedModules = {
 							count = count + 1
 							newVisual.Parent = holder
 							boxCount = boxCount + 1
-						elseif isa(obj,"PVInstance") and partEnabled then
-							local newBox = clone(svb)
-							newBox.Adornee = obj
-							newBox.Parent = holder
-							boxCount = boxCount + 1
+						elseif partEnabled then
+							local targetObjs = {}
+							if isa(obj, "PVInstance") then
+								table.insert(targetObjs, obj)
+							else
+								local found = 0
+								for _, child in ipairs(obj:GetDescendants()) do
+									if isa(child, "BasePart") then
+										table.insert(targetObjs, child)
+										found = found + 1
+										if found >= 15 then break end
+									end
+								end
+							end
+							
+							for _, target in ipairs(targetObjs) do
+								local newBox = clone(svb)
+								newBox.Adornee = target
+								newBox.Parent = holder
+								
+								local newText = clone(Explorer.SelectionVisualText)
+								newText.Adornee = target
+								newText.Parent = holder
+								
+								if target == targetObjs[1] or isa(obj, "PVInstance") then
+									table.insert(activeLabels, {Label = newText.TextLabel, Obj = target})
+								else
+									newText:Destroy()
+								end
+								
+								boxCount = boxCount + 1
+								if boxCount > 1000 then break end
+							end
 						end
 					end
+				end
+				
+				if #activeLabels > 0 then
+					Explorer.SelectionVisualTextUpdater = game:GetService("RunService").RenderStepped:Connect(function()
+						local lp = game:GetService("Players").LocalPlayer
+						local char = lp.Character
+						local root = char and char:FindFirstChild("HumanoidRootPart")
+						if not root then return end
+						
+						for _, data in ipairs(activeLabels) do
+							local obj = data.Obj
+							local pos = nil
+							if isa(obj, "BasePart") then
+								pos = obj.Position
+							elseif isa(obj, "Model") and obj.PrimaryPart then
+								pos = obj.PrimaryPart.Position
+							elseif isa(obj, "Model") and obj.WorldPivot then
+								pos = obj.WorldPivot.Position
+							end
+							
+							if pos then
+								local dist = math.floor((root.Position - pos).Magnitude)
+								data.Label.Text = obj.Name .. "\n[" .. dist .. " studs]"
+							end
+						end
+					end)
 				end
 			end
 
