@@ -3916,6 +3916,7 @@ local followActive = false
 local followConn = nil
 local followTarget = nil
 plistSendPartTarget = nil
+plistSendPartStopCallback = nil
 local plistSendPartLoopThread = nil
 function stopHeadsit()
     headsitActive = false
@@ -4090,11 +4091,18 @@ function stopPlistSendPart()
                 end
             end
         end
+        if plistSendPartStopCallback then
+            local cb = plistSendPartStopCallback
+            plistSendPartStopCallback = nil
+            pcall(cb)
+        end
     end
 end
-function startPlistSendPart(targetPlayer)
+function startPlistSendPart(targetPlayer, duration, stopCallback)
+    plistSendPartStopCallback = nil
     stopPlistSendPart()
     plistSendPartTarget = targetPlayer
+    plistSendPartStopCallback = stopCallback
     EnableNetwork()
     if not blackHoleActive then
         broughtParts = {}
@@ -4151,12 +4159,14 @@ function startPlistSendPart(targetPlayer)
             end
         end
     end)
-    task.delay(3, function()
-        if plistSendPartTarget == targetPlayer then
-            stopPlistSendPart()
-            refreshPlayerList()
-        end
-    end)
+    if duration then
+        task.delay(duration, function()
+            if plistSendPartTarget == targetPlayer then
+                stopPlistSendPart()
+                refreshPlayerList()
+            end
+        end)
+    end
 end
 function createPlayerRow(targetPlayer, index)
     local isExpanded = (expandedPlayerUserId == targetPlayer.UserId)
@@ -4675,22 +4685,24 @@ function createPlayerRow(targetPlayer, index)
         end
         task.defer(refreshPlayerList)
     end)
-    local sendBtnText = tr("SendPartBtn")
-    local sendBtnColor = Color3.fromRGB(0, 100, 150)
-    local sendBtnStroke = Color3.fromRGB(0, 160, 220)
+    local isSendPart = (plistSendPartTarget == targetPlayer)
+    local sendBtnText = isSendPart and "Stop" or tr("SendPartBtn")
+    local sendBtnColor = isSendPart and Color3.fromRGB(200, 100, 0) or Color3.fromRGB(0, 100, 150)
+    local sendBtnStroke = isSendPart and Color3.fromRGB(255, 150, 50) or Color3.fromRGB(0, 160, 220)
     local sendBtn = makeExActBtn2(sendBtnText, sendBtnColor, sendBtnStroke, 4, 82)
     sendBtn.MouseButton1Click:Connect(function()
-        if sendBtn.Text == tr("SendingOnBtn") then return end
-        sendBtn.Text = tr("SendingOnBtn")
-        sendBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
-        task.spawn(function()
-            pcall(function() sendUnanchoredPartsToTarget(targetPlayer) end)
-            task.wait(3)
-            pcall(function()
-                sendBtn.Text = tr("SendPartBtn")
-                sendBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 150)
-            end)
-        end)
+        if plistSendPartTarget == targetPlayer then
+            stopPlistSendPart()
+            sendBtn.Text = tr("SendPartBtn")
+            sendBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 150)
+            sendBtnStroke.Color = Color3.fromRGB(0, 160, 220)
+        else
+            startPlistSendPart(targetPlayer)
+            sendBtn.Text = "Stop"
+            sendBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
+            sendBtnStroke.Color = Color3.fromRGB(255, 150, 50)
+        end
+        task.defer(refreshPlayerList)
     end)
     local isSyncing = (syncDanceTarget == targetPlayer)
     local syncBtnText = isSyncing and "Stop" or tr("SyncBtn")
@@ -7537,8 +7549,8 @@ function setupAnimator(hum)
 end
 setupAnimator(humanoid)
 flying = false
-local flySpeed = 2
-local currentFlySpeed = 2
+local flySpeed = 3
+local currentFlySpeed = 3
 local pressed = {Up=false,Down=false,Left=false,Right=false}
 local moving = false
 local savedOrientation = nil
@@ -7549,6 +7561,11 @@ FlyV1Btn = createButton("", "Fly V1")
 function noclip(state)
     for _,v in pairs(character:GetDescendants()) do
         if v:IsA("BasePart") and not v:FindFirstAncestorOfClass("Accessory") then
+            if state == false then
+                if v.Name == "HumanoidRootPart" then continue end
+                if v.Name == "Left Arm" or v.Name == "Right Arm" or v.Name == "Left Leg" or v.Name == "Right Leg" then continue end
+                if v.Name == "LeftHand" or v.Name == "RightHand" or v.Name == "LeftFoot" or v.Name == "RightFoot" or v.Name == "LeftLowerArm" or v.Name == "RightLowerArm" or v.Name == "LeftUpperArm" or v.Name == "RightUpperArm" or v.Name == "LeftLowerLeg" or v.Name == "RightLowerLeg" or v.Name == "LeftUpperLeg" or v.Name == "RightUpperLeg" then continue end
+            end
             v.CanCollide = not state
         end
     end
@@ -7556,6 +7573,7 @@ end
 function enableFly()
     flying = true
     humanoid.PlatformStand = true
+    pcall(function() humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false) end)
     noclipActive = true
     if enableNoclip then enableNoclip() else noclip(true) end
     Workspace.Gravity = 0
@@ -7571,6 +7589,7 @@ end
 function disableFly()
     flying = false
     humanoid.PlatformStand = false
+    pcall(function() humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true) end)
     if not blackHoleActive then
         noclipActive = false
         if disableNoclip then disableNoclip() else noclip(false) end
@@ -7644,7 +7663,7 @@ RunService.Heartbeat:Connect(function(dt)
     if dir.Magnitude > 0 then
         moving = true
         if pressed.Up then
-            currentFlySpeed = math.min(currentFlySpeed + (dt * 3), flySpeed * 3)
+            currentFlySpeed = math.min(currentFlySpeed + (dt * 5), flySpeed * 3)
         else
             currentFlySpeed = flySpeed
         end
@@ -7853,10 +7872,15 @@ YeetAttachment = Instance.new("Attachment", YeetTargetPart)
 YeetAttachment.Name = "YeetAttachment"
 RunService.RenderStepped:Connect(function()
 	if blackHoleActive or scannerBroughtPart or plistSendPartTarget then
-		local char = plistSendPartTarget and plistSendPartTarget.Character or LocalPlayer.Character
+		local targetPlayer = plistSendPartTarget
+		if targetPlayer and (not targetPlayer.Parent or not targetPlayer.Character) then
+			targetPlayer = nil
+		end
+		
+		local char = targetPlayer and targetPlayer.Character or LocalPlayer.Character
 		local target = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("Head"))
 		if target then
-			if plistSendPartTarget then
+			if targetPlayer then
 				pcall(function()
 					LocalPlayer.ReplicationFocus = target
 				end)
@@ -7869,7 +7893,12 @@ RunService.RenderStepped:Connect(function()
 				pcall(function()
 					LocalPlayer.ReplicationFocus = nil
 				end)
-				Attachment1.WorldCFrame = target.CFrame * CFrame.new(0, 10, 0)
+				local head = char and char:FindFirstChild("Head")
+				if head then
+					Attachment1.WorldCFrame = head.CFrame * CFrame.new(0, 10, 0)
+				else
+					Attachment1.WorldCFrame = target.CFrame * CFrame.new(0, 10, 0)
+				end
 			end
 		end
 	else
@@ -7946,7 +7975,7 @@ function ForcePart(v)
             if hasHumanoidAncestor(v) or isPlayerOrAccessory(v) then return end
 
             for _, x in ipairs(v:GetChildren()) do
-                if x:IsA("BodyMover") or x:IsA("RocketPropulsion") then
+                if x:IsA("BodyMover") or x:IsA("RocketPropulsion") or x.Name == "BringNoCollide" then
                     pcall(function() x:Destroy() end)
                 end
             end
@@ -7956,12 +7985,26 @@ function ForcePart(v)
             if v:FindFirstChild("BringTorque") then pcall(function() v:FindFirstChild("BringTorque"):Destroy() end) end
             if v:FindFirstChild("BringAlignO") then pcall(function() v:FindFirstChild("BringAlignO"):Destroy() end) end
 
+            if LocalPlayer.Character then
+                for _, charPart in ipairs(LocalPlayer.Character:GetDescendants()) do
+                    if charPart:IsA("BasePart") then
+                        pcall(function()
+                            local ncc = Instance.new("NoCollisionConstraint")
+                            ncc.Name = "BringNoCollide"
+                            ncc.Part0 = v
+                            ncc.Part1 = charPart
+                            ncc.Parent = v
+                        end)
+                    end
+                end
+            end
+
             pcall(function() 
                 if loopSendPartV2Active then
-                    v.CanCollide = false
+                    v.CanCollide = true
                     v.Massless = true
                 else
-                    v.CanCollide = false
+                    v.CanCollide = true
                 end
             end)
             
@@ -8198,6 +8241,9 @@ function toggleBringPart(state)
 						if align then align:Destroy() end
 						if alignO then alignO:Destroy() end
 						if att then att:Destroy() end
+						for _, x in ipairs(v:GetChildren()) do
+							if x.Name == "BringNoCollide" then pcall(function() x:Destroy() end) end
+						end
 						v:SetAttribute("WasBrought", true)
 						v.Anchored = true
 					end)
@@ -8262,12 +8308,37 @@ SwimBtn.MouseButton1Click:Connect(toggleSwim)
 XRayBtn = createButton("", "XRay")
 XRayBtn.Name = "XRayBtn"
 local xrayEnabled = false
-function toggleXRay()
-    xrayEnabled = not xrayEnabled
+function toggleXRay(state)
+    if state == nil then
+        xrayEnabled = not xrayEnabled
+    else
+        xrayEnabled = state
+    end
     setButtonActive(XRayBtn, xrayEnabled)
+    if MiniXRayBtn then
+        MiniXRayBtn.Text = "X-Ray: " .. (xrayEnabled and "ON" or "OFF")
+        MiniXRayBtn.TextColor3 = xrayEnabled and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(255, 50, 50)
+    end
     for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("BasePart") and not v.Parent:FindFirstChildWhichIsA("Humanoid") and not v.Parent.Parent:FindFirstChildWhichIsA("Humanoid") then
-            v.LocalTransparencyModifier = xrayEnabled and 0.5 or 0
+        if v:IsA("BasePart") then
+            local p = v.Parent
+            local pp = p and p.Parent
+            local isChar = (p and p:FindFirstChildWhichIsA("Humanoid")) or (pp and pp:FindFirstChildWhichIsA("Humanoid"))
+            if not isChar then
+                v.LocalTransparencyModifier = xrayEnabled and 0.5 or 0
+            end
+        elseif v:IsA("Decal") or v:IsA("Texture") then
+            if xrayEnabled then
+                if not v:GetAttribute("OrigTrans") then
+                    v:SetAttribute("OrigTrans", v.Transparency)
+                end
+                v.Transparency = 0.5
+            else
+                if v:GetAttribute("OrigTrans") then
+                    v.Transparency = v:GetAttribute("OrigTrans")
+                    v:SetAttribute("OrigTrans", nil)
+                end
+            end
         end
     end
 end
@@ -12283,14 +12354,26 @@ function toggleBTools()
         BToolsActive = true
         setButtonActive(BToolsBtn, true)
         pcall(function()
+            -- Give standard HopperBin tools
             for i = 1, 4 do
                 local tool = Instance.new("HopperBin")
                 tool.BinType = i
                 tool.Parent = backpack
             end
+            
+            -- Also give F3X (from Infinite Yield)
+            task.spawn(function()
+                local success, err = pcall(function()
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/bochilascript/ROBLOX/refs/heads/main/f3x.lua"))()
+                end)
+                if not success then
+                    warn("[CIT] Failed to load F3X: " .. tostring(err))
+                end
+            end)
+            
             game:GetService("StarterGui"):SetCore("SendNotification", {
-                Title = "BTools",
-                Text = "BTools diberikan!",
+                Title = "BTools & F3X",
+                Text = "BTools dan F3X diberikan!",
                 Duration = 3
             })
         end)
@@ -12850,6 +12933,9 @@ function disableNoclip()
     if char then
         for _, obj in ipairs(char:GetDescendants()) do
             if obj:IsA("BasePart") and not obj:FindFirstAncestorOfClass("Accessory") then
+                if obj.Name == "HumanoidRootPart" then continue end
+                if obj.Name == "Left Arm" or obj.Name == "Right Arm" or obj.Name == "Left Leg" or obj.Name == "Right Leg" then continue end
+                if obj.Name == "LeftHand" or obj.Name == "RightHand" or obj.Name == "LeftFoot" or obj.Name == "RightFoot" or obj.Name == "LeftLowerArm" or obj.Name == "RightLowerArm" or obj.Name == "LeftUpperArm" or obj.Name == "RightUpperArm" or obj.Name == "LeftLowerLeg" or obj.Name == "RightLowerLeg" or obj.Name == "LeftUpperLeg" or obj.Name == "RightUpperLeg" then continue end
                 pcall(function() obj.CanCollide = true end)
             end
         end
@@ -13427,13 +13513,14 @@ updateProfile = function(plr)
         refreshSpectatorPlayerList()
     end
     if SendPartActive and plr then
-        pcall(function() startPlistSendPart(plr) end)
+        pcall(function() startPlistSendPart(plr, 3, turnOffSendPart) end)
     elseif SendPartActive and not plr then
         turnOffSendPart()
     end
 end
 function turnOffSendPart()
     SendPartActive = false
+    plistSendPartStopCallback = nil
     pcall(stopPlistSendPart)
     pcall(function()
         SendPartBtn.Text = tr("SendPartBtn")
@@ -13451,7 +13538,7 @@ SendPartBtn.MouseButton1Click:Connect(function()
     TweenService:Create(SendPartBtn, TweenInfo.new(0.3), {BackgroundColor3 = COLORS.GREEN}):Play()
     freezeCharacter()
     if CurrentTarget then
-        pcall(function() startPlistSendPart(CurrentTarget) end)
+        pcall(function() startPlistSendPart(CurrentTarget, 3, turnOffSendPart) end)
     end
 end)
 function getTargetablePlayers()
@@ -15709,6 +15796,7 @@ do
             end
             if char and char:FindFirstChild("Humanoid") then
                 char.Humanoid.PlatformStand = false
+                pcall(function() char.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true) end)
                 pcall(function() char.Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp) end)
             end
             for _, t in pairs(animTracks) do if t.IsPlaying then t:Stop() end end
@@ -15716,6 +15804,7 @@ do
             if toggleNoclip then toggleNoclip(true) end
             if Player.Character and Player.Character:FindFirstChild("Humanoid") then
                 Player.Character.Humanoid.PlatformStand = true
+                pcall(function() Player.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false) end)
             end
             if animTracks.Idle then animTracks.Idle:Play() end
         end
@@ -15744,14 +15833,18 @@ do
                 MiniGodBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
                 MiniGodBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
             end
+            if toggleAntiFling then toggleAntiFling(true) end
+
             if not godModeConnection then
                 godModeConnection = RunService.Heartbeat:Connect(function()
-                    local char = game.Players.LocalPlayer.Character
-                    local hum = char and char:FindFirstChildOfClass("Humanoid")
-                    if hum then
+                    local c = game.Players.LocalPlayer.Character
+                    local h = c and c:FindFirstChildOfClass("Humanoid")
+                    if h then
                         pcall(function()
-                            hum.MaxHealth = 999999
-                            hum.Health = 999999
+                            if h.MaxHealth < 999999 then h.MaxHealth = 999999 end
+                            if h.Health < 50 or h.Health < h.MaxHealth then
+                                h.Health = 999999
+                            end
                         end)
                     end
                 end)
@@ -15761,6 +15854,7 @@ do
                 MiniGodBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
                 MiniGodBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
             end
+            if toggleAntiFling then toggleAntiFling(false) end
             if godModeConnection then
                 godModeConnection:Disconnect()
                 godModeConnection = nil
@@ -15863,6 +15957,7 @@ do
         {name = "MiniSpectateBtn",    text = "Spectate: OFF"},
         {name = "MiniUnanchorV1Btn",  text = "Unanchor v1"},
         {name = "MiniUnanchorV2Btn",  text = "Unanchor v2: OFF"},
+        {name = "MiniXRayBtn",        text = "X-Ray: OFF"},
         {name = "MiniYeetPartsBtn",   text = "Yeet All Parts"}
     }
     MiniButtons = {}
@@ -15965,6 +16060,7 @@ do
     MiniDexBtn = MiniButtons["MiniDexBtn"]
     MiniMaxZoomBtn = MiniButtons["MiniMaxZoomBtn"]
     MiniPartInspectorBtn = MiniButtons["MiniPartInspectorBtn"]
+    MiniXRayBtn = MiniButtons["MiniXRayBtn"]
     flyV1PCEnabled = false
     MiniDexBtn.MouseButton1Click:Connect(launchDex)
     MiniMaxZoomBtn.MouseButton1Click:Connect(function() toggleMaxZoom() end)
@@ -15980,6 +16076,9 @@ do
     MiniBringBtn.MouseButton1Click:Connect(function() toggleBringPart() end)
     MiniPartESPBtn.MouseButton1Click:Connect(function() togglePartESP() end)
     MiniYeetPartsBtn.MouseButton1Click:Connect(function() yeetAllParts() end)
+    if MiniXRayBtn then
+        MiniXRayBtn.MouseButton1Click:Connect(function() toggleXRay() end)
+    end
     
     if MiniFlingAllBtn then
         local function updateMiniFlingAllColor()
