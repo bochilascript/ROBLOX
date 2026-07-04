@@ -2299,6 +2299,21 @@ do
             end
         end)
     end
+    _G.saveCustomWaypointWithCFrame = function(name, cframe)
+        if not name or name == "" or not cframe then return end
+        local components = {cframe:GetComponents()}
+        customWaypoints[name] = components
+        saveCustomWaypoints()
+        makeCustomWPBtn(name, components)
+        if refreshWaypointList then
+            refreshWaypointList()
+        end
+        task.defer(function()
+            if currentCategory == "Waypoints" then
+                setCategory("Waypoints")
+            end
+        end)
+    end
     loadCustomWaypoints()
     refreshCustomWaypointButtons()
 end
@@ -7565,18 +7580,6 @@ function disableFly()
     if root then
         root.AssemblyLinearVelocity = Vector3.zero
         root.AssemblyAngularVelocity = Vector3.zero
-        local rayOrigin = root.Position
-        local rayDirection = Vector3.new(0, -500, 0)
-        local raycastParams = RaycastParams.new()
-        raycastParams.FilterDescendantsInstances = {Player.Character, Workspace.CurrentCamera}
-        raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-        local rayResult = Workspace:Raycast(rayOrigin, rayDirection, raycastParams)
-        if rayResult then
-            local hip = humanoid.HipHeight > 0 and humanoid.HipHeight or 2
-            root.CFrame = CFrame.new(rayResult.Position + Vector3.new(0, hip + (root.Size.Y / 2) + 0.1, 0))
-        else
-            root.CFrame = root.CFrame + Vector3.new(0, 1.5, 0)
-        end
         pcall(function() humanoid:ChangeState(Enum.HumanoidStateType.GettingUp) end)
     end
     setButtonActive(FlyV1Btn, false)
@@ -11859,6 +11862,7 @@ boxPadding.Parent = LoopSendPartBox
 local mainBoxStroke = Instance.new("UIStroke", LoopSendPartBox)
 mainBoxStroke.Color = Color3.fromRGB(255, 50, 50)
 mainBoxStroke.Thickness = 1
+mainBoxStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 local loopSendPartThread = nil
 
 local function updateLoopSendPartLabel()
@@ -15930,6 +15934,7 @@ do
         local boxStroke = Instance.new("UIStroke", lspBox)
         boxStroke.Color = Color3.fromRGB(255, 50, 50)
         boxStroke.Thickness = 1
+        boxStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
         MiniButtons["MiniLoopSendPartBox"] = lspBox
         
         lspBox:GetPropertyChangedSignal("Text"):Connect(function()
@@ -17642,7 +17647,7 @@ if not success then
 end
 pcall(function()
     local function applyStrokeToButton(btn)
-        if not btn:IsA("TextButton") and not btn:IsA("ImageButton") then return end
+        if not btn:IsA("TextButton") and not btn:IsA("ImageButton") and not btn:IsA("TextBox") then return end
         local parent = btn.Parent
         while parent do
             if parent.Name == "QuickPanel" then
@@ -17659,8 +17664,10 @@ pcall(function()
         local s = Instance.new("UIStroke")
         s.Thickness = 1
         s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-        local textColor = btn:IsA("TextButton") and btn.TextColor3 or nil
-        if textColor == Color3.fromRGB(255, 255, 255) then
+        local textColor = (btn:IsA("TextButton") or btn:IsA("TextBox")) and btn.TextColor3 or nil
+        if btn:IsA("TextBox") then
+            s.Color = Color3.fromRGB(255, 50, 50)
+        elseif textColor == Color3.fromRGB(255, 255, 255) then
             s.Color = Color3.fromRGB(80, 80, 80)
         elseif textColor == Color3.fromRGB(255, 50, 50) then
             s.Color = Color3.fromRGB(255, 50, 50)
@@ -17670,7 +17677,7 @@ pcall(function()
         s.Parent = btn
     end
     ScreenGui.DescendantAdded:Connect(function(descendant)
-        if descendant:IsA("TextButton") or descendant:IsA("ImageButton") then
+        if descendant:IsA("TextButton") or descendant:IsA("ImageButton") or descendant:IsA("TextBox") then
             task.defer(function()
                 if descendant.Parent then
                     applyStrokeToButton(descendant)
@@ -17679,7 +17686,7 @@ pcall(function()
         end
     end)
     for _, descendant in ipairs(ScreenGui:GetDescendants()) do
-        if descendant:IsA("TextButton") or descendant:IsA("ImageButton") then
+        if descendant:IsA("TextButton") or descendant:IsA("ImageButton") or descendant:IsA("TextBox") then
             applyStrokeToButton(descendant)
         end
     end
