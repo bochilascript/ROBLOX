@@ -962,7 +962,7 @@ do
         end
     end
     local rusuhKeywords = {"bringpart", "tarik objek", "spectator", "penonton", "noclip", "tembus tembok", "tendang", "unanchor", "lepas kunci", "fly", "terbang", "esp", "esp team", "quick tools", "quick", "anti fling", "antifling", "fling aura", "aura fling", "orbit fling", "orbit", "click yeet", "crash server", "touch fling", "touchfling", "vehicle fly", "terbang kendaraan", "auto clicker", "autoclicker", "spam click", "walk fling", "walkfling", "hitbox", "aimbot", "fling all", "flingall", "iflingall", "ifling all", "fling semua", "loop sendpart", "loop kirim objek", "sendpart"}
-    local utilityKeywords = {"free cam", "freecam", "kamera bebas", "click tp", "clicktp", "klik tp", "speed", "kecepatan", "save wp", "savewp", "swp", "simpan lokasi", "btools", "tween tp", "tweentp", "jump power", "jumppower", "jp", "tp tool", "tptool", "invisible", "tak terlihat", "visible", "terlihat", "fps & ping", "chat logs", "chatlogs", "part inspector", "inspektur objek", "shift lock", "shiftlock", "respawn", "anti afk", "antiafk", "command bar", "cmd", "infinite jump", "lampu", "swim", "berenang", "xray", "tembus pandang", "remote spy", "rspy", "execute script", "eksekusi skrip"}
+    local utilityKeywords = {"free cam", "freecam", "kamera bebas", "click tp", "clicktp", "klik tp", "speed", "kecepatan", "save wp", "savewp", "swp", "simpan lokasi", "btools", "tween tp", "tweentp", "jump power", "jumppower", "jp", "tp tool", "tptool", "invisible", "tak terlihat", "visible", "terlihat", "fps & ping", "chat logs", "chatlogs", "part inspector", "inspektur objek", "shift lock", "shiftlock", "respawn", "anti afk", "antiafk", "command bar", "cmd", "infinite jump", "lampu", "swim", "berenang", "xray", "tembus pandang", "remote spy", "rspy", "execute script", "eksekusi skrip", "low friction", "lowfriction"}
     local function matchesAny(text, keywords)
         local lower = string.lower(text or "")
         for _, k in ipairs(keywords) do
@@ -1134,26 +1134,29 @@ do
                 spdBox.Visible = true
                 spdBox.LayoutOrder = 10
             end
+            
+            moveBtnByNames("LowFrictionBtn", "Low Friction", 11)
+            moveBox("LowFrictionBox", 12)
 
-            moveBtnByNames("AntiAFKBtn", "Anti AFK", 11)
-            moveBtnByNames("BToolsBtn", "BTools", 12)
-            moveBtnByNames("ChatLogsBtn", "Chat Logs", 13)
-            moveBtnByNames("CmdBarBtn", "Command Bar", 14)
-            moveBtnByNames("FPSPingBtn", "FPS & Ping", 15)
-            moveBtnByNames("JumpBtn", "Infinite Jump", 16)
-            moveBtnByNames("InvisibleBtn", "Invisible", 17)
-            moveBtnByNames("JumpTrailBtn", "Jump Trail", 18)
-            moveBtnByNames("LampBtn", "Lampu", 19)
-            moveBtnByNames("PartInspectorBtn", "Part Inspector", 20)
-            moveBtnByNames("RSpyBtn", "Remote Spy", 21)
-            moveBtnByNames("RespawnBtn", "Respawn", 22)
-            moveBtnByNames("ShiftLockBtn", "Shift Lock", 23)
-            moveBtnByNames("SpeedTrailBtn", "Speed Trail", 24)
-            moveBtnByNames("SwimBtn", "Swim", 25)
-            moveBtnByNames("TPToolBtn", "TP Tool", 26)
-            moveBtnByNames("TweenTPBtn", "Tween TP", 27)
-            moveBtnByNames("VisibleBtn", "Visible", 28)
-            moveBtnByNames("XRayBtn", "XRay", 29)
+            moveBtnByNames("AntiAFKBtn", "Anti AFK", 14)
+            moveBtnByNames("BToolsBtn", "BTools", 15)
+            moveBtnByNames("ChatLogsBtn", "Chat Logs", 16)
+            moveBtnByNames("CmdBarBtn", "Command Bar", 17)
+            moveBtnByNames("FPSPingBtn", "FPS & Ping", 18)
+            moveBtnByNames("JumpBtn", "Infinite Jump", 19)
+            moveBtnByNames("InvisibleBtn", "Invisible", 20)
+            moveBtnByNames("JumpTrailBtn", "Jump Trail", 21)
+            moveBtnByNames("LampBtn", "Lampu", 22)
+            moveBtnByNames("PartInspectorBtn", "Part Inspector", 23)
+            moveBtnByNames("RSpyBtn", "Remote Spy", 24)
+            moveBtnByNames("RespawnBtn", "Respawn", 25)
+            moveBtnByNames("ShiftLockBtn", "Shift Lock", 26)
+            moveBtnByNames("SpeedTrailBtn", "Speed Trail", 27)
+            moveBtnByNames("SwimBtn", "Swim", 28)
+            moveBtnByNames("TPToolBtn", "TP Tool", 29)
+            moveBtnByNames("TweenTPBtn", "Tween TP", 30)
+            moveBtnByNames("VisibleBtn", "Visible", 31)
+            moveBtnByNames("XRayBtn", "XRay", 32)
             for _, ch in ipairs(UtilityScroll:GetChildren()) do
                 if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
                     ch.Parent = ScrollFrame
@@ -1209,7 +1212,7 @@ do
                     end
                     if inst then inst.Parent = ScrollFrame inst.Visible = false end
                 end
-                restore("TPBox"); restore("FCBox"); restore("SpeedBox"); restore("SWPBox")
+                restore("TPBox"); restore("FCBox"); restore("SpeedBox"); restore("SWPBox"); restore("LowFrictionBox")
                 for _, ch in ipairs(UtilityScroll:GetChildren()) do
                     if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
                         ch.Parent = ScrollFrame
@@ -6538,6 +6541,86 @@ end)
 if Player.Character then
 	task.spawn(setupSpeedListener, Player.Character)
 end
+
+LowFrictionBtn = createButton("", "Low Friction")
+LowFrictionBtn.Name = "LowFrictionBtn"
+local lowFrictionOn = false
+local desiredFriction = 0.05
+local origPhysProps = {}
+do
+    LowFrictionBox = Instance.new("TextBox")
+    LowFrictionBox.Name = "LowFrictionBox"
+    LowFrictionBox.Text = tostring(desiredFriction)
+    LowFrictionBox.PlaceholderText = "Friction (0-1)"
+    LowFrictionBox.Size = UDim2.new(0, 150, 0, 35)
+    LowFrictionBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    LowFrictionBox.TextSize = 15
+    LowFrictionBox.Font = Enum.Font.GothamBold
+    LowFrictionBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    LowFrictionBox.ClearTextOnFocus = false
+    LowFrictionBox.Parent = ScrollFrame
+    local c_frc = Instance.new("UICorner")
+    c_frc.CornerRadius = UDim.new(0, 8)
+    c_frc.Parent = LowFrictionBox
+    local p_frc = Instance.new("UIPadding")
+    p_frc.PaddingLeft = UDim.new(0, 12)
+    p_frc.Parent = LowFrictionBox
+    LowFrictionBox.FocusLost:Connect(function()
+        local n = tonumber(LowFrictionBox.Text)
+        if n then
+            n = math.clamp(n, 0, 1)
+            desiredFriction = n
+            if lowFrictionOn then
+                local char = Player.Character
+                if char then
+                    applyLowFriction(char)
+                end
+            end
+        end
+        LowFrictionBox.Text = tostring(desiredFriction)
+    end)
+end
+function applyLowFriction(char)
+    if not char then return end
+    for _, v in pairs(char:GetDescendants()) do
+        if v:IsA("BasePart") then
+            if not origPhysProps[v] then
+                origPhysProps[v] = v.CustomPhysicalProperties or PhysicalProperties.new(v.Material)
+            end
+            v.CustomPhysicalProperties = PhysicalProperties.new(0.7, desiredFriction, 0, 100, 0)
+        end
+    end
+end
+
+function removeLowFriction(char)
+    if not char then return end
+    for _, v in pairs(char:GetDescendants()) do
+        if v:IsA("BasePart") and origPhysProps[v] then
+            v.CustomPhysicalProperties = origPhysProps[v]
+            origPhysProps[v] = nil
+        end
+    end
+    origPhysProps = {}
+end
+
+function toggleLowFriction()
+    lowFrictionOn = not lowFrictionOn
+    local char = Player.Character
+    if lowFrictionOn then
+        setButtonActive(LowFrictionBtn, true)
+        applyLowFriction(char)
+    else
+        setButtonActive(LowFrictionBtn, false)
+        removeLowFriction(char)
+    end
+end
+LowFrictionBtn.MouseButton1Click:Connect(toggleLowFriction)
+
+Player.CharacterAdded:Connect(function(char)
+    task.wait(0.5)
+    if lowFrictionOn then applyLowFriction(char) end
+end)
+
 local walkFlingActive = false
 local walkFlingConn = nil
 local walkFlingSpeed = 10000
@@ -16488,7 +16571,7 @@ task.spawn(function()
         BToolsBtn, ShiftLockBtn, JumpPowerBtn, TPToolBtn, ChatLogsBtn,
         WalkFlingBtn, AntiFlingBtn, FlingAuraBtn, OrbitFlingBtn, HitboxBtn, AutoClickerBtn, AimbotBtn, MaxZoomBtn,
         ClickYeetBtn, LagServerBtn, TouchFlingBtn, PartInspectorBtn,
-        SwimBtn, XRayBtn, RSpyBtn, ExecScriptBtn, LoopSendPartBtn, LoopSendPartV2Btn
+        SwimBtn, XRayBtn, RSpyBtn, ExecScriptBtn, LoopSendPartBtn, LoopSendPartV2Btn, LowFrictionBtn
     }
     local list = {}
     for _,b in ipairs(btns) do
@@ -16507,6 +16590,10 @@ task.spawn(function()
         order = order + 1
         if btn == SpeedBtn and SpeedBox then
             SpeedBox.LayoutOrder = order
+            order = order + 1
+        end
+        if btn == LowFrictionBtn and LowFrictionBox then
+            LowFrictionBox.LayoutOrder = order
             order = order + 1
         end
         if btn == ClickTPBtn and TPBox then
@@ -16733,6 +16820,7 @@ local success, err = pcall(function()
         { name = "btools", aliases = {"bt"}, desc = "Dapatkan Building Tools (BTools).", usage = "" },
         { name = "shiftlock", aliases = {"sl"}, desc = "Aktifkan/nonaktifkan Shift Lock.", usage = "" },
         { name = "noclip", aliases = {}, desc = "Aktifkan/nonaktifkan noclip ghost.", usage = "" },
+        { name = "lowfriction", aliases = {"lf"}, desc = "Aktifkan/nonaktifkan Low Friction. Opsional: atur nilai friction (0-1).", usage = "[nilai]" },
         { name = "swim", aliases = {"berenang"}, desc = "Aktifkan/nonaktifkan fitur berenang.", usage = "" },
         { name = "xray", aliases = {"tembuspandang"}, desc = "Aktifkan/nonaktifkan tembus pandang.", usage = "" },
         { name = "rspy", aliases = {"remotespy"}, desc = "Muat SimpleSpyV3.", usage = "" },
@@ -17292,6 +17380,16 @@ local success, err = pcall(function()
                 toggleLoopSendPart()
             end
             toggleLoopSendPart()
+        elseif cmd == "lowfriction" or cmd == "lf" then
+            if #args > 0 then
+                local n = tonumber(args[1])
+                if n then
+                    desiredFriction = math.clamp(n, 0, 1)
+                    if LowFrictionBox then LowFrictionBox.Text = tostring(desiredFriction) end
+                end
+            end
+            toggleLowFriction()
+            notifyPlayer("Low Friction", lowFrictionOn and ("ON - Friction: " .. desiredFriction) or "OFF")
         end
     end
 
