@@ -8101,6 +8101,8 @@ function ForcePart(v)
                 else
                     v.CanCollide = true
                 end
+                v.CanTouch = false
+                v.CanQuery = false
             end)
             
             if not broughtParts[v] then
