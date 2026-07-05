@@ -7968,6 +7968,15 @@ RunService.RenderStepped:Connect(function()
 				else
 					Attachment1.WorldCFrame = target.CFrame
 				end
+                for v, _ in pairs(broughtParts) do
+                    if v and v.Parent and v:IsA("BasePart") and not v.Anchored then
+                        pcall(function()
+                            local dir = (target.Position - v.Position).Unit
+                            v.AssemblyLinearVelocity = dir * 5000
+                            v.AssemblyAngularVelocity = Vector3.new(math.random(-100,100), math.random(-100,100), math.random(-100,100)) * 100
+                        end)
+                    end
+                end
 			else
 				pcall(function()
 					LocalPlayer.ReplicationFocus = nil
@@ -8087,7 +8096,9 @@ function ForcePart(v)
                 end
             end)
             
-            pcall(function() v.AssemblyLinearVelocity = Vector3.new(math.random(-10, 10), 50, math.random(-10, 10)) end)
+            if not broughtParts[v] then
+                pcall(function() v.AssemblyLinearVelocity = Vector3.new(math.random(-10, 10), 50, math.random(-10, 10)) end)
+            end
             
             local Torque = nil
             if not loopSendPartV2Active then
@@ -8284,6 +8295,22 @@ function toggleBringPart(state)
 				ForcePart(v)
 			end
 		end)
+        
+        task.spawn(function()
+            while blackHoleActive do
+                task.wait(0.5)
+                if not blackHoleActive then break end
+                for v, _ in pairs(broughtParts) do
+                    if v and v.Parent and v:IsA("BasePart") and not v.Anchored then
+                        if not v:FindFirstChild("BringAlign") and not v:FindFirstChild("JSY_SendPartAttach") then
+                            ForcePart(v)
+                        end
+                    elseif v == nil or not v.Parent then
+                        broughtParts[v] = nil
+                    end
+                end
+            end
+        end)
 
 	else
 		setButtonActive(BringPartBtn, false)
@@ -8329,6 +8356,10 @@ function toggleBringPart(state)
 				end
 			end
 		end
+        if _G.BringPartLoopConnection then
+            _G.BringPartLoopConnection:Disconnect()
+            _G.BringPartLoopConnection = nil
+        end
 		broughtParts = {}
 		DisableNetwork()
 	end
