@@ -17684,27 +17684,7 @@ local success, err = pcall(function()
             end
         end)
     end)
-    pcall(function()
-        if Player then
-            ChattedConn = Player.Chatted:Connect(function(msg)
-                if not executingFromCmdBar then
-                    pcall(handleChatCommand, msg)
-                end
-            end)
-        end
-    end)
-    pcall(function()
-        local TextChatService = game:GetService("TextChatService")
-        if TextChatService and TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
-            TextChatConn = TextChatService.MessageReceived:Connect(function(textChatMessage)
-                if Player and textChatMessage.TextSource and textChatMessage.TextSource.UserId == Player.UserId then
-                    if not executingFromCmdBar then
-                        pcall(handleChatCommand, textChatMessage.Text)
-                    end
-                end
-            end)
-        end
-    end)
+
 
 end)
 if not success then
