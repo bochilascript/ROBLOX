@@ -17705,41 +17705,7 @@ local success, err = pcall(function()
             end)
         end
     end)
-    pcall(function()
-        if typeof(hookmetamethod) == "function" and typeof(getnamecallmethod) == "function" then
-            local oldNamecall
-            oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-                local method = getnamecallmethod()
-                local args = {...}
-                
-                if typeof(self) == "Instance" then
-                    if method == "FireServer" and self.Name == "SayMessageRequest" then
-                        local msg = args[1]
-                        if type(msg) == "string" and string.sub(msg, 1, 1) == ";" then
-                            task.spawn(function()
-                                if not executingFromCmdBar then
-                                    pcall(handleChatCommand, msg)
-                                end
-                            end)
-                            return
-                        end
-                    elseif method == "SendAsync" and self.ClassName == "TextChannel" then
-                        local msg = args[1]
-                        if type(msg) == "string" and string.sub(msg, 1, 1) == ";" then
-                            task.spawn(function()
-                                if not executingFromCmdBar then
-                                    pcall(handleChatCommand, msg)
-                                end
-                            end)
-                            return
-                        end
-                    end
-                end
-                
-                return oldNamecall(self, ...)
-            end)
-        end
-    end)
+
 end)
 if not success then
     warn("Failed to initialize command bar: " .. tostring(err))
