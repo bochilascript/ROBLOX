@@ -7981,6 +7981,7 @@ RunService.RenderStepped:Connect(function()
                             local combinedDir = (dir + mainDir).Unit
                             v.AssemblyLinearVelocity = combinedDir * 15000
                             v.AssemblyAngularVelocity = Vector3.new(math.random(-500,500), math.random(-500,500), math.random(-500,500))
+                            v.CanTouch = true
                         end)
                     end
                 end
@@ -7994,6 +7995,11 @@ RunService.RenderStepped:Connect(function()
 				else
 					Attachment1.WorldCFrame = target.CFrame * CFrame.new(0, 10, 0)
 				end
+                for v, _ in pairs(broughtParts) do
+                    if v and v.Parent and v:IsA("BasePart") and not v.Anchored then
+                        pcall(function() v.CanTouch = false end)
+                    end
+                end
 			end
 		end
 	else
