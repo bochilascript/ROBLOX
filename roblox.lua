@@ -2785,7 +2785,7 @@ function CreateESP(plr)
                 if plr.Character and getRoot(plr.Character) and plr.Character:FindFirstChildOfClass("Humanoid") and myChar and getRoot(myChar) then
                     local studs = math.floor((getRoot(myChar).Position - getRoot(plr.Character).Position).Magnitude)
                     local hp = plr.Character:FindFirstChildOfClass("Humanoid").Health
-                    label.Text = plr.Name .. "\nHP: " .. string.format("%.0f", hp) .. " | " .. studs .. "s"
+                    label.Text = plr.DisplayName .. "\nHP: " .. string.format("%.0f", hp) .. " | " .. studs .. "s"
                 end
             end
         end
@@ -4301,10 +4301,19 @@ function createPlayerRow(targetPlayer, index)
             end)
         end
     end)
-    local cloneBtn = makeActBtn("Clone", Color3.fromRGB(15, 15, 15), Color3.fromRGB(255, 50, 50), 0.5, 36)
-    cloneBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
+    local isSendPart = (plistSendPartTarget == targetPlayer)
+    local spText = isSendPart and "Stop SP" or "S.Part"
+    local spColor = isSendPart and Color3.fromRGB(200, 100, 0) or Color3.fromRGB(15, 15, 15)
+    local spStroke = isSendPart and Color3.fromRGB(255, 150, 50) or Color3.fromRGB(255, 50, 50)
+    local cloneBtn = makeActBtn(spText, spColor, spStroke, 0.5, 38)
+    cloneBtn.TextColor3 = isSendPart and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(255, 50, 50)
     cloneBtn.MouseButton1Click:Connect(function()
-        cloneAvatar(targetPlayer)
+        if plistSendPartTarget == targetPlayer then
+            stopPlistSendPart()
+        else
+            startPlistSendPart(targetPlayer)
+        end
+        task.defer(refreshPlayerList)
     end)
     local tpBtn = makeActBtn("TP", Color3.fromRGB(15, 15, 15), Color3.fromRGB(255, 50, 50), 1, 26)
     tpBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
@@ -4688,24 +4697,9 @@ function createPlayerRow(targetPlayer, index)
         end
         task.defer(refreshPlayerList)
     end)
-    local isSendPart = (plistSendPartTarget == targetPlayer)
-    local sendBtnText = isSendPart and "Stop" or tr("SendPartBtn")
-    local sendBtnColor = isSendPart and Color3.fromRGB(200, 100, 0) or Color3.fromRGB(0, 100, 150)
-    local sendBtnStroke = isSendPart and Color3.fromRGB(255, 150, 50) or Color3.fromRGB(0, 160, 220)
-    local sendBtn = makeExActBtn2(sendBtnText, sendBtnColor, sendBtnStroke, 4, 82)
+    local sendBtn = makeExActBtn2("Clone", Color3.fromRGB(0, 100, 150), Color3.fromRGB(0, 160, 220), 4, 82)
     sendBtn.MouseButton1Click:Connect(function()
-        if plistSendPartTarget == targetPlayer then
-            stopPlistSendPart()
-            sendBtn.Text = tr("SendPartBtn")
-            sendBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 150)
-            sendBtnStroke.Color = Color3.fromRGB(0, 160, 220)
-        else
-            startPlistSendPart(targetPlayer)
-            sendBtn.Text = "Stop"
-            sendBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
-            sendBtnStroke.Color = Color3.fromRGB(255, 150, 50)
-        end
-        task.defer(refreshPlayerList)
+        cloneAvatar(targetPlayer)
     end)
     local isSyncing = (syncDanceTarget == targetPlayer)
     local syncBtnText = isSyncing and "Stop" or tr("SyncBtn")
@@ -6582,12 +6576,15 @@ do
 end
 function applyLowFriction(char)
     if not char then return end
+    
+    local newProps = PhysicalProperties.new(0.7, desiredFriction, 0, 100, 0)
+    
     for _, v in pairs(char:GetDescendants()) do
         if v:IsA("BasePart") then
             if not origPhysProps[v] then
                 origPhysProps[v] = v.CustomPhysicalProperties or PhysicalProperties.new(v.Material)
             end
-            v.CustomPhysicalProperties = PhysicalProperties.new(0.7, desiredFriction, 0, 100, 0)
+            v.CustomPhysicalProperties = newProps
         end
     end
 end
@@ -7815,8 +7812,7 @@ function scanParts()
             charSet[plr.Character] = true
         end
     end
-    local radius = 1000
-    local rawParts = workspace:GetPartBoundsInRadius(root.Position, radius)
+    local rawParts = workspace:GetDescendants()
     for _, part in ipairs(rawParts) do
         if part:IsA("BasePart") and not part.Anchored and not part:IsDescendantOf(workspace.CurrentCamera) then
             local isCharPart = false
@@ -16910,7 +16906,7 @@ local success, err = pcall(function()
         searchIcon.Position = UDim2.new(0, 8, 0, 0)
         searchIcon.BackgroundTransparency = 1
         searchIcon.Font = Enum.Font.Gotham
-        searchIcon.Text = "🔍"
+        searchIcon.Text = "🔍"
         searchIcon.TextColor3 = Color3.fromRGB(150, 150, 150)
         searchIcon.TextSize = 14
         searchIcon.Parent = searchFrame
