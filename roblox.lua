@@ -7968,12 +7968,19 @@ RunService.RenderStepped:Connect(function()
 				else
 					Attachment1.WorldCFrame = target.CFrame
 				end
+                local lpChar = LocalPlayer.Character
+                local lpHrp = lpChar and (lpChar:FindFirstChild("HumanoidRootPart") or lpChar:FindFirstChild("Torso"))
+                local basePos = lpHrp and lpHrp.Position or target.Position
+                local mainDir = (target.Position - basePos).Unit
+                if (target.Position - basePos).Magnitude < 1 then mainDir = Vector3.new(0, 1, 0) end
+
                 for v, _ in pairs(broughtParts) do
                     if v and v.Parent and v:IsA("BasePart") and not v.Anchored then
                         pcall(function()
                             local dir = (target.Position - v.Position).Unit
-                            v.AssemblyLinearVelocity = dir * 5000
-                            v.AssemblyAngularVelocity = Vector3.new(math.random(-100,100), math.random(-100,100), math.random(-100,100)) * 100
+                            local combinedDir = (dir + mainDir).Unit
+                            v.AssemblyLinearVelocity = combinedDir * 15000
+                            v.AssemblyAngularVelocity = Vector3.new(math.random(-500,500), math.random(-500,500), math.random(-500,500))
                         end)
                     end
                 end
