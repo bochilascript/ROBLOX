@@ -4069,6 +4069,21 @@ function stopPlistSendPart()
             pcall(function() plistSendPartDescendantConn:Disconnect() end)
             plistSendPartDescendantConn = nil
         end
+        -- Reset velocities of all parts immediately to prevent scattering and teleport them above us
+        local lpChar = LocalPlayer.Character
+        local lpHrp = lpChar and (lpChar:FindFirstChild("HumanoidRootPart") or lpChar:FindFirstChild("Torso"))
+        local safeCF = lpHrp and (lpHrp.CFrame * CFrame.new(0, 10, 0))
+        for v, _ in pairs(broughtParts) do
+            if v and v.Parent and v:IsA("BasePart") then
+                pcall(function()
+                    v.AssemblyLinearVelocity = Vector3.zero
+                    v.AssemblyAngularVelocity = Vector3.zero
+                    if safeCF then
+                        v.CFrame = safeCF
+                    end
+                end)
+            end
+        end
         if not blackHoleActive then
             for v, _ in pairs(broughtParts) do
                 if v and v.Parent then
@@ -7650,6 +7665,23 @@ function noclip(state)
         end
     end
 end
+function checkAndBreakExternalWelds()
+    local char = LocalPlayer.Character
+    if not char then return end
+    for _, child in ipairs(char:GetDescendants()) do
+        if child:IsA("Weld") or child:IsA("WeldConstraint") or child:IsA("ManualWeld") then
+            local part0 = child.Part0
+            local part1 = child.Part1
+            if part0 and part1 then
+                local isPart0OurChar = part0:IsDescendantOf(char)
+                local isPart1OurChar = part1:IsDescendantOf(char)
+                if not (isPart0OurChar and isPart1OurChar) then
+                    pcall(function() child:Destroy() end)
+                end
+            end
+        end
+    end
+end
 function enableFly()
     flying = true
     humanoid.PlatformStand = true
@@ -7714,6 +7746,7 @@ UserInputService.InputEnded:Connect(function(input)
 end)
 RunService.Heartbeat:Connect(function(dt)
     if not flying or not root then return end
+    pcall(checkAndBreakExternalWelds)
     
     if frozenPos and (root.Position - frozenPos).Magnitude > 10 then
         frozenPos = root.Position
@@ -7777,7 +7810,7 @@ setButtonActive(FlyV1Btn, false)
 UnanchorBtn = createButton("", "Unanchor")
 local aktif = false
 local folder, attachment1, koneksi1
-local RADIUS = 500
+local RADIUS = math.huge
 local activeParts = {}
 function isMapAsset(o)
     local name = string.lower(o.Name)
@@ -7806,25 +7839,13 @@ function scanParts()
     local parts = {}
     local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if not root then return parts end
-    local charSet = {}
-    for _, plr in ipairs(game.Players:GetPlayers()) do
-        if plr.Character then
-            charSet[plr.Character] = true
-        end
-    end
-    local rawParts = workspace:GetDescendants()
-    for _, part in ipairs(rawParts) do
-        if part:IsA("BasePart") and not part.Anchored and not part:IsDescendantOf(workspace.CurrentCamera) then
-            local isCharPart = false
-            local p = part.Parent
-            while p and p ~= workspace do
-                if charSet[p] or p:FindFirstChildOfClass("Humanoid") then
-                    isCharPart = true
-                    break
-                end
-                p = p.Parent
-            end
-            if not isCharPart and string.lower(part.Name) ~= "baseplate" and part.Name ~= "Handle" and part.Name ~= "HumanoidRootPart" and part.Name ~= "Torso" then
+
+    for _, part in pairs(workspace:GetDescendants()) do
+        if part:IsA("BasePart") 
+        and not part.Anchored 
+        and not part:IsDescendantOf(player.Character) then
+            local dist = (part.Position - root.Position).Magnitude
+            if dist <= RADIUS then
                 table.insert(parts, part)
             end
         end
@@ -7834,15 +7855,15 @@ end
 function applyForce(part)
     if not part or not part.Parent then return end
     part.CanCollide = false
-    pcall(function() part:BreakJoints() end)
-    for _, x in ipairs(part:GetChildren()) do
-        if x:IsA("Weld") or x:IsA("WeldConstraint") or x:IsA("ManualWeld") or x:IsA("Motor6D")
-            or x:IsA("RopeConstraint") or x:IsA("RodConstraint") or x:IsA("SpringConstraint") or x:IsA("CableConstraint")
-            or x:IsA("BodyMover") or x:IsA("RocketPropulsion") or x:IsA("AlignPosition") or x:IsA("Torque") or x:IsA("Attachment")
-        then
-            pcall(function() x:Destroy() end)
+
+    for _, x in next, part:GetChildren() do
+        if x:IsA("BodyAngularVelocity") or x:IsA("BodyForce") or x:IsA("BodyGyro") 
+        or x:IsA("BodyPosition") or x:IsA("BodyThrust") or x:IsA("BodyVelocity")
+        or x:IsA("RocketPropulsion") then
+            x:Destroy()
         end
     end
+
     if not part:FindFirstChildOfClass("Torque") then
         local torque = Instance.new("Torque", part)
         torque.Torque = Vector3.new(100000,100000,100000)
@@ -7857,6 +7878,7 @@ function applyForce(part)
             align.Attachment1 = attachment1
         end
     end
+
     if attachment1 then
         local dist = (part.Position - attachment1.WorldPosition).Magnitude
         if dist <= RADIUS then
@@ -7872,26 +7894,24 @@ function mulaiUnanchor()
     part.CanCollide = false
     part.Transparency = 1
     attachment1 = Instance.new("Attachment", part)
+
     task.spawn(function()
         settings().Physics.AllowSleep = false
-        while aktif do
-            activeParts = scanParts()
+        while aktif and task.wait() do
             for _, pl in next, game.Players:GetPlayers() do
                 if pl ~= player then
                     pl.MaximumSimulationRadius = 0
-                    pcall(function() sethiddenproperty(pl, "SimulationRadius", 0) end)
+                    sethiddenproperty(pl, "SimulationRadius", 0)
                 end
             end
             player.MaximumSimulationRadius = math.pow(math.huge, math.huge)
-            pcall(function() setsimulationradius(math.huge) end)
-            task.wait(1)
+            setsimulationradius(math.huge)
         end
     end)
+
     koneksi1 = game:GetService("RunService").Stepped:Connect(function()
-        if attachment1 and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            attachment1.Parent.Position = player.Character.HumanoidRootPart.Position
-        end
-        for _, v in ipairs(activeParts) do
+        local list = scanParts()
+        for _, v in pairs(list) do
             applyForce(v)
         end
     end)
@@ -7949,12 +7969,51 @@ YeetTargetPart.Transparency = 1
 YeetTargetPart.CFrame = CFrame.new(0, -9999, 0)
 YeetAttachment = Instance.new("Attachment", YeetTargetPart)
 YeetAttachment.Name = "YeetAttachment"
+local plistSendPartCycleStart = tick()
+local lastPlistSendPartTarget = nil
 RunService.RenderStepped:Connect(function()
 	if blackHoleActive or scannerBroughtPart or plistSendPartTarget then
+		pcall(checkAndBreakExternalWelds)
 		local targetPlayer = plistSendPartTarget
 		if targetPlayer and (not targetPlayer.Parent or not targetPlayer.Character) then
+			pcall(stopPlistSendPart)
 			targetPlayer = nil
 		end
+		
+		-- Transition: If we were sending but now we are not, instantly teleport parts to us
+		if lastPlistSendPartTarget and not targetPlayer then
+			local lpChar = LocalPlayer.Character
+			local lpHrp = lpChar and (lpChar:FindFirstChild("HumanoidRootPart") or lpChar:FindFirstChild("Torso"))
+			local safeCF = lpHrp and (lpHrp.CFrame * CFrame.new(0, 10, 0))
+			for v, _ in pairs(broughtParts) do
+				if v and v.Parent and v:IsA("BasePart") then
+					pcall(function()
+						v.AssemblyLinearVelocity = Vector3.zero
+						v.AssemblyAngularVelocity = Vector3.zero
+						if safeCF then
+							v.CFrame = safeCF
+						end
+					end)
+				end
+			end
+		end
+		-- Transition: If we just started sending, instantly teleport parts to target to avoid hitting our character
+		if targetPlayer and not lastPlistSendPartTarget then
+			local char = targetPlayer.Character
+			local targetHRP = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("Head"))
+			if targetHRP then
+				for v, _ in pairs(broughtParts) do
+					if v and v.Parent and v:IsA("BasePart") then
+						pcall(function()
+							v.CFrame = targetHRP.CFrame
+							v.AssemblyLinearVelocity = Vector3.zero
+							v.AssemblyAngularVelocity = Vector3.zero
+						end)
+					end
+				end
+			end
+		end
+		lastPlistSendPartTarget = targetPlayer
 		
 		local char = targetPlayer and targetPlayer.Character or LocalPlayer.Character
 		local target = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("Head"))
@@ -7963,28 +8022,31 @@ RunService.RenderStepped:Connect(function()
 				pcall(function()
 					LocalPlayer.ReplicationFocus = target
 				end)
+				
 				if loopSendPartActive and loopSendPartOffset then
 					Attachment1.WorldCFrame = target.CFrame * loopSendPartOffset
 				else
-					Attachment1.WorldCFrame = target.CFrame
+					local vibration = CFrame.new(math.random(-3, 3), math.random(-3, 3), math.random(-3, 3))
+					Attachment1.WorldCFrame = target.CFrame * vibration
 				end
-                local lpChar = LocalPlayer.Character
-                local lpHrp = lpChar and (lpChar:FindFirstChild("HumanoidRootPart") or lpChar:FindFirstChild("Torso"))
-                local basePos = lpHrp and lpHrp.Position or target.Position
-                local mainDir = (target.Position - basePos).Unit
-                if (target.Position - basePos).Magnitude < 1 then mainDir = Vector3.new(0, 1, 0) end
-
-                for v, _ in pairs(broughtParts) do
-                    if v and v.Parent and v:IsA("BasePart") and not v.Anchored then
-                        pcall(function()
-                            local dir = (target.Position - v.Position).Unit
-                            local combinedDir = (dir + mainDir).Unit
-                            v.AssemblyLinearVelocity = combinedDir * 15000
-                            v.AssemblyAngularVelocity = Vector3.new(math.random(-500,500), math.random(-500,500), math.random(-500,500))
-                            v.CanTouch = true
-                        end)
-                    end
-                end
+				
+				local lpChar = LocalPlayer.Character
+				local lpHrp = lpChar and (lpChar:FindFirstChild("HumanoidRootPart") or lpChar:FindFirstChild("Torso"))
+				local basePos = lpHrp and lpHrp.Position or target.Position
+				local toTarget = (target.Position - basePos)
+				local dir = toTarget.Magnitude > 0.1 and toTarget.Unit or Vector3.new(0, 1, 0)
+				local targetVel = dir * 200000 + Vector3.new(math.random(-100, 100), math.random(-100, 100), math.random(-100, 100))
+				
+				for v, _ in pairs(broughtParts) do
+					if v and v.Parent and v:IsA("BasePart") and not v.Anchored then
+						pcall(function()
+							v.AssemblyLinearVelocity = targetVel
+							v.AssemblyAngularVelocity = Vector3.new(math.random(-10000, 10000), math.random(-10000, 10000), math.random(-10000, 10000))
+							v.CanTouch = true
+							v.CanQuery = true
+						end)
+					end
+				end
 			else
 				pcall(function()
 					LocalPlayer.ReplicationFocus = nil
@@ -7995,11 +8057,14 @@ RunService.RenderStepped:Connect(function()
 				else
 					Attachment1.WorldCFrame = target.CFrame * CFrame.new(0, 10, 0)
 				end
-                for v, _ in pairs(broughtParts) do
-                    if v and v.Parent and v:IsA("BasePart") and not v.Anchored then
-                        pcall(function() v.CanTouch = false end)
-                    end
-                end
+				for v, _ in pairs(broughtParts) do
+					if v and v.Parent and v:IsA("BasePart") and not v.Anchored then
+						pcall(function() 
+							v.CanTouch = false 
+							v.CanQuery = false 
+						end)
+					end
+				end
 			end
 		end
 	else
@@ -8067,80 +8132,42 @@ function isPlayerOrAccessory(v)
 end
 
 function ForcePart(v)
-	if v:IsA("BasePart") then
-        if v:GetAttribute("WasBrought") then
-            pcall(function() v.Anchored = false end)
-        end
-        
-        if not v.Anchored and v.Name ~= "Handle" then
-            if hasHumanoidAncestor(v) or isPlayerOrAccessory(v) then return end
+	if v:IsA("BasePart") 
+	and not v.Anchored 
+	and not v.Parent:FindFirstChildOfClass("Humanoid") 
+	and not v.Parent:FindFirstChild("Head") 
+	and v.Name ~= "Handle" then
 
-            for _, x in ipairs(v:GetChildren()) do
-                if x:IsA("BodyMover") or x:IsA("RocketPropulsion") or x.Name == "BringNoCollide" then
-                    pcall(function() x:Destroy() end)
-                end
-            end
+		for _, x in ipairs(v:GetChildren()) do
+			if x:IsA("BodyMover") or x:IsA("RocketPropulsion") then
+				x:Destroy()
+			end
+		end
 
-            if v:FindFirstChild("BringAttachment") then pcall(function() v:FindFirstChild("BringAttachment"):Destroy() end) end
-            if v:FindFirstChild("BringAlign") then pcall(function() v:FindFirstChild("BringAlign"):Destroy() end) end
-            if v:FindFirstChild("BringTorque") then pcall(function() v:FindFirstChild("BringTorque"):Destroy() end) end
-            if v:FindFirstChild("BringAlignO") then pcall(function() v:FindFirstChild("BringAlignO"):Destroy() end) end
+		if v:FindFirstChild("Attachment") then pcall(function() v:FindFirstChild("Attachment"):Destroy() end) end
+		if v:FindFirstChild("AlignPosition") then pcall(function() v:FindFirstChild("AlignPosition"):Destroy() end) end
+		if v:FindFirstChild("Torque") then pcall(function() v:FindFirstChild("Torque"):Destroy() end) end
+		if v:FindFirstChild("BringAttachment") then pcall(function() v:FindFirstChild("BringAttachment"):Destroy() end) end
+		if v:FindFirstChild("BringAlign") then pcall(function() v:FindFirstChild("BringAlign"):Destroy() end) end
+		if v:FindFirstChild("BringTorque") then pcall(function() v:FindFirstChild("BringTorque"):Destroy() end) end
 
-            if LocalPlayer.Character then
-                for _, charPart in ipairs(LocalPlayer.Character:GetDescendants()) do
-                    if charPart:IsA("BasePart") then
-                        pcall(function()
-                            local ncc = Instance.new("NoCollisionConstraint")
-                            ncc.Name = "BringNoCollide"
-                            ncc.Part0 = v
-                            ncc.Part1 = charPart
-                            ncc.Parent = v
-                        end)
-                    end
-                end
-            end
-
-            pcall(function() 
-                if loopSendPartV2Active then
-                    v.CanCollide = true
-                    v.Massless = true
-                else
-                    v.CanCollide = true
-                end
-                v.CanTouch = false
-                v.CanQuery = false
-            end)
-            
-            if not broughtParts[v] then
-                pcall(function() v.AssemblyLinearVelocity = Vector3.new(math.random(-10, 10), 50, math.random(-10, 10)) end)
-            end
-            
-            local Torque = nil
-            if not loopSendPartV2Active then
-                Torque = Instance.new("Torque", v)
-                Torque.Name = "BringTorque"
-                Torque.Torque = Vector3.new(100000, 100000, 100000)
-            end
-            
-            local AlignPosition = Instance.new("AlignPosition", v)
-            AlignPosition.Name = "BringAlign"
-            local Attachment2 = Instance.new("Attachment", v)
-            Attachment2.Name = "BringAttachment"
-            if Torque then Torque.Attachment0 = Attachment2 end
-            
-            if loopSendPartV2Active then
-                AlignPosition.MaxForce = 25000
-                AlignPosition.MaxVelocity = 18
-                AlignPosition.Responsiveness = 12
-            else
-                AlignPosition.MaxForce = math.huge
-                AlignPosition.MaxVelocity = math.huge
-                AlignPosition.Responsiveness = 200
-            end
-            AlignPosition.Attachment0 = Attachment2
-            AlignPosition.Attachment1 = Attachment1
-            broughtParts[v] = true
-        end
+		v.CanCollide = false
+		v.CanTouch = false
+		v.CanQuery = false
+		local Torque = Instance.new("Torque", v)
+		Torque.Name = "BringTorque"
+		Torque.Torque = Vector3.new(100000, 100000, 100000)
+		local AlignPosition = Instance.new("AlignPosition", v)
+		AlignPosition.Name = "BringAlign"
+		local Attachment2 = Instance.new("Attachment", v)
+		Attachment2.Name = "BringAttachment"
+		Torque.Attachment0 = Attachment2
+		AlignPosition.MaxForce = math.huge
+		AlignPosition.MaxVelocity = math.huge
+		AlignPosition.Responsiveness = 200
+		AlignPosition.Attachment0 = Attachment2
+		AlignPosition.Attachment1 = Attachment1
+		broughtParts[v] = true
 	end
 end
 function YeetPart(v)
@@ -8179,13 +8206,11 @@ function OneTimeUnanchor()
 
 			for _, part in pairs(Workspace:GetDescendants()) do
 				if part:IsA("BasePart") and not part.Anchored then
-					if not hasHumanoidAncestor(part) and not isPlayerOrAccessory(part) then
-						part.AssemblyLinearVelocity = Vector3.new(
-							math.random(-50, 50),
-							math.random(20, 100),
-							math.random(-50, 50)
-						)
-					end
+					part.AssemblyLinearVelocity = Vector3.new(
+						math.random(-50, 50),
+						math.random(20, 100),
+						math.random(-50, 50)
+					)
 				end
 			end
 
@@ -8283,100 +8308,69 @@ function toggleBringPart(state)
             MiniBringBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
 		EnableNetwork()
-		if enableNoclip then enableNoclip() end
 
 		character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 		humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 		head = character:WaitForChild("Head")
+		local hum = character:FindFirstChildOfClass("Humanoid")
+		if hum then
+			pcall(function() hum:SetStateEnabled(Enum.HumanoidStateType.Seated, false) end)
+		end
 		broughtParts = {}
 
 		OneTimeUnanchor()
 
-		for _, v in ipairs(Workspace:GetDescendants()) do
-			if v:IsA("BasePart") then
-				if v:GetAttribute("WasBrought") then
-					v.Anchored = false
-				end
-				ForcePart(v)
-			end
+		for _, v in ipairs(GetAllPartsRecursive(Workspace)) do
+			ForcePart(v)
 		end
 
-		if DescendantAddedConnection then DescendantAddedConnection:Disconnect() end
 		DescendantAddedConnection = Workspace.DescendantAdded:Connect(function(v)
 			if blackHoleActive and v:IsA("BasePart") then
-				if v:GetAttribute("WasBrought") then
-					v.Anchored = false
-				end
 				ForcePart(v)
 			end
 		end)
-        
-        task.spawn(function()
-            while blackHoleActive do
-                task.wait(0.5)
-                if not blackHoleActive then break end
-                for v, _ in pairs(broughtParts) do
-                    if v and v.Parent and v:IsA("BasePart") and not v.Anchored then
-                        if not v:FindFirstChild("BringAlign") and not v:FindFirstChild("JSY_SendPartAttach") then
-                            ForcePart(v)
-                        end
-                    elseif v == nil or not v.Parent then
-                        broughtParts[v] = nil
-                    end
-                end
-            end
-        end)
-
 	else
 		setButtonActive(BringPartBtn, false)
         if MiniBringBtn then
             MiniBringBtn.Text = "Bring Part: OFF"
             MiniBringBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
         end
-		if loopSendPartActive then
-			loopSendPartActive = false
-			if LoopSendPartBtn then setButtonActive(LoopSendPartBtn, false) end
-			if updateLoopSendPartLabel then updateLoopSendPartLabel() end
-			if loopSendPartThread then
-				pcall(task.cancel, loopSendPartThread)
-				loopSendPartThread = nil
-			end
-			plistSendPartTarget = nil
-		end
+		DisableNetwork()
 		if DescendantAddedConnection then
 			DescendantAddedConnection:Disconnect()
 			DescendantAddedConnection = nil
-		end
-		if not noclipActive and not flying and disableNoclip then
-			disableNoclip()
 		end
 		for _, v in ipairs(Workspace:GetDescendants()) do
 			if v:IsA("BasePart") then
 				local torq = v:FindFirstChild("BringTorque")
 				local align = v:FindFirstChild("BringAlign")
-				local alignO = v:FindFirstChild("BringAlignO")
 				local att = v:FindFirstChild("BringAttachment")
-				if torq or align or alignO or att then
+				if torq or align or att then
 					pcall(function()
 						if torq then torq:Destroy() end
 						if align then align:Destroy() end
-						if alignO then alignO:Destroy() end
 						if att then att:Destroy() end
-						for _, x in ipairs(v:GetChildren()) do
-							if x.Name == "BringNoCollide" then pcall(function() x:Destroy() end) end
-						end
-						v:SetAttribute("WasBrought", true)
-						v.Anchored = true
 					end)
 				end
 			end
 		end
-        if _G.BringPartLoopConnection then
-            _G.BringPartLoopConnection:Disconnect()
-            _G.BringPartLoopConnection = nil
-        end
+		local hum = character and character:FindFirstChildOfClass("Humanoid")
+		if hum then
+			pcall(function() 
+				if not flying then
+					hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true) 
+					hum:ChangeState(Enum.HumanoidStateType.Running)
+				end
+			end)
+		end
+		local rootPart = character and (character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso"))
+		if rootPart then
+			pcall(function()
+				rootPart.AssemblyLinearVelocity = Vector3.zero
+				rootPart.AssemblyAngularVelocity = Vector3.zero
+			end)
+		end
 		broughtParts = {}
-		DisableNetwork()
 	end
 end
 BringPartBtn.MouseButton1Click:Connect(function()
@@ -13638,7 +13632,7 @@ updateProfile = function(plr)
         refreshSpectatorPlayerList()
     end
     if SendPartActive and plr then
-        pcall(function() startPlistSendPart(plr, 3, turnOffSendPart) end)
+        pcall(function() startPlistSendPart(plr, nil, turnOffSendPart) end)
     elseif SendPartActive and not plr then
         turnOffSendPart()
     end
@@ -13663,7 +13657,7 @@ SendPartBtn.MouseButton1Click:Connect(function()
     TweenService:Create(SendPartBtn, TweenInfo.new(0.3), {BackgroundColor3 = COLORS.GREEN}):Play()
     freezeCharacter()
     if CurrentTarget then
-        pcall(function() startPlistSendPart(CurrentTarget, 3, turnOffSendPart) end)
+        pcall(function() startPlistSendPart(CurrentTarget, nil, turnOffSendPart) end)
     end
 end)
 function getTargetablePlayers()
@@ -13724,6 +13718,9 @@ end)
 Players.PlayerRemoving:Connect(function(plr)
     task.wait(0.1)
     safeRefreshTargetList()
+    if plistSendPartTarget and plr == plistSendPartTarget then
+        pcall(stopPlistSendPart)
+    end
     if CurrentTarget and plr == CurrentTarget then
         CurrentTarget = nil
         updateProfile(nil)
