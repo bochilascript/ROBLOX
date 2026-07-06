@@ -3010,23 +3010,12 @@ JumpBtn.MouseButton1Click:Connect(function()
     toggleInfiniteJump()
 end)
 RejoinBtn = createButton("", "Rejoin")
-RejoinBtn.LayoutOrder = 1
 function rejoinServer()
-    local player = game:GetService("Players").LocalPlayer
     local ts = game:GetService("TeleportService")
-    local currentPlaceId = game.PlaceId
-    local currentJobId = game.JobId
-    local ok = false
-    if #game.Players:GetPlayers() > 1 and currentJobId ~= "" then
-        ok = pcall(function()
-            ts:TeleportToPlaceInstance(currentPlaceId, currentJobId, player)
-        end)
-    end
-    if not ok then
-        pcall(function()
-            ts:Teleport(currentPlaceId, player)
-        end)
-    end
+    local player = game:GetService("Players").LocalPlayer
+    pcall(function()
+        ts:TeleportToPlaceInstance(game.PlaceId, game.JobId, player)
+    end)
 end
 RejoinBtn.MouseButton1Click:Connect(rejoinServer)
 RefreshBtn = createButton("", "Refresh")
