@@ -40,6 +40,7 @@ ChattedConn = nil
 TextChatConn = nil
 CmdBarKeyConn = nil
 flingAllActive = false
+activeFlings = {}
 local currentLanguage = "EN"
 local LangDict = {
     ["Menu"] = { EN = "Menu", ID = "Menu" },
@@ -1754,7 +1755,19 @@ do
             { titleEN = "Emote Bypass", titleID = "Emote Bypass", descEN = "Plays specific internal Roblox dances/emotes regardless of game settings.", descID = "Maksa muter animasi joget (dance) tersembunyi yang biasanya dilarang di game tersebut." },
             { titleEN = "Chat Logs", titleID = "Chat Logs", descEN = "Saves everyone's chat messages, even if they delete them from the chatbox.", descID = "Nyimpen jejak chat semua pemain. Kalau ada yang ngirim pesan terus dihapus/nge-clear chat, bakal tetep kebaca di sini." },
             { titleEN = "DEX Explorer", titleID = "DEX Explorer", descEN = "An advanced tool used to inspect the internal files and scripts of the game.", descID = "Alat khusus sekelas developer (Dark Dex) buat membongkar isi file map dan script yang ada di dalam game." },
-            { titleEN = "Command Bar", titleID = "Command Bar", descEN = "Draggable bar at the bottom. Type commands like ;speed 100, ;fly, ;jp 500.", descID = "Kolom perintah di bawah layar. Ketik perintah chat kayak ;speed 100, ;fly, atau ;hitbox 50." }
+            { titleEN = "Command Bar", titleID = "Command Bar", descEN = "Draggable bar at the bottom. Type commands like ;speed 100, ;fly, ;jp 500.", descID = "Kolom perintah di bawah layar. Ketik perintah chat kayak ;speed 100, ;fly, atau ;hitbox 50." },
+            { titleEN = "Anti Fling", titleID = "Anti Fling", descEN = "Protects you from being flung by other players by disabling their parts' collision with yours.", descID = "Ngelindungi lu biar nggak bisa di-fling sama orang lain dengan mematikan tabrakan karakter mereka." },
+            { titleEN = "Loop Send Part", titleID = "Kirim Objek Terus-menerus", descEN = "Continuously flings parts towards the targeted player to attack them automatically.", descID = "Mengirimkan objek/part di sekitar ke target secara terus menerus untuk menyerang mereka secara otomatis." },
+            { titleEN = "Headsit", titleID = "Duduk Kepala", descEN = "Allows you to sit on top of another player's head.", descID = "Membuat karakter lu duduk di atas kepala pemain lain secara otomatis." },
+            { titleEN = "Follow", titleID = "Ikuti Pemain", descEN = "Automatically follows another player wherever they walk.", descID = "Mengikuti gerakan berjalan pemain lain secara otomatis kemanapun dia pergi." },
+            { titleEN = "Sync Dance", titleID = "Sinkronisasi Emote", descEN = "Copies and synchronizes animations/dances from another player.", descID = "Menyalin dan mensinkronisasikan gerakan tari/emote dengan pemain lain yang sedang bergerak." },
+            { titleEN = "God Mode", titleID = "Mode Kebal", descEN = "Prevents you from taking damage or dying in most games.", descID = "Mencegah karakter lu terkena damage atau mati di sebagian besar game." },
+            { titleEN = "Low Friction", titleID = "Friction Rendah", descEN = "Reduces ground friction so you can slide smoothly across the floor.", descID = "Mengurangi gaya gesek tanah agar karakter lu bisa meluncur mulus di lantai." },
+            { titleEN = "Swim", titleID = "Berenang", descEN = "Allows you to swim in the air anywhere on the map.", descID = "Bikin karakter lu bisa berenang bebas di udara layaknya di dalam air." },
+            { titleEN = "XRay", titleID = "XRay Tembus Pandang", descEN = "Makes solid map structures transparent so you can see through them.", descID = "Membuat struktur peta/tembok menjadi transparan agar lu bisa melihat apa saja di baliknya." },
+            { titleEN = "Remote Spy", titleID = "Remote Spy", descEN = "Launches SimpleSpy to sniff and inspect RemoteEvent/RemoteFunction calls.", descID = "Membuka SimpleSpy untuk memata-matai pengiriman data RemoteEvent/RemoteFunction oleh game." },
+            { titleEN = "Touch Fling", titleID = "Touch Fling", descEN = "Flings players instantly when they make physical contact with your tools/limbs.", descID = "Melempar/fling pemain lain secara instan begitu mereka menyentuh item/tubuh lu." },
+            { titleEN = "Auto Clicker", titleID = "Auto Clicker", descEN = "Automatically clicks your mouse rapidly (PC Only).", descID = "Melakukan klik mouse otomatis secara sangat cepat (Khusus PC)." }
         }
         for idx, info in ipairs(infos) do
             local itemFrame = Instance.new("Frame")
@@ -2322,6 +2335,8 @@ do
 end
 CloseBtn.MouseButton1Click:Connect(function()
     pcall(function()
+        activeFlings = {}
+        if hiddenfling then pcall(toggleFling, false) end
         if speedOn then pcall(toggleSpeed) end
         if flying then pcall(disableFly) end
         if flyV3Active then pcall(toggleFlyV3, false) end
@@ -4122,35 +4137,39 @@ function startPlistSendPart(targetPlayer, duration, stopCallback)
     plistSendPartTarget = targetPlayer
     plistSendPartStopCallback = stopCallback
     EnableNetwork()
-    if not blackHoleActive then
-        broughtParts = {}
-        local char = LocalPlayer.Character
-        local hrp = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
-        if hrp then
-            local overlapParams = OverlapParams.new()
-            overlapParams.FilterType = Enum.RaycastFilterType.Exclude
-            overlapParams.FilterDescendantsInstances = {char}
-            local rawParts = workspace:GetPartBoundsInRadius(hrp.Position, 1000, overlapParams)
-            for _, v in ipairs(rawParts) do
-                if v:IsA("BasePart") and not v.Anchored
-                and v.Transparency < 1
-                and not v.Parent:FindFirstChildOfClass("Humanoid")
-                and not v.Parent:FindFirstChild("Head")
-                and v.Name ~= "Handle"
-                and string.lower(v.Name) ~= "baseplate" then
-                    broughtParts[v] = true
-                    breakPartConstraints(v)
+    task.spawn(function()
+        if not blackHoleActive then
+            broughtParts = {}
+            local char = LocalPlayer.Character
+            local hrp = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
+            if hrp then
+                local overlapParams = OverlapParams.new()
+                overlapParams.FilterType = Enum.RaycastFilterType.Exclude
+                overlapParams.FilterDescendantsInstances = {char}
+                local rawParts = workspace:GetPartBoundsInRadius(hrp.Position, 1000, overlapParams)
+                for _, v in ipairs(rawParts) do
+                    if not plistSendPartTarget then break end
+                    if v:IsA("BasePart") and not v.Anchored
+                    and v.Transparency < 1
+                    and not v.Parent:FindFirstChildOfClass("Humanoid")
+                    and not v.Parent:FindFirstChild("Head")
+                    and v.Name ~= "Handle"
+                    and string.lower(v.Name) ~= "baseplate" then
+                        broughtParts[v] = true
+                        breakPartConstraints(v)
+                    end
                 end
             end
         end
-    end
-    for v, _ in pairs(broughtParts) do
-        if v and v.Parent then
-            v.Anchored = false
-            breakPartConstraints(v)
-            ForcePart(v)
+        for v, _ in pairs(broughtParts) do
+            if not plistSendPartTarget then break end
+            if v and v.Parent then
+                v.Anchored = false
+                breakPartConstraints(v)
+                ForcePart(v)
+            end
         end
-    end
+    end)
     if plistSendPartDescendantConn then plistSendPartDescendantConn:Disconnect() end
     plistSendPartDescendantConn = Workspace.DescendantAdded:Connect(function(v)
         if v:IsA("Constraint") or v:IsA("WeldConstraint") or v:IsA("Weld") or v:IsA("JointInstance") then
@@ -4328,7 +4347,7 @@ function createPlayerRow(targetPlayer, index)
         else
             startPlistSendPart(targetPlayer)
         end
-        task.defer(refreshPlayerList)
+        refreshPlayerList()
     end)
     local tpBtn = makeActBtn("TP", Color3.fromRGB(15, 15, 15), Color3.fromRGB(255, 50, 50), 1, 26)
     tpBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
@@ -4366,7 +4385,7 @@ function createPlayerRow(targetPlayer, index)
             viewBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
             viewBtnStroke.Color = Color3.fromRGB(255, 255, 255)
         end
-        task.defer(refreshPlayerList)
+        refreshPlayerList()
     end)
     local isFriend = false
     pcall(function()
@@ -4566,29 +4585,25 @@ function createPlayerRow(targetPlayer, index)
     espBtn.MouseButton1Click:Connect(function()
         if COREGUI:FindFirstChild(targetPlayer.Name .. "_ESP") then
             destroyPlayerESP(targetPlayer.Name)
-            espBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 150)
-            local stroke = espBtn:FindFirstChildOfClass("UIStroke")
-            if stroke then stroke.Color = Color3.fromRGB(0, 160, 220) end
         else
             CreateESP(targetPlayer)
-            espBtn.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
-            local stroke = espBtn:FindFirstChildOfClass("UIStroke")
-            if stroke then stroke.Color = Color3.fromRGB(255, 255, 255) end
         end
+        refreshPlayerList()
     end)
-    local flingActive = false
-    local flingBtn = makeExActBtn2("Fling", Color3.fromRGB(150, 50, 50), Color3.fromRGB(200, 100, 100), 0, 42)
+    local isFlinging = activeFlings[targetPlayer]
+    local flingBtnText = isFlinging and "Stop" or "Fling"
+    local flingBtnColor = isFlinging and Color3.fromRGB(200, 100, 0) or Color3.fromRGB(150, 50, 50)
+    local flingBtnStroke = isFlinging and Color3.fromRGB(255, 150, 50) or Color3.fromRGB(200, 100, 100)
+    local flingBtn = makeExActBtn2(flingBtnText, flingBtnColor, flingBtnStroke, 0, 42)
     flingBtn.MouseButton1Click:Connect(function()
         local lplr = game.Players.LocalPlayer
         local char = lplr.Character
         local hrp = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso"))
         if not hrp then return end
-        flingActive = not flingActive
-        if flingActive then
-            flingBtn.Text = "Stop"
-            flingBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
-            local stroke = flingBtn:FindFirstChildOfClass("UIStroke")
-            if stroke then stroke.Color = Color3.fromRGB(255, 150, 50) end
+        if activeFlings[targetPlayer] then
+            activeFlings[targetPlayer] = nil
+        else
+            activeFlings[targetPlayer] = true
             task.spawn(function()
                 local oldGravity = workspace.Gravity
                 workspace.Gravity = 0
@@ -4601,12 +4616,12 @@ function createPlayerRow(targetPlayer, index)
                     })
                 end)
                 local flingPart = Instance.new("Part")
+                flingPart.Parent = workspace
                 flingPart.Anchored = false
                 flingPart.CanCollide = false
                 flingPart.Transparency = 1
                 flingPart.Size = Vector3.new(1, 1, 1)
                 flingPart.CFrame = hrp.CFrame
-                flingPart.Parent = workspace
                 local flingWeld = Instance.new("WeldConstraint")
                 flingWeld.Part0 = flingPart
                 flingWeld.Part1 = hrp
@@ -4619,7 +4634,7 @@ function createPlayerRow(targetPlayer, index)
                 if myHum then
                     myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
                 end
-                while flingActive and targetPlayer and targetPlayer.Parent do
+                while activeFlings[targetPlayer] and targetPlayer and targetPlayer.Parent do
                     RunService.Heartbeat:Wait()
                     local myChar = lplr.Character
                     local myHrp = myChar and (myChar:FindFirstChild("HumanoidRootPart") or myChar:FindFirstChild("Torso") or myChar:FindFirstChild("UpperTorso"))
@@ -4638,18 +4653,13 @@ function createPlayerRow(targetPlayer, index)
                         flingPart.AssemblyAngularVelocity = Vector3.zero
                     end
                 end
-                flingActive = false
+                activeFlings[targetPlayer] = nil
                 workspace.Gravity = oldGravity
                 if myHum then
                     myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
                 end
                 pcall(function() flingPart:Destroy() end)
-                if flingBtn and flingBtn.Parent then
-                    flingBtn.Text = "Fling"
-                    flingBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
-                    local stroke = flingBtn:FindFirstChildOfClass("UIStroke")
-                    if stroke then stroke.Color = Color3.fromRGB(200, 100, 100) end
-                end
+                refreshPlayerList()
                 local myChar = lplr.Character
                 local myHrp = myChar and (myChar:FindFirstChild("HumanoidRootPart") or myChar:FindFirstChild("Torso") or myChar:FindFirstChild("UpperTorso"))
                 if myHrp and originalCFrame then
@@ -4662,13 +4672,8 @@ function createPlayerRow(targetPlayer, index)
                     myHrp.Anchored = prevAnchored
                 end
             end)
-        else
-            flingActive = false
-            flingBtn.Text = "Fling"
-            flingBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
-            local stroke = flingBtn:FindFirstChildOfClass("UIStroke")
-            if stroke then stroke.Color = Color3.fromRGB(200, 100, 100) end
         end
+        refreshPlayerList()
     end)
     local instFlingBtn = makeExActBtn2("IFling", Color3.fromRGB(180, 60, 0), Color3.fromRGB(255, 120, 50), 1, 45)
     instFlingBtn.MouseButton1Click:Connect(function()
@@ -4691,7 +4696,7 @@ function createPlayerRow(targetPlayer, index)
             headsitBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
             headsitBtnStroke.Color = Color3.fromRGB(255, 150, 50)
         end
-        task.defer(refreshPlayerList)
+        refreshPlayerList()
     end)
     local isFollow = (followTarget == targetPlayer)
     local followBtnText = isFollow and "Stop" or tr("FollowBtn")
@@ -4710,7 +4715,7 @@ function createPlayerRow(targetPlayer, index)
             followBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
             followBtnStroke.Color = Color3.fromRGB(255, 150, 50)
         end
-        task.defer(refreshPlayerList)
+        refreshPlayerList()
     end)
     local sendBtn = makeExActBtn2("Clone", Color3.fromRGB(0, 100, 150), Color3.fromRGB(0, 160, 220), 4, 82)
     sendBtn.MouseButton1Click:Connect(function()
@@ -4733,7 +4738,7 @@ function createPlayerRow(targetPlayer, index)
             syncBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
             syncBtnStroke.Color = Color3.fromRGB(255, 150, 50)
         end
-        task.defer(refreshPlayerList)
+        refreshPlayerList()
     end)
     local toggleExpand = function()
         if expandedPlayerUserId == targetPlayer.UserId then
@@ -4741,7 +4746,7 @@ function createPlayerRow(targetPlayer, index)
         else
             expandedPlayerUserId = targetPlayer.UserId
         end
-        task.defer(refreshPlayerList)
+        refreshPlayerList()
     end
     local clickDetector = Instance.new("TextButton")
     clickDetector.Name = "ClickDetector"
@@ -4769,6 +4774,11 @@ refreshPlayerList = function()
         if lpHrp then lpPos = lpHrp.Position end
     end
     table.sort(sortedPlayers, function(a, b)
+        local aIsSend = (plistSendPartTarget == a)
+        local bIsSend = (plistSendPartTarget == b)
+        if aIsSend ~= bIsSend then
+            return aIsSend
+        end
         local distA, distB = math.huge, math.huge
         if lpPos then
             if a.Character then
@@ -6653,39 +6663,41 @@ function doWalkFlingBurst(root)
     end
 end
 FlingBtn = createButton("", "Tendang")
-local hiddenfling = false
-local flingThread
-function fling()
-    local lp = Players.LocalPlayer
-    while hiddenfling do
-        RunService.Heartbeat:Wait()
-        local hrp = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            local vel = hrp.Velocity
-            hrp.Velocity = vel * 99999 + Vector3.new(0, 99999, 0)
-            RunService.RenderStepped:Wait()
-            hrp.Velocity = vel
-        end
+hiddenfling = false
+flingThread = nil
+function toggleFling(state)
+    if state == nil then
+        hiddenfling = not hiddenfling
+    else
+        hiddenfling = state
+    end
+    if hiddenfling then
+        setButtonActive(FlingBtn, true)
+        flingThread = coroutine.create(function()
+            local lp = Players.LocalPlayer
+            while hiddenfling do
+                RunService.Heartbeat:Wait()
+                local hrp = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local vel = hrp.Velocity
+                    pcall(function() hrp.Velocity = vel * 99999 + Vector3.new(0, 99999, 0) end)
+                    pcall(function() hrp.AssemblyLinearVelocity = vel * 99999 + Vector3.new(0, 99999, 0) end)
+                    RunService.RenderStepped:Wait()
+                    if hrp and hrp.Parent then
+                        pcall(function() hrp.Velocity = vel end)
+                        pcall(function() hrp.AssemblyLinearVelocity = vel end)
+                    end
+                end
+            end
+        end)
+        coroutine.resume(flingThread)
+    else
+        setButtonActive(FlingBtn, false)
+        hiddenfling = false
     end
 end
 FlingBtn.MouseButton1Click:Connect(function()
-    hiddenfling = not hiddenfling
-    if hiddenfling then
-        setButtonActive(FlingBtn, true)
-        if walkFlingConn then walkFlingConn:Disconnect() end
-        walkFlingConn = RunService.Heartbeat:Connect(function()
-            if not hiddenfling then
-                if walkFlingConn then walkFlingConn:Disconnect(); walkFlingConn = nil end
-                return
-            end
-            local char = Players.LocalPlayer and Players.LocalPlayer.Character
-            local root = char and char:FindFirstChild("HumanoidRootPart")
-            if root then task.spawn(doWalkFlingBurst, root) end
-        end)
-    else
-        setButtonActive(FlingBtn, false)
-        if walkFlingConn then walkFlingConn:Disconnect(); walkFlingConn = nil end
-    end
+    toggleFling()
 end)
 WalkFlingBtn = createButton("", "Walk Fling")
 WalkFlingBtn.Name = "WalkFlingBtn"
@@ -6981,10 +6993,14 @@ function toggleFlingAura(state)
                     end
                 end
                 hrp.CFrame = targetHRP.CFrame * CFrame.new(0, 0.2, 0)
-                hrp.Velocity = Vector3.new(999999, 999999, 999999)
+                pcall(function() hrp.Velocity = Vector3.new(999999, 999999, 999999) end)
+                pcall(function() hrp.AssemblyLinearVelocity = Vector3.new(999999, 999999, 999999) end)
+                pcall(function() hrp.AssemblyAngularVelocity = Vector3.new(999999, 999999, 999999) end)
                 RunService.RenderStepped:Wait()
                 if hrp and hrp.Parent then
-                    hrp.Velocity = Vector3.zero
+                    pcall(function() hrp.Velocity = Vector3.zero end)
+                    pcall(function() hrp.AssemblyLinearVelocity = Vector3.zero end)
+                    pcall(function() hrp.AssemblyAngularVelocity = Vector3.zero end)
                     hrp.CFrame = originalCF
                 end
             end
@@ -7070,7 +7086,9 @@ function toggleOrbitFling(state, targetPlayer)
                 end
             end
             hrp.CFrame = CFrame.new(tHrp.Position + offset, tHrp.Position)
-            hrp.Velocity = Vector3.new(999999, 999999, 999999)
+            pcall(function() hrp.Velocity = Vector3.new(999999, 999999, 999999) end)
+            pcall(function() hrp.AssemblyLinearVelocity = Vector3.new(999999, 999999, 999999) end)
+            pcall(function() hrp.AssemblyAngularVelocity = Vector3.new(999999, 999999, 999999) end)
         end)
     else
         setButtonActive(OrbitFlingBtn, false)
@@ -7089,6 +7107,7 @@ function toggleOrbitFling(state, targetPlayer)
             if hrp then
                 hrp.Velocity = Vector3.zero
                 hrp.AssemblyLinearVelocity = Vector3.zero
+                hrp.AssemblyAngularVelocity = Vector3.zero
             end
         end)
     end
@@ -15966,6 +15985,16 @@ do
                             end
                         end)
                     end
+                    if c then
+                        for _, part in ipairs(c:GetDescendants()) do
+                            if part:IsA("BasePart") then
+                                pcall(function()
+                                    if part.CanTouch ~= false then part.CanTouch = false end
+                                    if part.CanQuery ~= false then part.CanQuery = false end
+                                end)
+                            end
+                        end
+                    end
                 end)
             end
         else
@@ -15979,6 +16008,16 @@ do
                 godModeConnection = nil
             end
             local char = game.Players.LocalPlayer.Character
+            if char then
+                for _, part in ipairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        pcall(function()
+                            part.CanTouch = true
+                            part.CanQuery = true
+                        end)
+                    end
+                end
+            end
             local hum = char and char:FindFirstChildOfClass("Humanoid")
             if hum then
                 pcall(function()
@@ -17263,78 +17302,16 @@ local success, err = pcall(function()
                 end
             end
         elseif cmd == "walkfling" or cmd == "wfling" or cmd == "wf" then
-            walkFlingActive = not walkFlingActive
-            if walkFlingActive then
-                setButtonActive(WalkFlingBtn, true)
-                if walkFlingConn then walkFlingConn:Disconnect() end
-                walkFlingConn = RunService.Heartbeat:Connect(function()
-                    if not walkFlingActive then return end
-                    local char = Players.LocalPlayer and Players.LocalPlayer.Character
-                    local root = char and char:FindFirstChild("HumanoidRootPart")
-                    if root then task.spawn(doWalkFlingBurst, root) end
-                end)
-                notifyPlayer("Walk Fling", "Walk Fling aktif.")
-            else
-                setButtonActive(WalkFlingBtn, false)
-                if walkFlingConn then walkFlingConn:Disconnect(); walkFlingConn = nil end
-                notifyPlayer("Walk Fling", "Walk Fling mati.")
-            end
+            toggleWalkFling()
+            notifyPlayer("Walk Fling", walkFlingActive and "Walk Fling aktif." or "Walk Fling mati.")
         elseif cmd == "unwalkfling" or cmd == "unwfling" or cmd == "unwf" then
-            walkFlingActive = false
-            setButtonActive(WalkFlingBtn, false)
-            if walkFlingConn then walkFlingConn:Disconnect(); walkFlingConn = nil end
+            toggleWalkFling(false)
             notifyPlayer("Walk Fling", "Walk Fling mati.")
         elseif cmd == "antifling" or cmd == "af" then
-            antiFlingActive = not antiFlingActive
-            if antiFlingActive then
-                setButtonActive(AntiFlingBtn, true)
-                antiFlingTracked = {}
-                local lp = Players.LocalPlayer
-                for _, plr in ipairs(Players:GetPlayers()) do
-                    if plr ~= lp then
-                        antiFlingHookChar(plr.Character)
-                        table.insert(antiFlingConns, plr.CharacterAdded:Connect(function(char)
-                            if antiFlingActive then antiFlingHookChar(char) end
-                        end))
-                    end
-                end
-                table.insert(antiFlingConns, Players.PlayerAdded:Connect(function(plr)
-                    if plr ~= lp and antiFlingActive then
-                        if plr.Character then antiFlingHookChar(plr.Character) end
-                        table.insert(antiFlingConns, plr.CharacterAdded:Connect(function(char)
-                            if antiFlingActive then antiFlingHookChar(char) end
-                        end))
-                    end
-                end))
-                table.insert(antiFlingConns, RunService.PreSimulation:Connect(function()
-                    for p in pairs(antiFlingTracked) do
-                        pcall(function()
-                            if p and p.Parent and p.CanCollide ~= false then
-                                p.CanCollide = false
-                            end
-                        end)
-                    end
-                end))
-                notifyPlayer("Anti Fling", "Anti Fling aktif.")
-            else
-                setButtonActive(AntiFlingBtn, false)
-                for _, c in ipairs(antiFlingConns) do pcall(function() c:Disconnect() end) end
-                antiFlingConns = {}
-                for p in pairs(antiFlingTracked) do
-                    pcall(function() if p and p.Parent then p.CanCollide = true end end)
-                end
-                antiFlingTracked = {}
-                notifyPlayer("Anti Fling", "Anti Fling mati.")
-            end
+            toggleAntiFling()
+            notifyPlayer("Anti Fling", antiFlingActive and "Anti Fling aktif." or "Anti Fling mati.")
         elseif cmd == "unantifling" then
-            antiFlingActive = false
-            setButtonActive(AntiFlingBtn, false)
-            for _, c in ipairs(antiFlingConns) do pcall(function() c:Disconnect() end) end
-            antiFlingConns = {}
-            for p in pairs(antiFlingTracked) do
-                pcall(function() if p and p.Parent then p.CanCollide = true end end)
-            end
-            antiFlingTracked = {}
+            toggleAntiFling(false)
             notifyPlayer("Anti Fling", "Anti Fling mati.")
         elseif cmd == "flingaura" or cmd == "fa" then
             toggleFlingAura()
@@ -17362,14 +17339,8 @@ local success, err = pcall(function()
         elseif cmd == "flingall" or cmd == "iflingall" or cmd == "instantflingall" then
             toggleFlingAll()
         elseif cmd == "fling" or cmd == "tendang" then
-            hiddenfling = not hiddenfling
-            if hiddenfling then
-                setButtonActive(FlingBtn, true)
-                flingThread = coroutine.create(fling)
-                coroutine.resume(flingThread)
-            else
-                setButtonActive(FlingBtn, false)
-            end
+            toggleFling()
+            notifyPlayer("Fling (Tendang)", hiddenfling and "Fling aktif." or "Fling mati.")
         elseif cmd == "explorer" or cmd == "dex" then
             launchDex()
         elseif cmd == "airwalk" or cmd == "walkonair" then
