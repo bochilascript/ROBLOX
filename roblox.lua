@@ -7877,6 +7877,7 @@ function applyForce(part)
         if attachment1 then
             align.Attachment1 = attachment1
         end
+        print("[LOG] applyForce berhasil menempelkan constraint ke part: " .. tostring(part.Name))
     end
 
     if attachment1 then
@@ -7982,6 +7983,7 @@ RunService.RenderStepped:Connect(function()
 		
 		-- Transition: If we were sending but now we are not, instantly teleport parts to us
 		if lastPlistSendPartTarget and not targetPlayer then
+			pcall(function() LocalPlayer.ReplicationFocus = nil end)
 			local lpChar = LocalPlayer.Character
 			local lpHrp = lpChar and (lpChar:FindFirstChild("HumanoidRootPart") or lpChar:FindFirstChild("Torso"))
 			local safeCF = lpHrp and (lpHrp.CFrame * CFrame.new(0, 10, 0))
@@ -8019,9 +8021,7 @@ RunService.RenderStepped:Connect(function()
 		local target = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("Head"))
 		if target then
 			if targetPlayer then
-				pcall(function()
-					LocalPlayer.ReplicationFocus = target
-				end)
+				-- ReplicationFocus dihapus agar tidak kena Gameplay Paused saat target terpental
 				
 				if loopSendPartActive and loopSendPartOffset then
 					Attachment1.WorldCFrame = target.CFrame * loopSendPartOffset
@@ -8048,22 +8048,11 @@ RunService.RenderStepped:Connect(function()
 					end
 				end
 			else
-				pcall(function()
-					LocalPlayer.ReplicationFocus = nil
-				end)
 				local head = char and char:FindFirstChild("Head")
 				if head then
 					Attachment1.WorldCFrame = head.CFrame * CFrame.new(0, 10, 0)
 				else
 					Attachment1.WorldCFrame = target.CFrame * CFrame.new(0, 10, 0)
-				end
-				for v, _ in pairs(broughtParts) do
-					if v and v.Parent and v:IsA("BasePart") and not v.Anchored then
-						pcall(function() 
-							v.CanTouch = false 
-							v.CanQuery = false 
-						end)
-					end
 				end
 			end
 		end
@@ -8090,11 +8079,7 @@ function EnableNetwork()
 	if NetworkConnection then return end
 	NetworkConnection = RunService.Heartbeat:Connect(function()
 		pcall(function()
-            local plr = game:GetService("Players").LocalPlayer
-            pcall(function() sethiddenproperty(plr, "SimulationRadius", math.huge) end)
-            pcall(function() sethiddenproperty(plr, "MaxSimulationRadius", math.huge) end)
-            pcall(function() plr.MaximumSimulationRadius = math.huge end)
-            if setsimulationradius then pcall(function() setsimulationradius(math.huge) end) end
+			sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge)
 		end)
 	end)
 end
@@ -8154,13 +8139,12 @@ function ForcePart(v)
 		v.CanCollide = false
 		v.CanTouch = false
 		v.CanQuery = false
+		v.Massless = true
+		pcall(function() v.AssemblyLinearVelocity = Vector3.new(0, 50, 0) end)
 		local Torque = Instance.new("Torque", v)
-		Torque.Name = "BringTorque"
 		Torque.Torque = Vector3.new(100000, 100000, 100000)
 		local AlignPosition = Instance.new("AlignPosition", v)
-		AlignPosition.Name = "BringAlign"
 		local Attachment2 = Instance.new("Attachment", v)
-		Attachment2.Name = "BringAttachment"
 		Torque.Attachment0 = Attachment2
 		AlignPosition.MaxForce = math.huge
 		AlignPosition.MaxVelocity = math.huge
@@ -8168,6 +8152,7 @@ function ForcePart(v)
 		AlignPosition.Attachment0 = Attachment2
 		AlignPosition.Attachment1 = Attachment1
 		broughtParts[v] = true
+		print("[LOG] Berhasil menarik part: " .. tostring(v.Name))
 	end
 end
 function YeetPart(v)
@@ -8187,8 +8172,8 @@ function YeetPart(v)
 	end
 end
 function OneTimeUnanchor()
-	if getgenv().UnanchorCooldown then return end
-	getgenv().UnanchorCooldown = true
+	if _G.JSY_BringUnanchorCooldown then return end
+	_G.JSY_BringUnanchorCooldown = true
 
 	task.spawn(function()
 		local startTime = tick()
@@ -8218,6 +8203,7 @@ function OneTimeUnanchor()
 		end
 
 		getgenv().UnanchorCooldown = false
+		_G.JSY_BringUnanchorCooldown = false
 	end)
 end
 function yeetAllParts()
@@ -8308,6 +8294,7 @@ function toggleBringPart(state)
             MiniBringBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
 		EnableNetwork()
+		pcall(function() settings().Physics.AllowSleep = false end)
 
 		character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 		humanoidRootPart = character:WaitForChild("HumanoidRootPart")
@@ -8329,6 +8316,18 @@ function toggleBringPart(state)
 				ForcePart(v)
 			end
 		end)
+
+		task.spawn(function()
+			while blackHoleActive and RunService.RenderStepped:Wait() do
+				if head then
+					Attachment1.WorldCFrame = head.CFrame * CFrame.new(0, 10, 0)
+				else
+					if humanoidRootPart then
+						Attachment1.WorldCFrame = humanoidRootPart.CFrame * CFrame.new(0, 10, 0)
+					end
+				end
+			end
+		end)
 	else
 		setButtonActive(BringPartBtn, false)
         if MiniBringBtn then
@@ -8336,20 +8335,18 @@ function toggleBringPart(state)
             MiniBringBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
         end
 		DisableNetwork()
+		pcall(function() settings().Physics.AllowSleep = true end)
 		if DescendantAddedConnection then
 			DescendantAddedConnection:Disconnect()
 			DescendantAddedConnection = nil
 		end
 		for _, v in ipairs(Workspace:GetDescendants()) do
 			if v:IsA("BasePart") then
-				local torq = v:FindFirstChild("BringTorque")
-				local align = v:FindFirstChild("BringAlign")
-				local att = v:FindFirstChild("BringAttachment")
-				if torq or align or att then
+				if broughtParts[v] then
 					pcall(function()
-						if torq then torq:Destroy() end
-						if align then align:Destroy() end
-						if att then att:Destroy() end
+						if v:FindFirstChild("Torque") then v:FindFirstChild("Torque"):Destroy() end
+						if v:FindFirstChild("AlignPosition") then v:FindFirstChild("AlignPosition"):Destroy() end
+						if v:FindFirstChild("Attachment") then v:FindFirstChild("Attachment"):Destroy() end
 					end)
 				end
 			end
