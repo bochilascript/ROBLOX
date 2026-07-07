@@ -963,7 +963,7 @@ do
         end
     end
     local rusuhKeywords = {"bringpart", "tarik objek", "spectator", "penonton", "noclip", "tembus tembok", "tendang", "unanchor", "lepas kunci", "fly", "terbang", "esp", "esp team", "quick tools", "quick", "anti fling", "antifling", "fling aura", "aura fling", "orbit fling", "orbit", "click yeet", "crash server", "touch fling", "touchfling", "vehicle fly", "terbang kendaraan", "auto clicker", "autoclicker", "spam click", "walk fling", "walkfling", "hitbox", "aimbot", "fling all", "flingall", "iflingall", "ifling all", "fling semua", "loop sendpart", "loop kirim objek", "sendpart"}
-    local utilityKeywords = {"free cam", "freecam", "kamera bebas", "click tp", "clicktp", "klik tp", "speed", "kecepatan", "save wp", "savewp", "swp", "simpan lokasi", "btools", "tween tp", "tweentp", "jump power", "jumppower", "jp", "tp tool", "tptool", "invisible", "tak terlihat", "visible", "terlihat", "fps & ping", "chat logs", "chatlogs", "part inspector", "inspektur objek", "shift lock", "shiftlock", "respawn", "anti afk", "antiafk", "command bar", "cmd", "infinite jump", "lampu", "swim", "berenang", "xray", "tembus pandang", "remote spy", "rspy", "execute script", "eksekusi skrip", "low friction", "lowfriction"}
+    local utilityKeywords = {"free cam", "freecam", "kamera bebas", "click tp", "clicktp", "klik tp", "speed", "kecepatan", "save wp", "savewp", "swp", "simpan lokasi", "btools", "tween tp", "tweentp", "jump power", "jumppower", "jp", "tp tool", "tptool", "invisible", "tak terlihat", "visible", "terlihat", "fps & ping", "chat logs", "chatlogs", "part inspector", "inspektur objek", "shift lock", "shiftlock", "respawn", "anti afk", "antiafk", "command bar", "cmd", "infinite jump", "lampu", "swim", "berenang", "xray", "tembus pandang", "execute script", "eksekusi skrip", "low friction", "lowfriction"}
     local function matchesAny(text, keywords)
         local lower = string.lower(text or "")
         for _, k in ipairs(keywords) do
@@ -1149,7 +1149,6 @@ do
             moveBtnByNames("JumpTrailBtn", "Jump Trail", 21)
             moveBtnByNames("LampBtn", "Lampu", 22)
             moveBtnByNames("PartInspectorBtn", "Part Inspector", 23)
-            moveBtnByNames("RSpyBtn", "Remote Spy", 24)
             moveBtnByNames("RespawnBtn", "Respawn", 25)
             moveBtnByNames("ShiftLockBtn", "Shift Lock", 26)
             moveBtnByNames("SpeedTrailBtn", "Speed Trail", 27)
@@ -1966,9 +1965,19 @@ do
     end)
     local btnViolence = makeSmallBtn("Violence", 3.2)
     btnViolence.MouseButton1Click:Connect(function()
-        pcall(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/bochilascript/ROBLOX/refs/heads/main/violence.lua"))()
+        local success, result = pcall(function()
+            return game:HttpGet("https://raw.githubusercontent.com/bochilascript/ROBLOX/refs/heads/main/violence.lua")
         end)
+        if success then
+            local func, err = loadstring(result)
+            if func then
+                task.spawn(func)
+            else
+                warn("[Violence Error] Syntax error:", err)
+            end
+        else
+            warn("[Violence Error] Failed to fetch script:", result)
+        end
     end)
     local btnExecutor = makeSmallBtn("Executor", 3.5)
     print("[CIT Debug] Connected Executor sidebar button click event.")
