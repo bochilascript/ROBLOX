@@ -277,8 +277,9 @@ MinBtn.MouseButton1Click:Connect(function()
     Content.Visible = not minimized
 end)
 
+local triggerUnload = function() ScreenGui.Enabled = false end
 CloseBtn.MouseButton1Click:Connect(function()
-    ScreenGui.Enabled = false
+    triggerUnload()
 end)
 
 local layoutOrder = 0
@@ -1714,6 +1715,10 @@ MakeButton("Clear All ESP", function()
 end)
 
 MakeButton("Unload Script", function()
+    triggerUnload()
+end)
+
+triggerUnload = function()
     Notify("Script", "Unloading...", 1)
     task.wait(0.5)
     if godModeConnection then
