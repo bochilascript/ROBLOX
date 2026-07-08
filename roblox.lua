@@ -2164,60 +2164,47 @@ MiniFrameToggleConn = UserInputService.InputBegan:Connect(function(input, gpe)
         end
     end
 end)
-ExternalCursor = Instance.new("Frame")
+ExternalCursor = Instance.new("ImageLabel")
 ExternalCursor.Name = "ExternalCursor"
-ExternalCursor.Size = UDim2.fromOffset(18, 18)
+ExternalCursor.Size = UDim2.fromOffset(200, 200)
 ExternalCursor.AnchorPoint = Vector2.new(0.5, 0.5)
 ExternalCursor.BackgroundTransparency = 1
+ExternalCursor.Image = "rbxassetid://6065775281"
 ExternalCursor.Visible = false
 ExternalCursor.ZIndex = 1000
 ExternalCursor.Parent = ScreenGui
-do
-    local dot = Instance.new("Frame")
-    dot.Size = UDim2.fromScale(1, 1)
-    dot.BackgroundTransparency = 1
-    dot.Parent = ExternalCursor
-    local stroke = Instance.new("UIStroke")
-    stroke.Thickness = 2
-    stroke.Color = Color3.fromRGB(255, 255, 255)
-    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    stroke.Parent = dot
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(1, 0)
-    corner.Parent = dot
-end
-local mouseInPlayerList = false
-UserInputService:GetPropertyChangedSignal("MouseBehavior"):Connect(function()
-    if updateExternalCursorVisibility then
-        pcall(updateExternalCursorVisibility)
-    end
-end)
-function updateExternalCursorVisibility()
-    local playerListVis = false
-    if typeof(PlayerListFrame) == "Instance" and PlayerListFrame then
-        playerListVis = PlayerListFrame.Visible
-    end
-    
-    local miniPanelVis = false
-    if typeof(MiniPanelFrame) == "Instance" and MiniPanelFrame then
-        miniPanelVis = MiniPanelFrame.Visible
-    end
-    
+local lastExternalCursorVis = false
+RunService.RenderStepped:Connect(function()
     local mouseLocked = (UserInputService.MouseBehavior ~= Enum.MouseBehavior.Default)
     
-    if mouseLocked or mouseInPlayerList or miniPanelVis or not MainFrame.Visible then
+    local isAnyGuiVisible = false
+    if typeof(MainFrame) == "Instance" and MainFrame and MainFrame.Visible then isAnyGuiVisible = true end
+    if typeof(CmdBarFrame) == "Instance" and CmdBarFrame and CmdBarFrame.Visible then isAnyGuiVisible = true end
+    if typeof(PlayerListFrame) == "Instance" and PlayerListFrame and PlayerListFrame.Visible and PlayerListFrame.Size.Y.Offset > 50 then isAnyGuiVisible = true end
+    if typeof(MiniPanelFrame) == "Instance" and MiniPanelFrame and MiniPanelFrame.Visible and MiniPanelFrame.Size.Y.Offset > 50 then isAnyGuiVisible = true end
+    if typeof(ServerHopGui) == "Instance" and ServerHopGui and ServerHopGui.Visible and ServerHopGui.Size.Y.Offset > 50 then isAnyGuiVisible = true end
+    if typeof(WaypointListFrame) == "Instance" and WaypointListFrame and WaypointListFrame.Visible and WaypointListFrame.Size.Y.Offset > 50 then isAnyGuiVisible = true end
+    if typeof(FriendListFrame) == "Instance" and FriendListFrame and FriendListFrame.Visible and FriendListFrame.Size.Y.Offset > 50 then isAnyGuiVisible = true end
+    if typeof(ChatLogsFrame) == "Instance" and ChatLogsFrame and ChatLogsFrame.Visible and ChatLogsFrame.Size.Y.Offset > 50 then isAnyGuiVisible = true end
+    if typeof(PartScannerFrame) == "Instance" and PartScannerFrame and PartScannerFrame.Visible and PartScannerFrame.Size.Y.Offset > 50 then isAnyGuiVisible = true end
+    
+    if mouseLocked then
         ExternalCursor.Visible = false
     else
-        local cmdVis = false
-        if typeof(CmdBarFrame) == "Instance" and CmdBarFrame then cmdVis = CmdBarFrame.Visible end
-        ExternalCursor.Visible = (ScreenGui.Enabled == true) and ((MainFrame.Visible == true) or cmdVis)
+        ExternalCursor.Visible = (ScreenGui.Enabled == true) and isAnyGuiVisible
     end
-end
-ScreenGui:GetPropertyChangedSignal("Enabled"):Connect(updateExternalCursorVisibility)
-MainFrame:GetPropertyChangedSignal("Visible"):Connect(updateExternalCursorVisibility)
-updateExternalCursorVisibility()
-RunService.RenderStepped:Connect(function()
-    if ExternalCursor.Visible then
+
+    local vis = ExternalCursor.Visible
+    if vis ~= lastExternalCursorVis then
+        lastExternalCursorVis = vis
+        if vis then
+            UserInputService.MouseIconEnabled = false
+        else
+            UserInputService.MouseIconEnabled = true
+        end
+    end
+
+    if vis then
         local pos = UserInputService:GetMouseLocation()
         ExternalCursor.Position = UDim2.fromOffset(pos.X, pos.Y)
     end
@@ -2587,7 +2574,7 @@ local function isRealUnanchoredPart(v)
     if not v:IsA("BasePart") or v.Anchored then return false end
     if v:IsDescendantOf(workspace.CurrentCamera) then return false end
     local nameLower = string.lower(v.Name)
-    if nameLower == "baseplate" or v.Name == "Handle" or v.Name == "HumanoidRootPart" or v.Name == "Torso" then return false end
+    if nameLower == "baseplate" or v.Name == "HumanoidRootPart" or v.Name == "Torso" then return false end
     
     local p = v.Parent
     while p and p ~= workspace do
@@ -3292,7 +3279,7 @@ function createServerHopWindow()
     modal.Size = UDim2.new(0, 0, 0, 0)
     modal.BackgroundTransparency = 1
     modal.Text = ""
-    modal.Modal = true
+    modal.Modal = false
     modal.Parent = mainFrame
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 12)
@@ -4850,7 +4837,7 @@ function createPlayerListWindow()
     modal.Size = UDim2.new(0, 0, 0, 0)
     modal.BackgroundTransparency = 1
     modal.Text = ""
-    modal.Modal = true
+    modal.Modal = false
     modal.Parent = mainFrame
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 12)
@@ -5087,7 +5074,7 @@ function createFriendListWindow()
     modal.Size = UDim2.new(0, 0, 0, 0)
     modal.BackgroundTransparency = 1
     modal.Text = ""
-    modal.Modal = true
+    modal.Modal = false
     modal.Parent = mainFrame
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 12)
@@ -5490,7 +5477,7 @@ function createWaypointListWindow()
     modal.Size = UDim2.new(0, 0, 0, 0)
     modal.BackgroundTransparency = 1
     modal.Text = ""
-    modal.Modal = true
+    modal.Modal = false
     modal.Parent = mainFrame
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 12)
@@ -5990,7 +5977,7 @@ function createChatLogsWindow()
     modal.Size = UDim2.new(0, 0, 0, 0)
     modal.BackgroundTransparency = 1
     modal.Text = ""
-    modal.Modal = true
+    modal.Modal = false
     modal.Parent = mainFrame
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 12)
@@ -8144,8 +8131,7 @@ end
 function ForcePart(v)
 	if v:IsA("BasePart") 
 	and not v.Anchored 
-	and not v.Parent:FindFirstChildOfClass("Humanoid") 
-	and not v.Parent:FindFirstChild("Head") 
+	and not hasHumanoidAncestor(v) 
 	and v.Name ~= "Handle" then
 
 		for _, x in ipairs(v:GetChildren()) do
@@ -8215,7 +8201,7 @@ function OneTimeUnanchor()
 			end
 
 			for _, part in pairs(Workspace:GetDescendants()) do
-				if part:IsA("BasePart") and not part.Anchored then
+				if part:IsA("BasePart") and not part.Anchored and not hasHumanoidAncestor(part) then
 					part.AssemblyLinearVelocity = Vector3.new(
 						math.random(-50, 50),
 						math.random(20, 100),
@@ -8360,6 +8346,20 @@ function toggleBringPart(state)
             MiniBringBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
         end
 		DisableNetwork()
+        if DescendantAddedConnection then
+            DescendantAddedConnection:Disconnect()
+            DescendantAddedConnection = nil
+        end
+        if broughtParts then
+            for part, _ in pairs(broughtParts) do
+                if part and part.Parent then
+                    if part:FindFirstChild("Attachment") then pcall(function() part:FindFirstChild("Attachment"):Destroy() end) end
+                    if part:FindFirstChild("AlignPosition") then pcall(function() part:FindFirstChild("AlignPosition"):Destroy() end) end
+                    if part:FindFirstChild("Torque") then pcall(function() part:FindFirstChild("Torque"):Destroy() end) end
+                end
+            end
+            broughtParts = {}
+        end
 		pcall(function() settings().Physics.AllowSleep = true end)
 		if DescendantAddedConnection then
 			DescendantAddedConnection:Disconnect()
@@ -12098,6 +12098,47 @@ local function updateLoopSendPartLabel()
     end
 end
 
+local lsp1Folder = nil
+local lsp1Attachment = nil
+local lsp1DescendantConnection = nil
+local lsp1BroughtParts = {}
+
+local function LSP1_ForcePart(v)
+	if v:IsA("BasePart") 
+	and not v.Anchored 
+	and not hasHumanoidAncestor(v) 
+	and v.Name ~= "Handle" then
+		for _, x in ipairs(v:GetChildren()) do
+			if x:IsA("BodyMover") or x:IsA("RocketPropulsion") then
+				x:Destroy()
+			end
+		end
+		if v:FindFirstChild("LSP1_Attachment") then pcall(function() v:FindFirstChild("LSP1_Attachment"):Destroy() end) end
+		if v:FindFirstChild("LSP1_AlignPosition") then pcall(function() v:FindFirstChild("LSP1_AlignPosition"):Destroy() end) end
+		if v:FindFirstChild("LSP1_Torque") then pcall(function() v:FindFirstChild("LSP1_Torque"):Destroy() end) end
+
+		v.CanCollide = false
+		v.CanTouch = false
+		v.CanQuery = false
+		v.Massless = true
+        
+		local Torque = Instance.new("Torque", v)
+        Torque.Name = "LSP1_Torque"
+		Torque.Torque = Vector3.new(100000, 100000, 100000)
+		local AlignPosition = Instance.new("AlignPosition", v)
+        AlignPosition.Name = "LSP1_AlignPosition"
+		local Attachment2 = Instance.new("Attachment", v)
+        Attachment2.Name = "LSP1_Attachment"
+		Torque.Attachment0 = Attachment2
+		AlignPosition.MaxForce = math.huge
+		AlignPosition.MaxVelocity = math.huge
+		AlignPosition.Responsiveness = 200
+		AlignPosition.Attachment0 = Attachment2
+		AlignPosition.Attachment1 = lsp1Attachment
+		lsp1BroughtParts[v] = true
+	end
+end
+
 function toggleLoopSendPart()
     loopSendPartActive = not loopSendPartActive
     setButtonActive(LoopSendPartBtn, loopSendPartActive)
@@ -12108,96 +12149,82 @@ function toggleLoopSendPart()
             toggleLoopSendPartV2()
         end
         local tgtName = LoopSendPartBox.Text
-        local target = findPlayerByQuery(tgtName)
+        local target = nil
+        if tgtName:lower() == "all" then
+            target = "all"
+        else
+            target = findPlayerByQuery(tgtName)
+        end
+        
         if target then
-            LoopSendPartBox.PlaceholderText = "Target: " .. target.Name
-
-            toggleBringPart(true)
-
-            plistSendPartTarget = target
+            if target == "all" then
+                LoopSendPartBox.PlaceholderText = "Target: ALL PLAYERS"
+                plistSendPartTarget = nil
+            else
+                LoopSendPartBox.PlaceholderText = "Target: " .. target.Name
+                plistSendPartTarget = target
+            end
 
             if loopSendPartThread then pcall(task.cancel, loopSendPartThread) end
+            
+            if lsp1Folder then lsp1Folder:Destroy() end
+            lsp1Folder = Instance.new("Folder", Workspace)
+            lsp1Folder.Name = "LSP1Folder"
+            local tgtPart = Instance.new("Part", lsp1Folder)
+            tgtPart.Anchored = true
+            tgtPart.CanCollide = false
+            tgtPart.Transparency = 1
+            lsp1Attachment = Instance.new("Attachment", tgtPart)
+            
+            EnableNetwork()
+            pcall(function() settings().Physics.AllowSleep = false end)
+            if OneTimeUnanchor then pcall(OneTimeUnanchor) end
+            
+            for _, v in ipairs(GetAllPartsRecursive(Workspace)) do
+                LSP1_ForcePart(v)
+            end
+            
+            lsp1DescendantConnection = Workspace.DescendantAdded:Connect(function(v)
+                if loopSendPartActive and v:IsA("BasePart") then
+                    LSP1_ForcePart(v)
+                end
+            end)
 
             loopSendPartThread = task.spawn(function()
-                local lastPhaseChange = tick()
-                local currentPhase = "smash"
-                local currentHoverPos = nil
+                local allIndex = 1
+                local playersList = game:GetService("Players"):GetPlayers()
+                local lastSwitchTime = tick()
                 
-                while loopSendPartActive do
-                    local freshTarget = findPlayerByQuery(LoopSendPartBox.Text)
-                    if freshTarget and freshTarget ~= plistSendPartTarget then
-                        currentPhase = "smash"
-                        lastPhaseChange = tick()
-                        for v, _ in pairs(broughtParts) do
-                            pcall(function()
-                                if v and v:IsA("BasePart") then
-                                    local align = v:FindFirstChild("BringAlign")
-                                    if align then align.Enabled = false end
-                                    v.AssemblyLinearVelocity = Vector3.new(math.random(-50, 50), math.random(100, 250), math.random(-50, 50))
-                                    task.delay(0.5, function() if align and align.Parent then align.Enabled = true end end)
-                                end
-                            end)
-                        end
-                        plistSendPartTarget = freshTarget
-                    elseif freshTarget then
-                        plistSendPartTarget = freshTarget
-                    end
-                    
-                    if currentPhase == "smash" and tick() - lastPhaseChange >= 3.5 then
-                        currentPhase = "hover"
-                        lastPhaseChange = tick()
-                    elseif currentPhase == "hover" and tick() - lastPhaseChange >= 2 then
-                        currentPhase = "smash"
-                        lastPhaseChange = tick()
-                    end
-                    
-                    
-                    if currentPhase == "hover" then
-                        if not currentHoverPos then
-                            local angle = math.random() * math.pi * 2
-                            local radius = math.random(80, 120)
-                            currentHoverPos = Vector3.new(math.cos(angle) * radius, math.random(10, 40), math.sin(angle) * radius)
-                        end
-                        loopSendPartOffset = CFrame.new(currentHoverPos)
-                    else
-                        currentHoverPos = nil
-                        loopSendPartOffset = CFrame.new(0, 0, 0)
-                    end
-
-                    for v, _ in pairs(broughtParts) do
-                        pcall(function()
-                            if v and v.Parent and v:IsA("BasePart") and not v.Anchored then
-                                v.CanCollide = true
-                                v.Massless = false
-                                local align = v:FindFirstChild("BringAlign")
-                                local alignO = v:FindFirstChild("BringAlignO")
-                                local att = v:FindFirstChild("BringAttachment")
-                                
-                                if align and align.Attachment1 ~= Attachment1 then
-                                    align.Mode = Enum.PositionAlignmentMode.TwoAttachment
-                                    align.Responsiveness = 100
-                                    align.MaxForce = math.huge
-                                    align.MaxVelocity = math.huge
-                                    align.Attachment1 = Attachment1
-                                end
-                                
-                                if not alignO and att then
-                                    alignO = Instance.new("AlignOrientation", v)
-                                    alignO.Name = "BringAlignO"
-                                    alignO.Attachment0 = att
-                                    alignO.Mode = Enum.OrientationAlignmentMode.TwoAttachment
-                                    alignO.Responsiveness = 100
-                                    alignO.MaxTorque = math.huge
-                                    alignO.MaxAngularVelocity = math.huge
-                                end
-                                
-                                if alignO and alignO.Attachment1 ~= Attachment1 then
-                                    alignO.Attachment1 = Attachment1
-                                end
+                while loopSendPartActive and RunService.RenderStepped:Wait() do
+                    local query = LoopSendPartBox.Text:lower()
+                    if query == "all" then
+                        if tick() - lastSwitchTime >= 10 then
+                            lastSwitchTime = tick()
+                            playersList = game:GetService("Players"):GetPlayers()
+                            allIndex = allIndex + 1
+                            if allIndex > #playersList then
+                                allIndex = 1
                             end
-                        end)
+                        end
+                        local p = playersList[allIndex]
+                        if not p or not p.Parent or p == game:GetService("Players").LocalPlayer then
+                            lastSwitchTime = 0
+                        elseif p.Character then
+                            local hrp = p.Character:FindFirstChild("HumanoidRootPart") or p.Character:FindFirstChild("Head")
+                            if hrp and lsp1Attachment then
+                                lsp1Attachment.WorldCFrame = hrp.CFrame
+                            end
+                        end
+                    else
+                        local freshTarget = findPlayerByQuery(LoopSendPartBox.Text)
+                        if freshTarget and freshTarget.Character then
+                            plistSendPartTarget = freshTarget
+                            local hrp = freshTarget.Character:FindFirstChild("HumanoidRootPart") or freshTarget.Character:FindFirstChild("Head")
+                            if hrp and lsp1Attachment then
+                                lsp1Attachment.WorldCFrame = hrp.CFrame
+                            end
+                        end
                     end
-                    task.wait()
                 end
             end)
         else
@@ -12209,14 +12236,32 @@ function toggleLoopSendPart()
             task.delay(1.5, function() LoopSendPartBox.PlaceholderText = "Username" end)
         end
     else
-        
         if loopSendPartThread then
             pcall(task.cancel, loopSendPartThread)
             loopSendPartThread = nil
         end
-        loopSendPartOffset = CFrame.new()
         plistSendPartTarget = nil
-        toggleBringPart(false)
+        
+        if lsp1DescendantConnection then
+            lsp1DescendantConnection:Disconnect()
+            lsp1DescendantConnection = nil
+        end
+        if lsp1BroughtParts then
+            for part, _ in pairs(lsp1BroughtParts) do
+                if part and part.Parent then
+                    if part:FindFirstChild("LSP1_Attachment") then pcall(function() part:FindFirstChild("LSP1_Attachment"):Destroy() end) end
+                    if part:FindFirstChild("LSP1_AlignPosition") then pcall(function() part:FindFirstChild("LSP1_AlignPosition"):Destroy() end) end
+                    if part:FindFirstChild("LSP1_Torque") then pcall(function() part:FindFirstChild("LSP1_Torque"):Destroy() end) end
+                end
+            end
+            lsp1BroughtParts = {}
+        end
+        if lsp1Folder then
+            lsp1Folder:Destroy()
+            lsp1Folder = nil
+        end
+        DisableNetwork()
+        pcall(function() settings().Physics.AllowSleep = true end)
     end
 end
 LoopSendPartBtn.MouseButton1Click:Connect(toggleLoopSendPart)
@@ -13070,15 +13115,14 @@ function disableNoclip()
         noclipConnection:Disconnect()
         noclipConnection = nil
     end
+    -- Do NOT manually force CanCollide = true.
+    -- Roblox's physics engine will automatically restore the correct collisions on the next frame.
+    -- Forcing it manually breaks custom hitboxes in games like DBD clones.
     local char = Player.Character
     if char then
-        for _, obj in ipairs(char:GetDescendants()) do
-            if obj:IsA("BasePart") and not obj:FindFirstAncestorOfClass("Accessory") then
-                if obj.Name == "HumanoidRootPart" then continue end
-                if obj.Name == "Left Arm" or obj.Name == "Right Arm" or obj.Name == "Left Leg" or obj.Name == "Right Leg" then continue end
-                if obj.Name == "LeftHand" or obj.Name == "RightHand" or obj.Name == "LeftFoot" or obj.Name == "RightFoot" or obj.Name == "LeftLowerArm" or obj.Name == "RightLowerArm" or obj.Name == "LeftUpperArm" or obj.Name == "RightUpperArm" or obj.Name == "LeftLowerLeg" or obj.Name == "RightLowerLeg" or obj.Name == "LeftUpperLeg" or obj.Name == "RightUpperLeg" then continue end
-                pcall(function() obj.CanCollide = true end)
-            end
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            pcall(function() hum:ChangeState(Enum.HumanoidStateType.GettingUp) end)
         end
     end
 end
@@ -15989,6 +16033,7 @@ do
                             if h.Health < 50 or h.Health < h.MaxHealth then
                                 h.Health = 999999
                             end
+                            h:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
                         end)
                     end
                     if c then
@@ -18072,7 +18117,10 @@ function refreshPartScanner()
                         if stroke then stroke.Color = Color3.fromRGB(100, 180, 255) end
                     else
                         part:SetAttribute("ScannerStopped", nil)
-                        if blackHoleActive then
+                        if loopSendPartActive then
+                            part.Anchored = false
+                            pcall(function() LSP1_ForcePart(part) end)
+                        elseif blackHoleActive then
                             part.Anchored = false
                             ForcePart(part)
                         else
@@ -18168,7 +18216,7 @@ function createPartScannerWindow()
     scannerModal.Size = UDim2.new(0, 0, 0, 0)
     scannerModal.BackgroundTransparency = 1
     scannerModal.Text = ""
-    scannerModal.Modal = true
+    scannermodal.Modal = false
     local stroke = Instance.new("UIStroke", PartScannerFrame)
     stroke.Color = Color3.fromRGB(255, 255, 255)
     stroke.Thickness = 2

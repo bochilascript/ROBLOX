@@ -1,3 +1,16 @@
+local function LogVDError(featureName, errorMsg)
+    pcall(function()
+        if not isfolder("PIXECUTE_CONFIG") then makefolder("PIXECUTE_CONFIG") end
+        local existing = ""
+        if isfile("PIXECUTE_CONFIG/VD_Errors.txt") then existing = readfile("PIXECUTE_CONFIG/VD_Errors.txt") end
+        local timeStr = os.date and os.date("[%X] ") or ""
+        writefile("PIXECUTE_CONFIG/VD_Errors.txt", existing .. timeStr .. featureName .. ": " .. tostring(errorMsg) .. "\n")
+    end)
+    warn("[VD Error] " .. featureName .. ": " .. tostring(errorMsg))
+end
+
+-- Initialize file on startup
+LogVDError("System", "Script Injected Successfully")
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -433,6 +446,47 @@ end)
 local triggerUnload = function() ScreenGui.Enabled = false end
 CloseBtn.MouseButton1Click:Connect(function()
     triggerUnload()
+end)
+
+local ExternalCursor = Instance.new("ImageLabel")
+ExternalCursor.Name = "ExternalCursor"
+ExternalCursor.Size = UDim2.fromOffset(200, 200)
+ExternalCursor.AnchorPoint = Vector2.new(0.5, 0.5)
+ExternalCursor.BackgroundTransparency = 1
+ExternalCursor.Image = "rbxassetid://6065775281"
+ExternalCursor.Visible = false
+ExternalCursor.ZIndex = 1000
+ExternalCursor.Parent = ScreenGui
+
+local lastExternalCursorVis = false
+RunService.RenderStepped:Connect(function()
+    local mouseLocked = (UserInputService.MouseBehavior ~= Enum.MouseBehavior.Default)
+    
+    local isAnyGuiVisible = false
+    if typeof(MainFrame) == "Instance" and MainFrame and MainFrame.Visible and MainFrame.Size.Y.Offset > 50 then 
+        isAnyGuiVisible = true 
+    end
+    
+    if mouseLocked then
+        ExternalCursor.Visible = false
+    else
+        ExternalCursor.Visible = (ScreenGui.Enabled == true) and isAnyGuiVisible
+    end
+
+    local vis = ExternalCursor.Visible
+    if vis ~= lastExternalCursorVis then
+        lastExternalCursorVis = vis
+        if vis then
+            UserInputService.MouseIconEnabled = false
+        else
+            UserInputService.MouseIconEnabled = true
+        end
+    end
+
+    if vis then
+        local mouse = LocalPlayer:GetMouse()
+        ExternalCursor.Position = UDim2.fromOffset(mouse.X, mouse.Y)
+    end
 end)
 
 -- ============================================
@@ -1015,7 +1069,11 @@ local function refreshObjectESP()
     else
         searchArea = workspace:GetDescendants()     end
 
+    local count = 0
     for _, obj in ipairs(searchArea) do
+        count = count + 1
+        if count % 1500 == 0 then task.wait() end -- Yield to prevent freezing Roblox!
+        
         if obj:IsA("Model") then
             local name = obj.Name
             if name == "Generator" and ESPConfig.GeneratorESP then
@@ -1694,6 +1752,17 @@ if hookmetamethod and getnamecallmethod and newcclosure and checkcaller then
             local success, name = pcall(function() return self.Name end)
             if not success then return oldNamecall(self, unpack(args)) end
             
+            if method == "FireServer" and name == "Activate" and _G.VDInfFlashlight then
+                local s2, pName = pcall(function() return self.Parent.Name end)
+                if s2 and pName == "Flashlight" then
+                    if args[2] == true then
+                        _G.VDFlashlightIntendedState = true
+                    elseif args[2] == false then
+                        _G.VDFlashlightIntendedState = false
+                    end
+                end
+            end
+            
             if method == "FireServer" and (name == "CarrySurvivorEvent" or name == "HookEvent" or name == "HookPhase" or name == "PlayAnimation") then
                 print("[VD DEBUG] Carry/Hook Event detected:", name, "autoAttackActive:", autoAttackActive, "isBusyWithSurvivor:", isBusyWithSurvivor)
                 if (autoAttackActive or _G.VDBrutalAttack or _G.VDOneHitAttack) and not isBusyWithSurvivor then
@@ -1921,7 +1990,7 @@ brutalAttackToggleObj = MakeToggle("BrutalAutoAttack", "Brutal Auto Attack (TP &
                     
                     if closest and closest:FindFirstChild("HumanoidRootPart") then
                         -- Teleport close behind them so we can hit them easily
-                        if shortest > 3 then
+                        if shortest > 3 and not isCarryingSurvivor() then
                             myRoot.CFrame = closest.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
                         end
                         
@@ -2057,7 +2126,7 @@ task.spawn(function()
                             local atk = attacks:FindFirstChild("BasicAttack") or attacks:FindFirstChild("Attack")
                             if atk then 
                                 atk:FireServer() 
-                                task.wait(2.5) -- Normal attack delay so it's safe and not spammy
+                                task.wait(3.5) -- Normal attack delay so it's safe and not spammy
                             end
                         end
                     end
@@ -2068,38 +2137,44 @@ task.spawn(function()
 end)
 
 MakeToggle("AutoLeave", "Auto Leave Generator", function(val)
-    task.spawn(function()
-        while val do
-            task.wait(0.3)
-            local root = LocalPlayer.Character and getRoot(LocalPlayer.Character)
-            if root then
-                for _, p in ipairs(Players:GetPlayers()) do
-                    if p ~= LocalPlayer and p.Character then
-                        local role = p:GetAttribute("Role")
-                        if role == "Killer" then
-                            local kRoot = getRoot(p.Character)
-                            if kRoot then
-                                local dist = (root.Position - kRoot.Position).Magnitude
-                                if dist < 30 then
-                                    pcall(function()
-                                        local remotes = ReplicatedStorage:FindFirstChild("Remotes")
-                                        if remotes then
-                                            local gen = remotes:FindFirstChild("Generator")
-                                            if gen then
-                                                local leave = gen:FindFirstChild("LeaveGenerator")
-                                                if leave then leave:FireServer() end
+    _G.VDAutoLeave = val
+    if val then
+        task.spawn(function()
+            while _G.VDAutoLeave do
+                task.wait(0.3)
+                local root = LocalPlayer.Character and getRoot(LocalPlayer.Character)
+                if root then
+                    for _, p in ipairs(Players:GetPlayers()) do
+                        if p ~= LocalPlayer and p.Character then
+                            local role = p:GetAttribute("Role")
+                            if role == "Killer" then
+                                local kRoot = getRoot(p.Character)
+                                if kRoot then
+                                    local dist = (root.Position - kRoot.Position).Magnitude
+                                    if dist < 30 then
+                                        local s, err = pcall(function()
+                                            local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+                                            if remotes then
+                                                local gen = remotes:FindFirstChild("Generator")
+                                                if gen then
+                                                    local leave = gen:FindFirstChild("LeaveGenerator")
+                                                    if leave then 
+                                                        leave:FireServer()
+                                                        task.wait(1) -- PREVENT SPAMMING FIRE SERVER WHICH CAUSES FREEZE
+                                                    end
+                                                end
                                             end
-                                        end
-                                    end)
+                                        end)
+                                        if not s then LogVDError("Auto Leave", err) end
+                                    end
                                 end
                             end
                         end
                     end
                 end
             end
-            if not val then break end
-        end
-    end)
+        end)
+    end
 end)
 
 
@@ -2216,6 +2291,82 @@ end)
 
 activeCategoryName = "Survivor"
 MakeSection("SURVIVOR & HEALING")
+
+MakeToggle("InfFlashlight", "Infinite Flashlight", function(val)
+    _G.VDInfFlashlight = val
+    if val then
+        task.spawn(function()
+            while _G.VDInfFlashlight do
+                task.wait(0.1)
+                pcall(function()
+                    local char = LocalPlayer.Character
+                    if not char then _G.VDFlashlightIntendedState = false return end
+                    local flashlight = char:FindFirstChild("Flashlight")
+                    if not flashlight then _G.VDFlashlightIntendedState = false return end
+                    
+                    if flashlight:FindFirstChild("Right Arm") and flashlight["Right Arm"]:FindFirstChild("Flashlight") then
+                        local realFlashlight = flashlight["Right Arm"].Flashlight
+                        
+                        -- Force client to always think battery is 100
+                        realFlashlight:SetAttribute("remaining", 100)
+                        
+                        -- Spam true to server ONLY when user manually activates it
+                        if _G.VDFlashlightIntendedState then
+                            local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+                            if remotes and remotes:FindFirstChild("Items") and remotes.Items:FindFirstChild("Flashlight") then
+                                local act = remotes.Items.Flashlight:FindFirstChild("Activate")
+                                if act then
+                                    act:FireServer(realFlashlight, true)
+                                end
+                            end
+                        end
+                    end
+                end)
+            end
+        end)
+    end
+end)
+
+MakeToggle("AutoBlindKiller", "Auto Blind Killer (Aura)", function(val)
+    _G.VDAutoBlind = val
+    if val then
+        task.spawn(function()
+            while _G.VDAutoBlind do
+                task.wait(0.2)
+                local s, err = pcall(function()
+                    local char = LocalPlayer.Character
+                    if not char then return end
+                    local myRoot = char:FindFirstChild("HumanoidRootPart")
+                    if not myRoot then return end
+                    
+                    local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+                    if remotes and remotes:FindFirstChild("Items") and remotes.Items:FindFirstChild("Flashlight") then
+                        local gotBlinded = remotes.Items.Flashlight:FindFirstChild("GotBlinded")
+                        if gotBlinded then
+                            for _, p in ipairs(Players:GetPlayers()) do
+                                if p ~= LocalPlayer and p.Character then
+                                    local role = p:GetAttribute("Role")
+                                    if role == "Killer" then
+                                        local kRoot = p.Character:FindFirstChild("HumanoidRootPart")
+                                        if kRoot then
+                                            local dist = (kRoot.Position - myRoot.Position).Magnitude
+                                            -- Jarak 30 stud cukup jauh untuk membutakan killer
+                                            if dist < 30 then
+                                                gotBlinded:FireServer(p.Character)
+                                                task.wait(2) -- Cooldown aman biar ga crash server
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end)
+                if not s then LogVDError("Auto Blind", err) end
+            end
+        end)
+    end
+end)
 
 MakeToggle("AutoSelfUnhook", "Auto Self Unhook", function(val)
     _G.VDAutoUnhook = val
