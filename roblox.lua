@@ -46,6 +46,7 @@ local LangDict = {
     ["Menu"] = { EN = "Menu", ID = "Menu" },
     ["Fling All"] = { EN = "Fling All", ID = "Fling Semua" },
     ["Rusuh"] = { EN = "Combat", ID = "Rusuh" },
+    ["Violence"] = { EN = "Violence", ID = "Violence" },
     ["Utility"] = { EN = "Utility", ID = "Utilitas" },
     ["Waypoints"] = { EN = "Waypoints", ID = "Titik Lokasi" },
     ["Commands"] = { EN = "Commands", ID = "Perintah" },
@@ -936,6 +937,7 @@ do
         btn.TextSize = 13
         btn.Font = Enum.Font.GothamBold
         btn.TextColor3 = Color3.fromRGB(255, 50, 50)
+        btn.AutoLocalize = false
         btn.Parent = QuickPanel
         addTranslatable(btn, textKey, "Text")
         categoryButtons[textKey] = btn
@@ -1963,7 +1965,7 @@ do
     btnSpeed.MouseButton1Click:Connect(function()
         setCategory("Utility")
     end)
-    local btnViolence = makeSmallBtn("Violence", 3.2)
+    local btnViolence = makeSmallBtn("Violence", 4)
     btnViolence.MouseButton1Click:Connect(function()
         local success, result = pcall(function()
             return game:HttpGet("https://raw.githubusercontent.com/bochilascript/ROBLOX/refs/heads/main/violence.lua")
@@ -1979,7 +1981,7 @@ do
             warn("[Violence Error] Failed to fetch script:", result)
         end
     end)
-    local btnExecutor = makeSmallBtn("Executor", 3.5)
+    local btnExecutor = makeSmallBtn("Executor", 5)
     print("[CIT Debug] Connected Executor sidebar button click event.")
     btnExecutor.MouseButton1Click:Connect(function()
         print("[CIT Debug] Executor button clicked!")
@@ -1997,7 +1999,7 @@ do
             warn("[CIT Debug] ExecutorFrame is NIL!")
         end
     end)
-    local btnWaypoints = makeSmallBtn("Waypoints", 4)
+    local btnWaypoints = makeSmallBtn("Waypoints", 6)
     btnWaypoints.MouseButton1Click:Connect(function()
         if toggleWaypointListWindow then
             toggleWaypointListWindow()
@@ -2005,7 +2007,7 @@ do
             setCategory("Waypoints")
         end
     end)
-    local btnCommands = makeSmallBtn("Commands", 5)
+    local btnCommands = makeSmallBtn("Commands", 7)
     btnCommands.MouseButton1Click:Connect(function()
         if showCommandsWindow then
             showCommandsWindow()
@@ -2013,39 +2015,39 @@ do
             setCategory("Commands")
         end
     end)
-    local btnPlayers = makeSmallBtn("Players", 5.5)
+    local btnPlayers = makeSmallBtn("Players", 8)
     btnPlayers.MouseButton1Click:Connect(function()
         if togglePlayerListWindow then
             togglePlayerListWindow()
         end
     end)
-    local btnFriends = makeSmallBtn("Friends", 5.7)
+    local btnFriends = makeSmallBtn("Friends", 9)
     btnFriends.MouseButton1Click:Connect(function()
         if toggleFriendListWindow then
             toggleFriendListWindow()
         end
     end)
-    local btnCredits = makeSmallBtn("Credits", 6)
+    local btnCredits = makeSmallBtn("Credits", 10)
     btnCredits.MouseButton1Click:Connect(function()
         createCreditsWindow()
         setCategory("Credits")
     end)
-    local btnConfig = makeSmallBtn("Config", 7)
+    local btnConfig = makeSmallBtn("Config", 11)
     btnConfig.MouseButton1Click:Connect(function()
         createConfigWindow()
         setCategory("Config")
     end)
-    local btnShortcuts = makeSmallBtn("ShortcutsKey", 8)
+    local btnShortcuts = makeSmallBtn("ShortcutsKey", 12)
     btnShortcuts.MouseButton1Click:Connect(function()
         createShortcutsWindow()
         setCategory("Shortcuts")
     end)
-    local btnInfo = makeSmallBtn("Info", 9)
+    local btnInfo = makeSmallBtn("Info", 13)
     btnInfo.MouseButton1Click:Connect(function()
         createInfoWindow()
         setCategory("Info")
     end)
-    local btnChangelogs = makeSmallBtn("Changelogs", 9)
+    local btnChangelogs = makeSmallBtn("Changelogs", 14)
     btnChangelogs.MouseButton1Click:Connect(function()
         createChangelogsWindow()
         setCategory("Changelogs")
