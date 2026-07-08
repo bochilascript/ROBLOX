@@ -1684,7 +1684,8 @@ local parryNoCooldownActive = false
 local advancedRemoteSpyActive = false
 
 local oldNamecall
-oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+if hookmetamethod and getnamecallmethod and newcclosure and checkcaller then
+    oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
     local method = getnamecallmethod()
     local args = {...}
 
@@ -1811,6 +1812,7 @@ oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
     end
     return oldNamecall(self, unpack(args))
 end))
+end
 
 MakeToggle("AutoParry", "Auto Parry (Parrying Dagger)", function(val)
     autoParryActive = val

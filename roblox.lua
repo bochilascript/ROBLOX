@@ -937,7 +937,7 @@ do
         btn.TextSize = 13
         btn.Font = Enum.Font.GothamBold
         btn.TextColor3 = Color3.fromRGB(255, 50, 50)
-        btn.AutoLocalize = false
+        pcall(function() btn.AutoLocalize = false end)
         btn.Parent = QuickPanel
         addTranslatable(btn, textKey, "Text")
         categoryButtons[textKey] = btn
