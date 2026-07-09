@@ -15203,24 +15203,25 @@ mainBoxStroke.Thickness = 1
 mainBoxStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 local loopSendPartThread = nil
 
-local function updateLoopSendPartLabel()
-    if LoopSendPartBtn then
-        if loopSendPartActive then
-            LoopSendPartBtn.Text = "SendPart V1: ON"
-            LoopSendPartBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+local function updateLoopSendPartLabel(currentTargetName)
+    local labelText
+    if loopSendPartActive then
+        if currentTargetName then
+            local isAll = LoopSendPartBox and LoopSendPartBox.Text:lower() == "all"
+            labelText = isAll and ("V1: ALL → " .. currentTargetName) or ("V1: " .. currentTargetName)
         else
-            LoopSendPartBtn.Text = "SendPart V1: OFF"
-            LoopSendPartBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
+            labelText = "SendPart V1: ON"
         end
+    else
+        labelText = "SendPart V1: OFF"
+    end
+    if LoopSendPartBtn then
+        LoopSendPartBtn.Text = labelText
+        LoopSendPartBtn.TextColor3 = loopSendPartActive and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(255, 50, 50)
     end
     if MiniLoopSendPartBtn then
-        if loopSendPartActive then
-            MiniLoopSendPartBtn.Text = "SendPart V1: ON"
-            MiniLoopSendPartBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        else
-            MiniLoopSendPartBtn.Text = "SendPart V1: OFF"
-            MiniLoopSendPartBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
-        end
+        MiniLoopSendPartBtn.Text = labelText
+        MiniLoopSendPartBtn.TextColor3 = loopSendPartActive and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(255, 50, 50)
     end
 end
 
@@ -15330,7 +15331,7 @@ function toggleLoopSendPart()
 
             spectateV1Active = false
             if MiniSpectateV1Btn then
-                MiniSpectateV1Btn.Text = "Spectate V1: OFF"
+                MiniSpectateV1Btn.Text = "Spectate: OFF"
                 MiniSpectateV1Btn.TextColor3 = Color3.fromRGB(255, 50, 50)
             end
             
@@ -15338,6 +15339,7 @@ function toggleLoopSendPart()
                 local allIndex = 1
                 local playersList = game:GetService("Players"):GetPlayers()
                 local lastSwitchTime = tick()
+                local lastAllTargetName = nil
                 
                 while loopSendPartActive and RunService.RenderStepped:Wait() do
                     local query = LoopSendPartBox.Text:lower()
@@ -15354,6 +15356,14 @@ function toggleLoopSendPart()
                         if not p or not p.Parent or p == game:GetService("Players").LocalPlayer then
                             lastSwitchTime = 0
                         elseif p.Character then
+                            -- Update label jika target berubah
+                            if lastAllTargetName ~= p.Name then
+                                lastAllTargetName = p.Name
+                                local boxPlaceholder = "ALL → " .. p.Name
+                                if LoopSendPartBox then LoopSendPartBox.PlaceholderText = boxPlaceholder end
+                                if MiniLoopSendPartBox then MiniLoopSendPartBox.PlaceholderText = boxPlaceholder end
+                                updateLoopSendPartLabel(p.Name)
+                            end
                             local hrp = p.Character:FindFirstChild("HumanoidRootPart") or p.Character:FindFirstChild("Head")
                             if hrp and lsp1Attachment then
                                 lsp1Attachment.WorldCFrame = hrp.CFrame
@@ -15370,6 +15380,11 @@ function toggleLoopSendPart()
                         local freshTarget = findPlayerByQuery(LoopSendPartBox.Text)
                         if freshTarget and freshTarget.Character then
                             plistSendPartTarget = freshTarget
+                            -- Update label jika target berubah
+                            if lastAllTargetName ~= freshTarget.Name then
+                                lastAllTargetName = freshTarget.Name
+                                updateLoopSendPartLabel(freshTarget.Name)
+                            end
                             local hrp = freshTarget.Character:FindFirstChild("HumanoidRootPart") or freshTarget.Character:FindFirstChild("Head")
                             if hrp and lsp1Attachment then
                                 lsp1Attachment.WorldCFrame = hrp.CFrame
@@ -15401,7 +15416,7 @@ function toggleLoopSendPart()
         if spectateV1Active then
             spectateV1Active = false
             if MiniSpectateV1Btn then
-                MiniSpectateV1Btn.Text = "Spectate V1: OFF"
+                MiniSpectateV1Btn.Text = "Spectate: OFF"
                 MiniSpectateV1Btn.TextColor3 = Color3.fromRGB(255, 50, 50)
             end
             local camera = workspace.CurrentCamera
@@ -15438,24 +15453,25 @@ function toggleLoopSendPart()
 end
 LoopSendPartBtn.MouseButton1Click:Connect(toggleLoopSendPart)
 
-local function updateLoopSendPartV2Label()
-    if LoopSendPartV2Btn then
-        if loopSendPartV2Active then
-            LoopSendPartV2Btn.Text = "SendPart V2: ON"
-            LoopSendPartV2Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+local function updateLoopSendPartV2Label(currentTargetName)
+    local labelText
+    if loopSendPartV2Active then
+        if currentTargetName then
+            local isAll = LoopSendPartBox and LoopSendPartBox.Text:lower() == "all"
+            labelText = isAll and ("V2: ALL → " .. currentTargetName) or ("V2: " .. currentTargetName)
         else
-            LoopSendPartV2Btn.Text = "SendPart V2: OFF"
-            LoopSendPartV2Btn.TextColor3 = Color3.fromRGB(255, 50, 50)
+            labelText = "SendPart V2: ON"
         end
+    else
+        labelText = "SendPart V2: OFF"
+    end
+    if LoopSendPartV2Btn then
+        LoopSendPartV2Btn.Text = labelText
+        LoopSendPartV2Btn.TextColor3 = loopSendPartV2Active and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(255, 50, 50)
     end
     if MiniLoopSendPartV2Btn then
-        if loopSendPartV2Active then
-            MiniLoopSendPartV2Btn.Text = "SendPart V2: ON"
-            MiniLoopSendPartV2Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        else
-            MiniLoopSendPartV2Btn.Text = "SendPart V2: OFF"
-            MiniLoopSendPartV2Btn.TextColor3 = Color3.fromRGB(255, 50, 50)
-        end
+        MiniLoopSendPartV2Btn.Text = labelText
+        MiniLoopSendPartV2Btn.TextColor3 = loopSendPartV2Active and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(255, 50, 50)
     end
 end
 
@@ -15473,27 +15489,89 @@ function toggleLoopSendPartV2()
         end
         
         local tgtName = LoopSendPartBox.Text
-        local target = findPlayerByQuery(tgtName)
+        local target = nil
+        if tgtName:lower() == "all" then
+            target = "all"
+        else
+            target = findPlayerByQuery(tgtName)
+        end
+
         if target then
-            LoopSendPartBox.PlaceholderText = "Target: " .. target.Name
+            if target == "all" then
+                LoopSendPartBox.PlaceholderText = "Target: ALL PLAYERS"
+                plistSendPartTarget = nil
+            else
+                LoopSendPartBox.PlaceholderText = "Target: " .. target.Name
+                plistSendPartTarget = nil
+            end
             
-            plistSendPartTarget = nil
             toggleBringPart(true)
             
-            task.delay(0.5, function()
-                if loopSendPartV2Active then
-                    plistSendPartTarget = target
-                end
-            end)
+            if target ~= "all" then
+                task.delay(0.5, function()
+                    if loopSendPartV2Active then
+                        plistSendPartTarget = target
+                    end
+                end)
+            end
             
             if loopSendPartV2Thread then pcall(task.cancel, loopSendPartV2Thread) end
             
             loopSendPartV2Thread = task.spawn(function()
+                local allIndex = 1
+                local playersList = game:GetService("Players"):GetPlayers()
+                local lastSwitchTime = tick()
+                local lastAllTargetName = nil
+
                 while loopSendPartV2Active do
-                    local freshTarget = findPlayerByQuery(LoopSendPartBox.Text)
-                    if plistSendPartTarget then
-                        if freshTarget then
+                    local query = LoopSendPartBox.Text:lower()
+                    if query == "all" then
+                        if tick() - lastSwitchTime >= 10 then
+                            lastSwitchTime = tick()
+                            playersList = game:GetService("Players"):GetPlayers()
+                            allIndex = allIndex + 1
+                            if allIndex > #playersList then
+                                allIndex = 1
+                            end
+                        end
+                        local p = playersList[allIndex]
+                        if not p or not p.Parent or p == game:GetService("Players").LocalPlayer then
+                            lastSwitchTime = 0
+                            plistSendPartTarget = nil
+                        elseif p.Character then
+                            plistSendPartTarget = p
+                            if lastAllTargetName ~= p.Name then
+                                lastAllTargetName = p.Name
+                                local boxPlaceholder = "ALL → " .. p.Name
+                                if LoopSendPartBox then LoopSendPartBox.PlaceholderText = boxPlaceholder end
+                                if MiniLoopSendPartBox then MiniLoopSendPartBox.PlaceholderText = boxPlaceholder end
+                                updateLoopSendPartV2Label(p.Name)
+                            end
+                            if spectateV1Active then
+                                local camera = workspace.CurrentCamera
+                                local tgtHum = p.Character:FindFirstChildOfClass("Humanoid")
+                                if tgtHum and camera.CameraSubject ~= tgtHum then
+                                    camera.CameraSubject = tgtHum
+                                end
+                            end
+                        end
+                    else
+                        local freshTarget = findPlayerByQuery(LoopSendPartBox.Text)
+                        if freshTarget and freshTarget.Character then
                             plistSendPartTarget = freshTarget
+                            if lastAllTargetName ~= freshTarget.Name then
+                                lastAllTargetName = freshTarget.Name
+                                updateLoopSendPartV2Label(freshTarget.Name)
+                            end
+                            if spectateV1Active then
+                                local camera = workspace.CurrentCamera
+                                local tgtHum = freshTarget.Character:FindFirstChildOfClass("Humanoid")
+                                if tgtHum and camera.CameraSubject ~= tgtHum then
+                                    camera.CameraSubject = tgtHum
+                                end
+                            end
+                        else
+                            plistSendPartTarget = nil
                         end
                     end
                     
@@ -15514,9 +15592,21 @@ function toggleLoopSendPartV2()
             pcall(task.cancel, loopSendPartV2Thread)
             loopSendPartV2Thread = nil
         end
+        if spectateV1Active then
+            spectateV1Active = false
+            if MiniSpectateV1Btn then
+                MiniSpectateV1Btn.Text = "Spectate: OFF"
+                MiniSpectateV1Btn.TextColor3 = Color3.fromRGB(255, 50, 50)
+            end
+            local camera = workspace.CurrentCamera
+            local char = game.Players.LocalPlayer.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if hum then camera.CameraSubject = hum end
+        end
         loopSendPartOffset = CFrame.new()
         plistSendPartTarget = nil
         toggleBringPart(false)
+        updateLoopSendPartV2Label()
     end
 end
 LoopSendPartV2Btn.MouseButton1Click:Connect(toggleLoopSendPartV2)
@@ -32146,7 +32236,7 @@ do
         local lspV2Btn = Instance.new("TextButton", MiniContent)
         lspV2Btn.Name = "MiniLoopSendPartV2Btn"
         lspV2Btn.Size = UDim2.new(btnWidth, 0, 0, btnHeight)
-        lspV2Btn.Position = UDim2.new(startX, 0, 0, loopPosY + (btnHeight * 2) + (gapY * 2))
+        lspV2Btn.Position = UDim2.new(startX, 0, 0, loopPosY + btnHeight + gapY)
         lspV2Btn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
         lspV2Btn.TextColor3 = Color3.fromRGB(255, 50, 50)
         lspV2Btn.Text = "SendPart V2: OFF"
@@ -32158,10 +32248,10 @@ do
         local specV1Btn = Instance.new("TextButton", MiniContent)
         specV1Btn.Name = "MiniSpectateV1Btn"
         specV1Btn.Size = UDim2.new(btnWidth, 0, 0, btnHeight)
-        specV1Btn.Position = UDim2.new(startX, 0, 0, loopPosY + btnHeight + gapY)
+        specV1Btn.Position = UDim2.new(startX, 0, 0, loopPosY + (btnHeight * 2) + (gapY * 2))
         specV1Btn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
         specV1Btn.TextColor3 = Color3.fromRGB(255, 50, 50)
-        specV1Btn.Text = "Spectate V1: OFF"
+        specV1Btn.Text = "Spectate: OFF"
         specV1Btn.Font = Enum.Font.GothamBold
         specV1Btn.TextSize = 10
         Instance.new("UICorner", specV1Btn).CornerRadius = UDim.new(0, 6)
@@ -32308,10 +32398,10 @@ do
         MiniSpectateV1Btn.MouseButton1Click:Connect(function()
             spectateV1Active = not spectateV1Active
             if spectateV1Active then
-                MiniSpectateV1Btn.Text = "Spectate V1: ON"
+                MiniSpectateV1Btn.Text = "Spectate: ON"
                 MiniSpectateV1Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
             else
-                MiniSpectateV1Btn.Text = "Spectate V1: OFF"
+                MiniSpectateV1Btn.Text = "Spectate: OFF"
                 MiniSpectateV1Btn.TextColor3 = Color3.fromRGB(255, 50, 50)
                 local camera = workspace.CurrentCamera
                 local char = game.Players.LocalPlayer.Character
