@@ -4359,6 +4359,7 @@ function createPlayerRow(targetPlayer, index)
     end
     viewBtn.MouseButton1Click:Connect(function()
         local camera = workspace.CurrentCamera
+        local realViewBtnStroke = viewBtn:FindFirstChildOfClass("UIStroke")
         if currentSpectateTarget == targetPlayer then
             currentSpectateTarget = nil
             local char = game.Players.LocalPlayer.Character
@@ -4367,7 +4368,7 @@ function createPlayerRow(targetPlayer, index)
             viewBtn.Text = "View"
             viewBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
             viewBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
-            viewBtnStroke.Color = Color3.fromRGB(255, 50, 50)
+            if realViewBtnStroke then realViewBtnStroke.Color = Color3.fromRGB(255, 50, 50) end
         else
             currentSpectateTarget = targetPlayer
             local char = targetPlayer.Character
@@ -4376,7 +4377,7 @@ function createPlayerRow(targetPlayer, index)
             viewBtn.Text = "Stop"
             viewBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
             viewBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-            viewBtnStroke.Color = Color3.fromRGB(255, 255, 255)
+            if realViewBtnStroke then realViewBtnStroke.Color = Color3.fromRGB(255, 255, 255) end
         end
         refreshPlayerList()
     end)
@@ -8131,8 +8132,7 @@ end
 function ForcePart(v)
 	if v:IsA("BasePart") 
 	and not v.Anchored 
-	and not hasHumanoidAncestor(v) 
-	and v.Name ~= "Handle" then
+	and not hasHumanoidAncestor(v) then
 
 		for _, x in ipairs(v:GetChildren()) do
 			if x:IsA("BodyMover") or x:IsA("RocketPropulsion") then
@@ -8305,7 +8305,10 @@ function toggleBringPart(state)
             MiniBringBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
 		EnableNetwork()
-		pcall(function() settings().Physics.AllowSleep = false end)
+		pcall(function() 
+            settings().Physics.AllowSleep = false 
+            settings().Physics.PhysicsEnvironmentalThrottle = Enum.EnviromentalPhysicsThrottle.Disabled
+        end)
 
 		character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 		humanoidRootPart = character:WaitForChild("HumanoidRootPart")
@@ -8360,7 +8363,10 @@ function toggleBringPart(state)
             end
             broughtParts = {}
         end
-		pcall(function() settings().Physics.AllowSleep = true end)
+		pcall(function() 
+            settings().Physics.AllowSleep = true 
+            settings().Physics.PhysicsEnvironmentalThrottle = Enum.EnviromentalPhysicsThrottle.DefaultAuto
+        end)
 		if DescendantAddedConnection then
 			DescendantAddedConnection:Disconnect()
 			DescendantAddedConnection = nil
@@ -11923,10 +11929,10 @@ newButton(
 
 newButton(
     "Autoblock",
-    function() return string.format("[%s] [BETA] Intelligently detects and excludes spammy remote calls from logs", configs.autoblock and "ENABLED" or "DISABLED") end,
+    function() return string.format("[%s] [BETA] Intelligects detect and excludes spammy remote calls from logs", configs.autoblock and "ENABLED" or "DISABLED") end,
     function()
         configs.autoblock = not configs.autoblock
-        TextLabel.Text = string.format("[%s] [BETA] Intelligently detects and excludes spammy remote calls from logs", configs.autoblock and "ENABLED" or "DISABLED")
+        TextLabel.Text = string.format("[%s] [BETA] Intelligects detect and excludes spammy remote calls from logs", configs.autoblock and "ENABLED" or "DISABLED")
         history = {}
         excluding = {}
     end
@@ -12106,8 +12112,7 @@ local lsp1BroughtParts = {}
 local function LSP1_ForcePart(v)
 	if v:IsA("BasePart") 
 	and not v.Anchored 
-	and not hasHumanoidAncestor(v) 
-	and v.Name ~= "Handle" then
+	and not hasHumanoidAncestor(v) then
 		for _, x in ipairs(v:GetChildren()) do
 			if x:IsA("BodyMover") or x:IsA("RocketPropulsion") then
 				x:Destroy()
@@ -12121,20 +12126,27 @@ local function LSP1_ForcePart(v)
 		v.CanTouch = false
 		v.CanQuery = false
 		v.Massless = true
+		pcall(function() v.AssemblyLinearVelocity = Vector3.new(0, 50, 0) end)
         
+        local att0 = Instance.new("Attachment", v)
+        att0.Name = "LSP1_Attachment"
+		
 		local Torque = Instance.new("Torque", v)
         Torque.Name = "LSP1_Torque"
 		Torque.Torque = Vector3.new(100000, 100000, 100000)
+		Torque.Attachment0 = att0
+		
 		local AlignPosition = Instance.new("AlignPosition", v)
         AlignPosition.Name = "LSP1_AlignPosition"
-		local Attachment2 = Instance.new("Attachment", v)
-        Attachment2.Name = "LSP1_Attachment"
-		Torque.Attachment0 = Attachment2
-		AlignPosition.MaxForce = math.huge
+		AlignPosition.MaxForce = 9999999999999999
 		AlignPosition.MaxVelocity = math.huge
 		AlignPosition.Responsiveness = 200
-		AlignPosition.Attachment0 = Attachment2
+		AlignPosition.Attachment0 = att0
 		AlignPosition.Attachment1 = lsp1Attachment
+		
+		if not lsp1BroughtParts[v] then
+		    print("[LOG] Berhasil menarik part: " .. v.Name)
+		end
 		lsp1BroughtParts[v] = true
 	end
 end
@@ -12171,13 +12183,19 @@ function toggleLoopSendPart()
             lsp1Folder = Instance.new("Folder", Workspace)
             lsp1Folder.Name = "LSP1Folder"
             local tgtPart = Instance.new("Part", lsp1Folder)
+            tgtPart.Name = "LSP1_TargetPart"
             tgtPart.Anchored = true
             tgtPart.CanCollide = false
             tgtPart.Transparency = 1
             lsp1Attachment = Instance.new("Attachment", tgtPart)
+            lsp1Attachment.Name = "LSP1_MasterAttachment"
+            lsp1BroughtParts = {}
             
             EnableNetwork()
-            pcall(function() settings().Physics.AllowSleep = false end)
+            pcall(function() 
+                settings().Physics.AllowSleep = false 
+                settings().Physics.PhysicsEnvironmentalThrottle = Enum.EnviromentalPhysicsThrottle.Disabled
+            end)
             if OneTimeUnanchor then pcall(OneTimeUnanchor) end
             
             for _, v in ipairs(GetAllPartsRecursive(Workspace)) do
@@ -12186,10 +12204,16 @@ function toggleLoopSendPart()
             
             lsp1DescendantConnection = Workspace.DescendantAdded:Connect(function(v)
                 if loopSendPartActive and v:IsA("BasePart") then
-                    LSP1_ForcePart(v)
+                    task.delay(0.1, function() LSP1_ForcePart(v) end)
                 end
             end)
 
+            spectateV1Active = false
+            if MiniSpectateV1Btn then
+                MiniSpectateV1Btn.Text = "Spectate V1: OFF"
+                MiniSpectateV1Btn.TextColor3 = Color3.fromRGB(255, 50, 50)
+            end
+            
             loopSendPartThread = task.spawn(function()
                 local allIndex = 1
                 local playersList = game:GetService("Players"):GetPlayers()
@@ -12214,6 +12238,13 @@ function toggleLoopSendPart()
                             if hrp and lsp1Attachment then
                                 lsp1Attachment.WorldCFrame = hrp.CFrame
                             end
+                            if spectateV1Active then
+                                local camera = workspace.CurrentCamera
+                                local tgtHum = p.Character:FindFirstChildOfClass("Humanoid")
+                                if tgtHum and camera.CameraSubject ~= tgtHum then
+                                    camera.CameraSubject = tgtHum
+                                end
+                            end
                         end
                     else
                         local freshTarget = findPlayerByQuery(LoopSendPartBox.Text)
@@ -12222,6 +12253,13 @@ function toggleLoopSendPart()
                             local hrp = freshTarget.Character:FindFirstChild("HumanoidRootPart") or freshTarget.Character:FindFirstChild("Head")
                             if hrp and lsp1Attachment then
                                 lsp1Attachment.WorldCFrame = hrp.CFrame
+                            end
+                            if spectateV1Active then
+                                local camera = workspace.CurrentCamera
+                                local tgtHum = freshTarget.Character:FindFirstChildOfClass("Humanoid")
+                                if tgtHum and camera.CameraSubject ~= tgtHum then
+                                    camera.CameraSubject = tgtHum
+                                end
                             end
                         end
                     end
@@ -12239,6 +12277,17 @@ function toggleLoopSendPart()
         if loopSendPartThread then
             pcall(task.cancel, loopSendPartThread)
             loopSendPartThread = nil
+        end
+        if spectateV1Active then
+            spectateV1Active = false
+            if MiniSpectateV1Btn then
+                MiniSpectateV1Btn.Text = "Spectate V1: OFF"
+                MiniSpectateV1Btn.TextColor3 = Color3.fromRGB(255, 50, 50)
+            end
+            local camera = workspace.CurrentCamera
+            local char = game.Players.LocalPlayer.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if hum then camera.CameraSubject = hum end
         end
         plistSendPartTarget = nil
         
@@ -12261,7 +12310,10 @@ function toggleLoopSendPart()
             lsp1Folder = nil
         end
         DisableNetwork()
-        pcall(function() settings().Physics.AllowSleep = true end)
+        pcall(function() 
+            settings().Physics.AllowSleep = true 
+            settings().Physics.PhysicsEnvironmentalThrottle = Enum.EnviromentalPhysicsThrottle.DefaultAuto
+        end)
     end
 end
 LoopSendPartBtn.MouseButton1Click:Connect(toggleLoopSendPart)
@@ -16079,7 +16131,7 @@ do
         end
     end
     MiniPanelFrame = Instance.new("Frame")
-    MiniPanelFrame.Size = UDim2.new(0, 310, 0, 445)
+    MiniPanelFrame.Size = UDim2.new(0, 310, 0, 480)
     MiniPanelFrame.Position = UDim2.new(1, -320, 0.5, -50)
     MiniPanelFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
     MiniPanelFrame.BackgroundTransparency = 0.1
@@ -16213,7 +16265,7 @@ do
         local lspV2Btn = Instance.new("TextButton", MiniContent)
         lspV2Btn.Name = "MiniLoopSendPartV2Btn"
         lspV2Btn.Size = UDim2.new(btnWidth, 0, 0, btnHeight)
-        lspV2Btn.Position = UDim2.new(startX, 0, 0, loopPosY + btnHeight + gapY)
+        lspV2Btn.Position = UDim2.new(startX, 0, 0, loopPosY + (btnHeight * 2) + (gapY * 2))
         lspV2Btn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
         lspV2Btn.TextColor3 = Color3.fromRGB(255, 50, 50)
         lspV2Btn.Text = "SendPart V2: OFF"
@@ -16222,9 +16274,21 @@ do
         Instance.new("UICorner", lspV2Btn).CornerRadius = UDim.new(0, 6)
         MiniButtons["MiniLoopSendPartV2Btn"] = lspV2Btn
         
+        local specV1Btn = Instance.new("TextButton", MiniContent)
+        specV1Btn.Name = "MiniSpectateV1Btn"
+        specV1Btn.Size = UDim2.new(btnWidth, 0, 0, btnHeight)
+        specV1Btn.Position = UDim2.new(startX, 0, 0, loopPosY + btnHeight + gapY)
+        specV1Btn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+        specV1Btn.TextColor3 = Color3.fromRGB(255, 50, 50)
+        specV1Btn.Text = "Spectate V1: OFF"
+        specV1Btn.Font = Enum.Font.GothamBold
+        specV1Btn.TextSize = 10
+        Instance.new("UICorner", specV1Btn).CornerRadius = UDim.new(0, 6)
+        MiniButtons["MiniSpectateV1Btn"] = specV1Btn
+        
         local lspBox = Instance.new("TextBox", MiniContent)
         lspBox.Name = "MiniLoopSendPartBox"
-        lspBox.Size = UDim2.new(btnWidth, 0, 0, 2 * btnHeight + gapY)
+        lspBox.Size = UDim2.new(btnWidth, 0, 0, 3 * btnHeight + 2 * gapY)
         lspBox.Position = UDim2.new(startX + btnWidth + gapX, 0, 0, loopPosY)
         lspBox.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
         lspBox.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -16264,6 +16328,7 @@ do
     MiniFlingAllBtn = MiniButtons["MiniFlingAllBtn"]
     MiniLoopSendPartBtn = MiniButtons["MiniLoopSendPartBtn"]
     MiniLoopSendPartV2Btn = MiniButtons["MiniLoopSendPartV2Btn"]
+    MiniSpectateV1Btn = MiniButtons["MiniSpectateV1Btn"]
     MiniLoopSendPartBox = MiniButtons["MiniLoopSendPartBox"]
     MiniGodBtn = MiniButtons["MiniGodBtn"]
     MiniDexBtn = MiniButtons["MiniDexBtn"]
@@ -16356,6 +16421,24 @@ do
                 if LoopSendPartBox then LoopSendPartBox.Text = tgtName end
             end
             toggleLoopSendPartV2()
+        end)
+    end
+    if MiniSpectateV1Btn then
+        MiniSpectateV1Btn.MouseButton1Click:Connect(function()
+            spectateV1Active = not spectateV1Active
+            if spectateV1Active then
+                MiniSpectateV1Btn.Text = "Spectate V1: ON"
+                MiniSpectateV1Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            else
+                MiniSpectateV1Btn.Text = "Spectate V1: OFF"
+                MiniSpectateV1Btn.TextColor3 = Color3.fromRGB(255, 50, 50)
+                local camera = workspace.CurrentCamera
+                local char = game.Players.LocalPlayer.Character
+                local hum = char and char:FindFirstChildOfClass("Humanoid")
+                if hum then
+                    camera.CameraSubject = hum
+                end
+            end
         end)
     end
     MiniGodBtn.MouseButton1Click:Connect(function() toggleGodMode() end)
@@ -16489,7 +16572,7 @@ do
         if not MiniPanelFrame.Visible then
             isMinPanelMinimized = false
             MiniMinimizeBtn.Text = "-"
-            MiniPanelFrame.Size = UDim2.new(0, 310, 0, 525)
+            MiniPanelFrame.Size = UDim2.new(0, 310, 0, 560)
             MiniContent.Visible = true
         end
     end)
@@ -16506,7 +16589,7 @@ do
             MiniContent.Visible = false
         else
             MiniMinimizeBtn.Text = "-"
-            game:GetService("TweenService"):Create(MiniPanelFrame, TweenInfo.new(0.25), {Size = UDim2.new(0, 310, 0, 445)}):Play()
+            game:GetService("TweenService"):Create(MiniPanelFrame, TweenInfo.new(0.25), {Size = UDim2.new(0, 310, 0, 480)}):Play()
             MiniContent.Visible = true
         end
     end)
