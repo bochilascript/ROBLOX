@@ -3468,7 +3468,7 @@ MakeToggle("HitboxToggle", "Expand Hitboxes", function(val)
     end
 end)
 
-local crosshairOffsetX = -30
+local crosshairOffsetX = -33
 local crosshairOffsetY = 0
 local crosshairSize = 20
 
@@ -3501,7 +3501,7 @@ MakeToggle("CrosshairToggle", "External Crosshair", function(val)
     end
 end)
 
-MakeSlider("Crosshair X Offset", -200, 200, -30, function(val)
+MakeSlider("Crosshair X Offset", -200, 200, -33, function(val)
     crosshairOffsetX = val
     if crosshairDot and crosshairDot:FindFirstChild("Dot") then
         crosshairDot.Dot.Position = UDim2.new(0.5, crosshairOffsetX, 0.5, crosshairOffsetY)
@@ -3543,13 +3543,27 @@ local function ShootKiller()
     
     local closestPlayer = nil
     local shortestDistance = 50
+    
+    -- 1. Cari player yang role-nya "Killer" terlebih dahulu
     for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
-            if p.Team and LocalPlayer.Team and p.Team == LocalPlayer.Team then continue end
-            local dist = (p.Character.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude
-            if dist < shortestDistance then
-                shortestDistance = dist
+        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
+            if p:GetAttribute("Role") == "Killer" or (p.Team and p.Team.Name == "Killer") then
                 closestPlayer = p
+                break
+            end
+        end
+    end
+    
+    -- 2. Fallback ke player terdekat musuh jika tidak ada yang secara eksplisit bertindak sebagai Killer
+    if not closestPlayer then
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
+                if p.Team and LocalPlayer.Team and p.Team == LocalPlayer.Team then continue end
+                local dist = (p.Character.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude
+                if dist < shortestDistance then
+                    shortestDistance = dist
+                    closestPlayer = p
+                end
             end
         end
     end
@@ -3563,21 +3577,28 @@ local function ShootKiller()
                 if twist then
                     local fireRemote = twist:FindFirstChild("Fire")
                     if fireRemote then
-                        local targetPos = closestPlayer.Character.HumanoidRootPart.Position
-                        -- Aim di badan (HumanoidRootPart), bukan di Head
+                        -- Aim di Torso / UpperTorso / LowerTorso, bukan di Head
+                        local targetPart = closestPlayer.Character:FindFirstChild("UpperTorso")
+                            or closestPlayer.Character:FindFirstChild("Torso")
+                            or closestPlayer.Character:FindFirstChild("LowerTorso")
+                            or closestPlayer.Character:FindFirstChild("HumanoidRootPart")
+                        local targetPos = targetPart and targetPart.Position or closestPlayer.Character.HumanoidRootPart.Position
+                        
+                        -- Kompensasi lag/ping dengan velocity prediksi (0.08 detik ke depan)
+                        local targetHRP = closestPlayer.Character:FindFirstChild("HumanoidRootPart")
+                        if targetHRP then
+                            targetPos = targetPos + (targetHRP.AssemblyLinearVelocity * 0.08)
+                        end
                         
                         local gunPos = char.HumanoidRootPart.Position
                         if gun and gun:FindFirstChild("Handle") then gunPos = gun.Handle.Position end
                         
+                        local camera = workspace.CurrentCamera
                         local dir = (targetPos - gunPos).Unit
-                        
-                        -- Otomatis tembak beruntun (Machine Gun)
-                        task.spawn(function()
-                            for i = 1, 9 do
-                                fireRemote:FireServer(gun, dir)
-                                task.wait(0.05) -- Kasih jeda dikit biar server gak error nerimanya
-                            end
-                        end)
+                        if camera then
+                            -- Gunakan posisi kamera sebagai pangkal arah agar tidak fluktuatif/melenceng saat menempel erat
+                            dir = (targetPos - camera.CFrame.Position).Unit
+                        end
                         
                         fireRemote:FireServer(gun, dir)
                         Notify("Auto Escape", "Shot fired at killer!", 3)
@@ -3660,6 +3681,8 @@ end
 MakeButton("Shoot Killer (Escape Carry) [E]", function()
     ShootKiller()
 end)
+
+
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
@@ -15136,6 +15159,15 @@ if table.find({
     end)
 end
         print("[CIT Debug] Remote Spy Initialized Successfully!")
+    end)
+    if not success then
+        warn("[CIT Debug] Remote Spy Error: " .. tostring(err))
+    end
+end
+function loadRSpy()
+    local success, err = pcall(function()
+        print("[CIT Debug] Initializing Remote Spy...")
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/bochilascript/ROBLOX/refs/heads/main/spy.lua"))()
     end)
     if not success then
         warn("[CIT Debug] Remote Spy Error: " .. tostring(err))
