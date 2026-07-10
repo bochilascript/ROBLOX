@@ -4515,20 +4515,9 @@ MakeToggle("Fullbright", "Fullbright", function(val)
     end
 end)
 
-MakeToggle("FPSCounter", "FPS & Ping", function(val)
-    -- Cek apakah FPSPingMonitor sudah nyala
-    local isOn = false
-    pcall(function()
-        local guiParent = typeof(gethui) == "function" and gethui() or game:GetService("CoreGui")
-        if guiParent:FindFirstChild("FPSPingMonitor") then isOn = true end
-        if game.Players.LocalPlayer.PlayerGui:FindFirstChild("FPSPingMonitor") then isOn = true end
-    end)
-    
-    -- Sync dengan Toggle
-    if val ~= isOn then
-        if typeof(_G.ToggleFPSPingMonitor) == "function" then
-            _G.ToggleFPSPingMonitor()
-        end
+MakeButton("Toggle FPS & Ping Monitor", function()
+    if typeof(_G.ToggleFPSPingMonitor) == "function" then
+        _G.ToggleFPSPingMonitor()
     end
 end)
 
