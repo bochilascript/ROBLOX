@@ -3387,11 +3387,25 @@ MakeToggle("AimbotToggle", "Aimbot", function(val)
                 if gp then return end
                 if aimbotActive and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
                     local char = LocalPlayer.Character
-                    local gun = char and char:FindFirstChild("Twist of Fate")
-                    if gun then
+                    local gun = char and (char:FindFirstChild("Twist of Fate") or char:FindFirstChildWhichIsA("Tool"))
+                    if gun and (gun.Name == "Twist of Fate" or gun:FindFirstChild("Handle")) then
                         local remote = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
-                        if remote and remote:FindFirstChild("Items") and remote.Items:FindFirstChild("Twist of Fate") and remote.Items["Twist of Fate"]:FindFirstChild("Fire") then
-                            remote.Items["Twist of Fate"].Fire:FireServer(gun, Vector3.new(0,0,0))
+                        if remote and remote:FindFirstChild("Items") and remote.Items:FindFirstChild("Twist of Fate") then
+                            local twistObj = remote.Items["Twist of Fate"]
+                            local fireRemote = twistObj:FindFirstChild("Fire") or twistObj:FindFirstChild("VisualizeBullet")
+                            if fireRemote then
+                                print("[CIT DEBUG] Aimbot Click Triggered. Tool:", tostring(gun), "Remote:", tostring(fireRemote.Name))
+                                local success, err = pcall(function()
+                                    fireRemote:FireServer(gun, Vector3.new(0,0,0))
+                                end)
+                                if not success then
+                                    warn("[CIT DEBUG] Aimbot FireServer failed:", err)
+                                end
+                            else
+                                warn("[CIT DEBUG] Aimbot Fire Remote not found!")
+                            end
+                        else
+                            warn("[CIT DEBUG] Twist of Fate folder not found in Remotes!")
                         end
                     end
                 end
@@ -3468,9 +3482,9 @@ MakeToggle("HitboxToggle", "Expand Hitboxes", function(val)
     end
 end)
 
-local crosshairOffsetX = -33
-local crosshairOffsetY = 0
-local crosshairSize = 20
+local crosshairOffsetX = -20
+local crosshairOffsetY = -20
+local crosshairSize = 10
 
 MakeToggle("CrosshairToggle", "External Crosshair", function(val)
     if val then
@@ -3501,21 +3515,21 @@ MakeToggle("CrosshairToggle", "External Crosshair", function(val)
     end
 end)
 
-MakeSlider("Crosshair X Offset", -200, 200, -33, function(val)
+MakeSlider("Crosshair X Offset", -200, 200, -20, function(val)
     crosshairOffsetX = val
     if crosshairDot and crosshairDot:FindFirstChild("Dot") then
         crosshairDot.Dot.Position = UDim2.new(0.5, crosshairOffsetX, 0.5, crosshairOffsetY)
     end
 end)
 
-MakeSlider("Crosshair Y Offset", -200, 200, 0, function(val)
+MakeSlider("Crosshair Y Offset", -200, 200, -20, function(val)
     crosshairOffsetY = val
     if crosshairDot and crosshairDot:FindFirstChild("Dot") then
         crosshairDot.Dot.Position = UDim2.new(0.5, crosshairOffsetX, 0.5, crosshairOffsetY)
     end
 end)
 
-MakeSlider("Crosshair Size", 2, 30, 20, function(val)
+MakeSlider("Crosshair Size", 2, 30, 10, function(val)
     crosshairSize = val
     if crosshairDot and crosshairDot:FindFirstChild("Dot") then
         crosshairDot.Dot.Size = UDim2.new(0, crosshairSize, 0, crosshairSize)
@@ -3530,9 +3544,34 @@ local function ShootKiller()
     if not char then return end
     
     local hum = char:FindFirstChildOfClass("Humanoid")
-    local gun = char:FindFirstChild("Twist of Fate") or LocalPlayer.Backpack:FindFirstChild("Twist of Fate")
+    
+    -- Cari instansi item Twist of Fate atau skin kosmetik
+    local gun = char:FindFirstChild("Twist of Fate") 
+        or LocalPlayer.Backpack:FindFirstChild("Twist of Fate")
+        
+    -- Cek jika ada skin kosmetik di Right Arm atau Character (EmperorGun, Emperor, Awp)
+    local skinGun = char:FindFirstChild("EmperorGun") 
+        or char:FindFirstChild("Emperor") 
+        or char:FindFirstChild("Awp")
+        or (char:FindFirstChild("Right Arm") and (char["Right Arm"]:FindFirstChild("EmperorGun") or char["Right Arm"]:FindFirstChild("Emperor") or char["Right Arm"]:FindFirstChild("Awp")))
+
+    if not gun and skinGun then
+        -- Buat dummy Tool Twist of Fate sejak awal karena user menggunakan skin kosmetik
+        local dummy = Instance.new("Tool")
+        dummy.Name = "Twist of Fate"
+        pcall(function()
+            dummy.Parent = char
+        end)
+        gun = dummy
+    end
+    
+    -- Fallback ke tool apa saja jika masih belum ketemu
+    if not gun then
+        gun = char:FindFirstChildWhichIsA("Tool") or LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool")
+    end
+        
     if not gun or not hum then
-        Notify("Auto Escape", "You must have Twist of Fate!", 3)
+        Notify("Auto Escape", "You must have Twist of Fate or a Gun Skin equipped!", 3)
         return
     end
     
@@ -3542,9 +3581,9 @@ local function ShootKiller()
     end
     
     local closestPlayer = nil
-    local shortestDistance = 50
+    local shortestDistance = 60
     
-    -- 1. Cari player yang role-nya "Killer" terlebih dahulu
+    -- Cari Killer
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
             if p:GetAttribute("Role") == "Killer" or (p.Team and p.Team.Name == "Killer") then
@@ -3554,7 +3593,7 @@ local function ShootKiller()
         end
     end
     
-    -- 2. Fallback ke player terdekat musuh jika tidak ada yang secara eksplisit bertindak sebagai Killer
+    -- Fallback ke musuh terdekat
     if not closestPlayer then
         for _, p in ipairs(Players:GetPlayers()) do
             if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
@@ -3575,41 +3614,110 @@ local function ShootKiller()
             if items then
                 local twist = items:FindFirstChild("Twist of Fate")
                 if twist then
-                    local fireRemote = twist:FindFirstChild("Fire")
+                    local fireRemote = twist:FindFirstChild("Fire") or twist:FindFirstChild("VisualizeBullet")
                     if fireRemote then
-                        -- Aim di Torso / UpperTorso / LowerTorso, bukan di Head
+                        -- Bidik Torso utama killer
                         local targetPart = closestPlayer.Character:FindFirstChild("UpperTorso")
                             or closestPlayer.Character:FindFirstChild("Torso")
                             or closestPlayer.Character:FindFirstChild("LowerTorso")
                             or closestPlayer.Character:FindFirstChild("HumanoidRootPart")
                         local targetPos = targetPart and targetPart.Position or closestPlayer.Character.HumanoidRootPart.Position
                         
-                        -- Kompensasi lag/ping dengan velocity prediksi (0.08 detik ke depan)
-                        local targetHRP = closestPlayer.Character:FindFirstChild("HumanoidRootPart")
-                        if targetHRP then
-                            targetPos = targetPos + (targetHRP.AssemblyLinearVelocity * 0.08)
+                        -- Saat digendong (jaraknya di bawah 15 stud), hilangkan kompensasi velocity agar bidikan tetap 100% presisi dan tidak offset karena pergerakan killer
+                        local myPos = char:FindFirstChild("HumanoidRootPart") and char.HumanoidRootPart.Position or char.PrimaryPart.Position
+                        local actualDist = (targetPos - myPos).Magnitude
+                        if actualDist > 15 then
+                            local targetHRP = closestPlayer.Character:FindFirstChild("HumanoidRootPart")
+                            if targetHRP then
+                                targetPos = targetPos + (targetHRP.AssemblyLinearVelocity * 0.08)
+                            end
                         end
                         
-                        local gunPos = char.HumanoidRootPart.Position
+                        -- Arah peluru presisi lurus dari kita ke killer
+                        local gunPos = myPos
                         if gun and gun:FindFirstChild("Handle") then gunPos = gun.Handle.Position end
                         
-                        local camera = workspace.CurrentCamera
                         local dir = (targetPos - gunPos).Unit
-                        if camera then
-                            -- Gunakan posisi kamera sebagai pangkal arah agar tidak fluktuatif/melenceng saat menempel erat
-                            dir = (targetPos - camera.CFrame.Position).Unit
+                        
+                        -- Cari model skin fisik yang memicu event tembakan
+                        local itemArg = gun
+                        local character = LocalPlayer.Character
+                        if character then
+                            local twistOfFateTool = character:FindFirstChild("Twist of Fate")
+                            local skinInRightArm = nil
+                            if twistOfFateTool and twistOfFateTool:FindFirstChild("Right Arm") then
+                                skinInRightArm = twistOfFateTool["Right Arm"]:FindFirstChild("EmperorGun")
+                                    or twistOfFateTool["Right Arm"]:FindFirstChild("Emperor")
+                                    or twistOfFateTool["Right Arm"]:FindFirstChild("Awp")
+                            end
+                            
+                            local skinGun = skinInRightArm
+                                or character:FindFirstChild("EmperorGun") 
+                                or character:FindFirstChild("Emperor") 
+                                or character:FindFirstChild("Awp")
+                                or (character:FindFirstChild("Right Arm") and (character["Right Arm"]:FindFirstChild("EmperorGun") or character["Right Arm"]:FindFirstChild("Emperor") or character["Right Arm"]:FindFirstChild("Awp")))
+                            
+                            if skinGun then
+                                itemArg = skinGun
+                            elseif twistOfFateTool then
+                                itemArg = twistOfFateTool
+                            else
+                                local realItem = LocalPlayer.Backpack:FindFirstChild("Twist of Fate")
+                                if realItem then
+                                    itemArg = realItem
+                                else
+                                    local fallbackTool = character:FindFirstChildWhichIsA("Tool") or LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool")
+                                    if fallbackTool then
+                                        itemArg = fallbackTool
+                                    end
+                                end
+                            end
                         end
                         
-                        fireRemote:FireServer(gun, dir)
-                        Notify("Auto Escape", "Shot fired at killer!", 3)
+                        -- Console/Notif log details
+                        print("[CIT DEBUG] Gun Tool:", tostring(itemArg), "Remote:", tostring(fireRemote.Name), "Parent:", tostring(fireRemote.Parent.Name))
+                        print("[CIT DEBUG] Direction:", tostring(dir))
+
+                        local success, err = pcall(function()
+                            -- Kirim itemArg (instansi objek senjata) dan arah tembakan (dir)
+                            fireRemote:FireServer(itemArg, dir)
+                        end)
+                        if success then
+                            Notify("Auto Escape", "Shot fired: " .. tostring(fireRemote.Name) .. " with " .. tostring(itemArg.Name), 3)
+                        else
+                            Notify("Auto Escape", "Shoot Error: " .. tostring(err), 4)
+                            warn("[CIT ERROR] Shoot failed:", err)
+                        end
+                    else
+                        Notify("Auto Escape", "Remote Fire/VisualizeBullet not found!", 3)
                     end
+                else
+                    Notify("Auto Escape", "Twist of Fate folder not found in Remotes!", 3)
                 end
+            else
+                Notify("Auto Escape", "Items folder not found in Remotes!", 3)
             end
+        else
+            Notify("Auto Escape", "Remotes folder not found in ReplicatedStorage!", 3)
         end
     else
         Notify("Auto Escape", "Killer not found nearby!", 3)
     end
 end
+
+-- Bypass logic SelfDamage / misfire pistol meledak di tangan kita
+task.spawn(function()
+    pcall(function()
+        local twistFolder = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Items"):WaitForChild("Twist of Fate")
+        local fireRemote = twistFolder:WaitForChild("Fire")
+        
+        -- Hook/bypass event listener agar jika client menerima callback 'SelfDamage' dari server, kita mencegah damage-nya
+        -- Kita menghapus atau memblokir koneksi OnClientEvent yang memicu misfire/self damage animation
+        for _, connection in ipairs(getconnections(fireRemote.OnClientEvent)) do
+            connection:Disable()
+        end
+    end)
+end)
 
 local mobileEscapeBtn
 local function CreateMobileEscapeButton()
@@ -3681,7 +3789,6 @@ end
 MakeButton("Shoot Killer (Escape Carry) [E]", function()
     ShootKiller()
 end)
-
 
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
@@ -3915,41 +4022,38 @@ if hookfunction and checkcaller then
                     else
                         task.delay(1.5, function() isBusyWithSurvivor = false end)
                     end
-                elseif self.Parent and self.Parent.Name == "Twist of Fate" then
-                    if name == "Fire" and aimbotActive then
-                        local myChar = LocalPlayer.Character
-                        if myChar and myChar:FindFirstChild("HumanoidRootPart") then
-                            local myPos = myChar.HumanoidRootPart.Position
-                            local closestPlayer = nil
-                            local shortestDistance = math.huge
-                            for _, p in ipairs(Players:GetPlayers()) do
-                                if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
-                                    if p:GetAttribute("Role") == "Killer" then
-                                        local pos = p.Character.HumanoidRootPart.Position
-                                        local dist = (pos - myPos).Magnitude
-                                        if dist < shortestDistance then
-                                            shortestDistance = dist
-                                            closestPlayer = p
+                elseif self.Parent and (self.Parent.Name == "Twist of Fate" or self.Parent.Name == "VisualizeBullet" or self.Parent.Name == "Fire") then
+                    if (name == "Fire" or name == "VisualizeBullet") then
+                        if aimbotActive then
+                            local myChar = LocalPlayer.Character
+                            if myChar and myChar:FindFirstChild("HumanoidRootPart") then
+                                local myPos = myChar.HumanoidRootPart.Position
+                                local closestPlayer = nil
+                                local shortestDistance = math.huge
+                                for _, p in ipairs(Players:GetPlayers()) do
+                                    if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
+                                        if p:GetAttribute("Role") == "Killer" then
+                                            local pos = p.Character.HumanoidRootPart.Position
+                                            local dist = (pos - myPos).Magnitude
+                                            if dist < shortestDistance then
+                                                shortestDistance = dist
+                                                closestPlayer = p
+                                            end
                                         end
                                     end
                                 end
-                            end
-                            if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                                local targetPos = closestPlayer.Character.HumanoidRootPart.Position
-                                
-                                local gunPos = myPos
-                                local gun = myChar:FindFirstChild("Twist of Fate")
-                                if gun and gun:FindFirstChild("Handle") then gunPos = gun.Handle.Position end
-                                
-                                local direction = (targetPos - gunPos).Unit
-                                args[2] = direction
-                                
-                                task.spawn(function()
-                                    for i = 1, 9 do
-                                        oldFireServer(self, unpack(args))
-                                        task.wait(0.05)
-                                    end
-                                end)
+                                if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                                    local targetPos = closestPlayer.Character.HumanoidRootPart.Position
+                                    
+                                    local gunPos = myPos
+                                    local gun = myChar:FindFirstChild("Twist of Fate") or myChar:FindFirstChildWhichIsA("Tool")
+                                    if gun and gun:FindFirstChild("Handle") then gunPos = gun.Handle.Position end
+                                    
+                                    local direction = (targetPos - gunPos).Unit
+                                    args[2] = direction
+                                    
+                                    return oldFireServer(self, unpack(args))
+                                end
                             end
                         end
                     end
