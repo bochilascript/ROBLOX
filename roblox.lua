@@ -3250,32 +3250,32 @@ MakeButton("Instant Self Heal/Revive", function()
 end)
 
 MakeToggle("AutoGen", "Auto Complete Generator", function(val)
+    _G.VDAutoGenLoop = val
     if val then
-        local deleted = {}
-        pcall(function()
-            local remotes = ReplicatedStorage:FindFirstChild("Remotes")
-            if remotes then
-                local gen = remotes:FindFirstChild("Generator")
-                if gen then
-                    local names = {"SkillCheckResultEvent", "SkillCheckFailEvent", "SkillCheckEvent"}
-                    for _, n in ipairs(names) do
-                        local r = gen:FindFirstChild(n)
-                        if r then
-                            local dummy = Instance.new("RemoteEvent")
-                            dummy.Name = r.Name
-                            dummy.Parent = gen
-                            r:Destroy()
-                            table.insert(deleted, n)
+        task.spawn(function()
+            while _G.VDAutoGenLoop do
+                task.wait(1)
+                pcall(function()
+                    local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
+                    if remotes then
+                        local gen = remotes:FindFirstChild("Generator")
+                        if gen then
+                            local names = {"SkillCheckResultEvent", "SkillCheckFailEvent", "SkillCheckEvent"}
+                            for _, n in ipairs(names) do
+                                local r = gen:FindFirstChild(n)
+                                if r and not r:GetAttribute("IsDummy") then
+                                    local dummy = Instance.new("RemoteEvent")
+                                    dummy.Name = r.Name
+                                    dummy:SetAttribute("IsDummy", true)
+                                    dummy.Parent = gen
+                                    r:Destroy()
+                                end
+                            end
                         end
                     end
-                end
+                end)
             end
         end)
-        if #deleted > 0 then
-            Notify("Auto Generator", "Deleted: " .. table.concat(deleted, ", "), 4)
-        else
-            Notify("Auto Generator", "Remotes not found or already deleted", 3)
-        end
     end
 end)
 
@@ -3339,33 +3339,33 @@ end)
 local originalHealRemotes = {}
 
 MakeToggle("AntiFailHeal", "Anti-Fail Healing", function(val)
+    _G.VDAntiFailHealLoop = val
     if val then
-        local deleted = {}
-        pcall(function()
-            local remotes = ReplicatedStorage:FindFirstChild("Remotes")
-            if remotes then
-                local heal = remotes:FindFirstChild("Healing")
-                if heal then
-                    local names = {"SkillCheckResultEvent", "SkillCheckFailEvent", "SkillCheckEvent"}
-                    for _, n in ipairs(names) do
-                        local r = heal:FindFirstChild(n)
-                        if r and not originalHealRemotes[n] then
-                            originalHealRemotes[n] = r:Clone()
-                            local dummy = Instance.new("RemoteEvent")
-                            dummy.Name = r.Name
-                            dummy.Parent = heal
-                            r:Destroy()
-                            table.insert(deleted, n)
+        task.spawn(function()
+            while _G.VDAntiFailHealLoop do
+                task.wait(1)
+                pcall(function()
+                    local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
+                    if remotes then
+                        local heal = remotes:FindFirstChild("Healing")
+                        if heal then
+                            local names = {"SkillCheckResultEvent", "SkillCheckFailEvent", "SkillCheckEvent"}
+                            for _, n in ipairs(names) do
+                                local r = heal:FindFirstChild(n)
+                                if r and not r:GetAttribute("IsDummy") then
+                                    if not originalHealRemotes[n] then originalHealRemotes[n] = r:Clone() end
+                                    local dummy = Instance.new("RemoteEvent")
+                                    dummy.Name = r.Name
+                                    dummy:SetAttribute("IsDummy", true)
+                                    dummy.Parent = heal
+                                    r:Destroy()
+                                end
+                            end
                         end
                     end
-                end
+                end)
             end
         end)
-        if #deleted > 0 then
-            Notify("Anti-Fail Heal", "Dummied: " .. table.concat(deleted, ", "), 4)
-        else
-            Notify("Anti-Fail Heal", "Already dummied or not found", 3)
-        end
     end
 end)
 
@@ -4503,110 +4503,31 @@ end)
 activeCategoryName = "Visual"
 MakeSection("VISUAL")
 
-MakeToggle("Fullbright", "Fullbright", function(val)
-    if val then
-        _G._VD_OrigLighting = _G._VD_OrigLighting or {
-            Ambient = Lighting.Ambient,
-            Brightness = Lighting.Brightness,
-            ClockTime = Lighting.ClockTime,
-            FogEnd = Lighting.FogEnd,
-            GlobalShadows = Lighting.GlobalShadows,
-            OutdoorAmbient = Lighting.OutdoorAmbient,
-        }
-        Lighting.Ambient = Color3.fromRGB(200, 200, 200)
-        Lighting.Brightness = 2
-        Lighting.ClockTime = 14
-        Lighting.FogEnd = 100000
-        Lighting.GlobalShadows = false
-        Lighting.OutdoorAmbient = Color3.fromRGB(200, 200, 200)
-
-        for _, v in ipairs(Lighting:GetChildren()) do
-            if v:IsA("ColorCorrectionEffect") or v:IsA("BloomEffect") or v:IsA("BlurEffect") or v:IsA("AtmosphereEffect") or v:IsA("Atmosphere") or v:IsA("DepthOfFieldEffect") or v:IsA("SunRaysEffect") or v:IsA("Clouds") then
-                v.Enabled = false
-            end
-        end
-        
-        -- Remove fog, clouds, and smoke from Workspace
-        for _, v in ipairs(workspace:GetDescendants()) do
-            if v:IsA("Smoke") or v:IsA("ParticleEmitter") or v:IsA("Clouds") or v:IsA("FogEnd") then
-                if v:GetAttribute("OrigEnabled") == nil then
-                    v:SetAttribute("OrigEnabled", v.Enabled)
-                end
-                v.Enabled = false
-            end
-        end
-    else
-        if _G._VD_OrigLighting then
-            Lighting.Ambient = _G._VD_OrigLighting.Ambient
-            Lighting.Brightness = _G._VD_OrigLighting.Brightness
-            Lighting.ClockTime = _G._VD_OrigLighting.ClockTime
-            Lighting.FogEnd = _G._VD_OrigLighting.FogEnd
-            Lighting.GlobalShadows = _G._VD_OrigLighting.GlobalShadows
-            Lighting.OutdoorAmbient = _G._VD_OrigLighting.OutdoorAmbient
-        end
-        for _, v in ipairs(Lighting:GetChildren()) do
-            if v:IsA("ColorCorrectionEffect") or v:IsA("BloomEffect") or v:IsA("BlurEffect") or v:IsA("AtmosphereEffect") or v:IsA("Atmosphere") or v:IsA("DepthOfFieldEffect") or v:IsA("SunRaysEffect") or v:IsA("Clouds") then
-                v.Enabled = true
-            end
-        end
-        
-        -- Restore workspace elements
-        for _, v in ipairs(workspace:GetDescendants()) do
-            if v:IsA("Smoke") or v:IsA("ParticleEmitter") or v:IsA("Clouds") then
-                local orig = v:GetAttribute("OrigEnabled")
-                if orig ~= nil then
-                    v.Enabled = orig
-                end
-            end
-        end
+MakeToggle("MaxZoomViolence", "Max Zoom", function(val)
+    if toggleMaxZoom then
+        toggleMaxZoom(val)
     end
 end)
 
-local fpsActive = false
-local fpsLabel = nil
+MakeToggle("Fullbright", "Fullbright", function(val)
+    if toggleFullbright then
+        toggleFullbright(val)
+    end
+end)
 
-MakeToggle("FPSCounter", "FPS Counter", function(val)
-    fpsActive = val
-    if val then
-        if not fpsLabel then
-            local fpsGui = Instance.new("ScreenGui", GuiParent)
-            fpsGui.Name = "VD_FPS"
-            fpsGui.ResetOnSpawn = false
-            fpsGui.DisplayOrder = 200
-
-            fpsLabel = Instance.new("TextLabel", fpsGui)
-            fpsLabel.Size = UDim2.new(0, 80, 0, 24)
-            fpsLabel.Position = UDim2.new(0, 10, 0, 10)
-            fpsLabel.BackgroundColor3 = Theme.NotifBg
-            fpsLabel.BackgroundTransparency = 0.15
-            fpsLabel.BorderSizePixel = 0
-            fpsLabel.Font = Enum.Font.GothamBold
-            fpsLabel.TextSize = 12
-            fpsLabel.TextColor3 = Theme.Accent
-            fpsLabel.Text = "FPS: --"
-            Instance.new("UICorner", fpsLabel).CornerRadius = UDim.new(0, 8)
-
-            task.spawn(function()
-                local lastTime = tick()
-                local frameCount = 0
-                RunService.RenderStepped:Connect(function()
-                    frameCount = frameCount + 1
-                    local now = tick()
-                    if now - lastTime >= 1 then
-                        if fpsLabel and fpsLabel.Parent then
-                            fpsLabel.Text = "FPS: " .. frameCount
-                        end
-                        frameCount = 0
-                        lastTime = now
-                    end
-                end)
-            end)
-        end
-        fpsLabel.Visible = true
-        if fpsLabel.Parent then fpsLabel.Parent.Enabled = true end
-    else
-        if fpsLabel then
-            fpsLabel.Visible = false
+MakeToggle("FPSCounter", "FPS & Ping", function(val)
+    -- Cek apakah FPSPingMonitor sudah nyala
+    local isOn = false
+    pcall(function()
+        local guiParent = typeof(gethui) == "function" and gethui() or game:GetService("CoreGui")
+        if guiParent:FindFirstChild("FPSPingMonitor") then isOn = true end
+        if game.Players.LocalPlayer.PlayerGui:FindFirstChild("FPSPingMonitor") then isOn = true end
+    end)
+    
+    -- Sync dengan Toggle
+    if val ~= isOn then
+        if typeof(_G.ToggleFPSPingMonitor) == "function" then
+            _G.ToggleFPSPingMonitor()
         end
     end
 end)
@@ -4730,40 +4651,25 @@ MakeToggle("AutoSelfUnhook", "Auto Self Unhook", function(val)
     end
 end)
 
-local lastSelfHeal = 0
-MakeToggle("AutoSelfHeal", "Auto Self Heal", function(val)
-    _G.VDAutoHealLoop = val
-    if val then
-        task.spawn(function()
-            while _G.VDAutoHealLoop do
-                task.wait(0.5)
-                pcall(function()
-                    local char = LocalPlayer.Character
-                    if not char or not char:FindFirstChild("Humanoid") then return end
-                    local hp = char.Humanoid.Health
-                    if hp < 100 and hp > 0 then
-                        -- Fire HealEvent once every 60 seconds - do NOT fire Reset (it breaks the progress bar)
-                        if tick() - lastSelfHeal > 60 then
-                            lastSelfHeal = tick()
-                            local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
-                            if remotes and remotes:FindFirstChild("Healing") then
-                                local root = char:FindFirstChild("HumanoidRootPart")
-                                if root then
-                                    local healEv = remotes.Healing:FindFirstChild("HealEvent")
-                                    if healEv then healEv:FireServer(root, true) end
-                                end
-                            end
-                        end
-                    else
-                        -- Reset timer if full health
-                        lastSelfHeal = 0
-                    end
-                end)
+MakeButton("Instant Self Heal", function()
+    pcall(function()
+        local char = LocalPlayer.Character
+        if not char or not char:FindFirstChild("Humanoid") then return end
+        local hp = char.Humanoid.Health
+        if hp < 100 and hp > 0 then
+            local args = {
+                char:WaitForChild("HumanoidRootPart"),
+                true
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Healing"):WaitForChild("HealEvent"):FireServer(unpack(args))
+            
+            -- Menampilkan notifikasi visual sukses
+            local UIEvent = game:GetService("ReplicatedStorage"):FindFirstChild("UICommunicationEvent")
+            if UIEvent then
+                UIEvent:Fire("ShowNotification", "Healed", "Self Heal remote fired!", 2)
             end
-        end)
-    else
-        lastSelfHeal = 0 -- Reset timer when toggled off so it works immediately next time
-    end
+        end
+    end)
 end)
 
 local lastHealOthers = 0
