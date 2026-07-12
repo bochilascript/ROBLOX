@@ -1504,18 +1504,20 @@ do
         }
         local success, json = pcall(function() return HttpService:JSONEncode(config) end)
         if success then
-            if not isfolder("PIXECUTE_CONFIG") then makefolder("PIXECUTE_CONFIG") end
-            writefile("PIXECUTE_CONFIG/" .. name .. ".json", json)
-            local list = getConfigsList()
-            local found = false
-            for _, v in ipairs(list) do
-                if v == name then found = true break end
-            end
-            if not found then
-                table.insert(list, name)
-                saveConfigsList(list)
-            end
-            writefile("PIXECUTE_CONFIG/autoload.txt", name)
+            pcall(function()
+                if not isfolder("PIXECUTE_CONFIG") then makefolder("PIXECUTE_CONFIG") end
+                writefile("PIXECUTE_CONFIG/" .. name .. ".json", json)
+                local list = getConfigsList()
+                local found = false
+                for _, v in ipairs(list) do
+                    if v == name then found = true break end
+                end
+                if not found then
+                    table.insert(list, name)
+                    saveConfigsList(list)
+                end
+                writefile("PIXECUTE_CONFIG/autoload.txt", name)
+            end)
             if refreshConfigsUI then
                 refreshConfigsUI()
             end
@@ -1970,18 +1972,28 @@ do
     local btnViolence = makeSmallBtn("Violence", 4)
     btnViolence.MouseButton1Click:Connect(function()
         local func = function()
+local errorCacheVD = {}
 local function LogVDError(featureName, errorMsg)
+    local errKey = tostring(featureName) .. "_" .. tostring(errorMsg)
+    local now = os.time()
+    if errorCacheVD[errKey] and now - errorCacheVD[errKey] < 5 then return end
+    errorCacheVD[errKey] = now
+    
     pcall(function()
         if not isfolder("PIXECUTE_CONFIG") then makefolder("PIXECUTE_CONFIG") end
-        local existing = ""
-        if isfile("PIXECUTE_CONFIG/VD_Errors.txt") then existing = readfile("PIXECUTE_CONFIG/VD_Errors.txt") end
         local timeStr = os.date and os.date("[%X] ") or ""
-        writefile("PIXECUTE_CONFIG/VD_Errors.txt", existing .. timeStr .. featureName .. ": " .. tostring(errorMsg) .. "\n")
+        local logStr = timeStr .. featureName .. ": " .. tostring(errorMsg) .. "\n"
+        if type(appendfile) == "function" then
+            appendfile("PIXECUTE_CONFIG/VD_Errors.txt", logStr)
+        else
+            local existing = ""
+            if isfile("PIXECUTE_CONFIG/VD_Errors.txt") then existing = readfile("PIXECUTE_CONFIG/VD_Errors.txt") end
+            writefile("PIXECUTE_CONFIG/VD_Errors.txt", existing .. logStr)
+        end
     end)
     warn("[VD Error] " .. featureName .. ": " .. tostring(errorMsg))
 end
 
--- Initialize file on startup
 LogVDError("System", "Script Injected Successfully")
 LogVDError("EnvCheck", "hookfunction: " .. tostring(typeof(hookfunction) == "function" and "Supported" or "Nil"))
 LogVDError("EnvCheck", "hookmetamethod: " .. tostring(typeof(hookmetamethod) == "function" and "Supported" or "Nil"))
@@ -1990,9 +2002,17 @@ LogVDError("EnvCheck", "setreadonly: " .. tostring(typeof(setreadonly) == "funct
 LogVDError("EnvCheck", "make_writeable: " .. tostring(typeof(make_writeable) == "function" and "Supported" or "Nil"))
 LogVDError("EnvCheck", "checkcaller: " .. tostring(typeof(checkcaller) == "function" and "Supported" or "Nil"))
 
--- Removed global __index override to prevent C stack overflow recursion.
+pcall(function()
+    game:GetService("LogService").MessageOut:Connect(function(message, messageType)
+        if messageType == Enum.MessageType.MessageError then
+            LogVDError("ROBLOX_ERROR", message)
+        end
+    end)
+    game:GetService("ScriptContext").Error:Connect(function(message, trace, script)
+        LogVDError("LUA_ERROR", tostring(script and script.Name or "Unknown") .. " | " .. tostring(message) .. " | Trace: " .. tostring(trace))
+    end)
+end)
 
--- Removed background loop; moving bugfixes to __namecall hook for better reliability.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -2066,7 +2086,6 @@ NotifLayout.VerticalAlignment = Enum.VerticalAlignment.Top
 local function Notify(title, message, duration)
     duration = duration or 3
 
-    -- Native Roblox StarterGui Chat Message Failsafe
     pcall(function()
         game:GetService("StarterGui"):SetCore("ChatMakeSystemMessage", {
             Text = "[VD] " .. tostring(title) .. ": " .. tostring(message),
@@ -2286,9 +2305,6 @@ CloseBtn.TextSize = 12
 Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 5)
 Instance.new("UIStroke", CloseBtn).Color = Theme.Border
 
--- ============================================
--- 2-PANEL LAYOUT: Left = Categories, Right = Content
--- ============================================
 
 local BodyFrame = Instance.new("Frame", MainFrame)
 BodyFrame.Name = "Body"
@@ -2297,7 +2313,6 @@ BodyFrame.Position = UDim2.new(0, 0, 0, HEADER_HEIGHT)
 BodyFrame.BackgroundTransparency = 1
 BodyFrame.BorderSizePixel = 0
 
--- Left Panel (Category Buttons)
 local LeftPanel = Instance.new("Frame", BodyFrame)
 LeftPanel.Name = "LeftPanel"
 LeftPanel.Size = UDim2.new(0, LEFT_PANEL_WIDTH, 1, 0)
@@ -2334,7 +2349,6 @@ catPadding.PaddingTop = UDim.new(0, 4)
 catPadding.PaddingLeft = UDim.new(0, 4)
 catPadding.PaddingRight = UDim.new(0, 4)
 
--- Right Panel (Content)
 local RightPanel = Instance.new("Frame", BodyFrame)
 RightPanel.Name = "RightPanel"
 RightPanel.Size = UDim2.new(1, -LEFT_PANEL_WIDTH, 1, 0)
@@ -2358,9 +2372,6 @@ local ContentLayout = Instance.new("UIListLayout", Content)
 ContentLayout.Padding = UDim.new(0, 4)
 ContentLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
--- ============================================
--- CATEGORY SYSTEM
--- ============================================
 
 local currentCategory = nil
 local categoryButtons = {}
@@ -2379,7 +2390,6 @@ local categories = {
 
 local function setCategory(catName)
     currentCategory = catName
-    -- Update button visuals
     for name, btn in pairs(categoryButtons) do
         if name == catName then
             TweenService:Create(btn, TweenInfo.new(0.15), {
@@ -2395,7 +2405,6 @@ local function setCategory(catName)
             btn.TextColor3 = Theme.TextDim
         end
     end
-    -- Show/hide items
     for name, items in pairs(categoryItems) do
         local show = (name == catName)
         for _, item in ipairs(items) do
@@ -2404,7 +2413,6 @@ local function setCategory(catName)
     end
 end
 
--- Create category buttons
 for i, cat in ipairs(categories) do
     local btn = Instance.new("TextButton", CategoryScroll)
     btn.Name = "Cat_" .. cat.name
@@ -2440,9 +2448,6 @@ for i, cat in ipairs(categories) do
     end)
 end
 
--- ============================================
--- MINIMIZE / CLOSE / TOGGLE
--- ============================================
 
 local minimized = false
 local fullSize = UDim2.new(0, WINDOW_WIDTH, 0, WINDOW_HEIGHT)
@@ -2461,9 +2466,6 @@ CloseBtn.MouseButton1Click:Connect(function()
     triggerUnload()
 end)
 
--- ============================================
--- HELPER FUNCTIONS (Category-aware)
--- ============================================
 
 local layoutOrder = 0
 local function nextOrder()
@@ -2471,7 +2473,6 @@ local function nextOrder()
     return layoutOrder
 end
 
--- Register an item to the currently active category
 local function registerItem(item)
     if activeCategoryName and categoryItems[activeCategoryName] then
         table.insert(categoryItems[activeCategoryName], item)
@@ -2746,7 +2747,6 @@ local function CreatePlayerESP(plr)
     if not plr.Character or not getRoot(plr.Character) then return end
     if ESPFolder:FindFirstChild(plr.Name .. "_ESP") then return end
 
-    -- Removed team check so it shows ESP for survivors too
     
     local holder = Instance.new("Folder")
     holder.Name = plr.Name .. "_ESP"
@@ -2926,14 +2926,11 @@ local function createObjectESP(tag, obj, displayName, color, showPercent)
 
             local display = displayName
             if showPercent then
-                -- Helper robust untuk mencari progress dari attribute atau Value object
                 local function getObjectProgress(targetObj)
                     if not targetObj then return 0 end
-                    -- Fast check attributes
                     local progAttr = targetObj:GetAttribute("Progress") or targetObj:GetAttribute("RepairProgress") or targetObj:GetAttribute("OpenProgress") or targetObj:GetAttribute("ActivationProgress")
                     if progAttr then return progAttr end
                     
-                    -- Check Value Objects
                     for _, name in ipairs({"Progress", "RepairProgress", "OpenProgress", "ActivationProgress"}) do
                         local valObj = targetObj:FindFirstChild(name)
                         if valObj and (valObj:IsA("NumberValue") or valObj:IsA("IntValue") or valObj:IsA("DoubleConstrainedValue")) then
@@ -2941,7 +2938,6 @@ local function createObjectESP(tag, obj, displayName, color, showPercent)
                         end
                     end
                     
-                    -- Check Main/Head part if it exists
                     local main = targetObj:FindFirstChild("Main") or targetObj:FindFirstChild("Head") or targetObj:FindFirstChildWhichIsA("BasePart")
                     if main then
                         local mAttr = main:GetAttribute("Progress") or main:GetAttribute("RepairProgress") or main:GetAttribute("OpenProgress") or main:GetAttribute("ActivationProgress")
@@ -2955,7 +2951,6 @@ local function createObjectESP(tag, obj, displayName, color, showPercent)
                         end
                     end
                     
-                    -- Check parent attributes
                     if targetObj.Parent then
                         local pAttr = targetObj.Parent:GetAttribute("Progress") or targetObj.Parent:GetAttribute("RepairProgress") or targetObj.Parent:GetAttribute("OpenProgress") or targetObj.Parent:GetAttribute("ActivationProgress")
                         if pAttr then return pAttr end
@@ -3028,7 +3023,6 @@ local function refreshObjectESP()
     while #queue > 0 do
         local obj = table.remove(queue, #queue)
         
-        -- Add children to queue
         for _, child in ipairs(obj:GetChildren()) do
             table.insert(queue, child)
         end
@@ -3053,7 +3047,6 @@ local function refreshObjectESP()
                 end
             elseif name == "Hook" and ESPConfig.HookESP then
                 if ESPConfig.ShowClosestHookOnly then
-                    -- Process closest hook at the end
                 else
                     createObjectESP("HookESP", obj, "Hook", ESPColors.Hook, false)
                 end
@@ -3162,7 +3155,6 @@ MakeToggle("KebalTwistOfFate", "Kebal Twist of Fate", function(val)
                     end)
                 end
                 
-                -- Auto Self-Revive / Restore Collision if Knocked or Dead
                 if c and (c:GetAttribute("Knocked") or c:GetAttribute("IsDead") or (h and h.Health <= 1)) then
                     pcall(function()
                         local remotes = ReplicatedStorage:FindFirstChild("Remotes")
@@ -3179,14 +3171,12 @@ MakeToggle("KebalTwistOfFate", "Kebal Twist of Fate", function(val)
                     end)
                 end
                 
-                -- Bypassing Interaction blocks by spoofing Attributes locally
                 if c then
                     pcall(function()
                         if c:GetAttribute("Knocked") == true then c:SetAttribute("Knocked", false) end
                         if c:GetAttribute("Winded") == true then c:SetAttribute("Winded", false) end
                         if c:GetAttribute("IsDead") == true then c:SetAttribute("IsDead", false) end
                         
-                        -- Destroy the Winded GUI/Value object if it exists (from the screenshot: Values -> status -> Winded)
                         local searchAreas = {c, LocalPlayer:FindFirstChild("PlayerGui")}
                         for _, area in ipairs(searchAreas) do
                             if area then
@@ -3548,18 +3538,15 @@ local function ShootKiller()
     
     local hum = char:FindFirstChildOfClass("Humanoid")
     
-    -- Cari instansi item Twist of Fate atau skin kosmetik
     local gun = char:FindFirstChild("Twist of Fate") 
         or LocalPlayer.Backpack:FindFirstChild("Twist of Fate")
         
-    -- Cek jika ada skin kosmetik di Right Arm atau Character (EmperorGun, Emperor, Awp)
     local skinGun = char:FindFirstChild("EmperorGun") 
         or char:FindFirstChild("Emperor") 
         or char:FindFirstChild("Awp")
         or (char:FindFirstChild("Right Arm") and (char["Right Arm"]:FindFirstChild("EmperorGun") or char["Right Arm"]:FindFirstChild("Emperor") or char["Right Arm"]:FindFirstChild("Awp")))
 
     if not gun and skinGun then
-        -- Buat dummy Tool Twist of Fate sejak awal karena user menggunakan skin kosmetik
         local dummy = Instance.new("Tool")
         dummy.Name = "Twist of Fate"
         pcall(function()
@@ -3568,7 +3555,6 @@ local function ShootKiller()
         gun = dummy
     end
     
-    -- Fallback ke tool apa saja jika masih belum ketemu
     if not gun then
         gun = char:FindFirstChildWhichIsA("Tool") or LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool")
     end
@@ -3586,7 +3572,6 @@ local function ShootKiller()
     local closestPlayer = nil
     local shortestDistance = 60
     
-    -- Cari Killer
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
             if p:GetAttribute("Role") == "Killer" or (p.Team and p.Team.Name == "Killer") then
@@ -3596,7 +3581,6 @@ local function ShootKiller()
         end
     end
     
-    -- Fallback ke musuh terdekat
     if not closestPlayer then
         for _, p in ipairs(Players:GetPlayers()) do
             if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
@@ -3619,14 +3603,12 @@ local function ShootKiller()
                 if twist then
                     local fireRemote = twist:FindFirstChild("Fire") or twist:FindFirstChild("VisualizeBullet")
                     if fireRemote then
-                        -- Bidik Torso utama killer
                         local targetPart = closestPlayer.Character:FindFirstChild("UpperTorso")
                             or closestPlayer.Character:FindFirstChild("Torso")
                             or closestPlayer.Character:FindFirstChild("LowerTorso")
                             or closestPlayer.Character:FindFirstChild("HumanoidRootPart")
                         local targetPos = targetPart and targetPart.Position or closestPlayer.Character.HumanoidRootPart.Position
                         
-                        -- Saat digendong (jaraknya di bawah 15 stud), hilangkan kompensasi velocity agar bidikan tetap 100% presisi dan tidak offset karena pergerakan killer
                         local myPos = char:FindFirstChild("HumanoidRootPart") and char.HumanoidRootPart.Position or char.PrimaryPart.Position
                         local actualDist = (targetPos - myPos).Magnitude
                         if actualDist > 15 then
@@ -3636,13 +3618,11 @@ local function ShootKiller()
                             end
                         end
                         
-                        -- Arah peluru presisi lurus dari kita ke killer
                         local gunPos = myPos
                         if gun and gun:FindFirstChild("Handle") then gunPos = gun.Handle.Position end
                         
                         local dir = (targetPos - gunPos).Unit
                         
-                        -- Cari model skin fisik yang memicu event tembakan
                         local itemArg = gun
                         local character = LocalPlayer.Character
                         if character then
@@ -3677,12 +3657,10 @@ local function ShootKiller()
                             end
                         end
                         
-                        -- Console/Notif log details
                         print("[CIT DEBUG] Gun Tool:", tostring(itemArg), "Remote:", tostring(fireRemote.Name), "Parent:", tostring(fireRemote.Parent.Name))
                         print("[CIT DEBUG] Direction:", tostring(dir))
 
                         local success, err = pcall(function()
-                            -- Kirim itemArg (instansi objek senjata) dan arah tembakan (dir)
                             fireRemote:FireServer(itemArg, dir)
                         end)
                         if success then
@@ -3708,14 +3686,11 @@ local function ShootKiller()
     end
 end
 
--- Bypass logic SelfDamage / misfire pistol meledak di tangan kita
 task.spawn(function()
     pcall(function()
-        local twistFolder = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Items"):WaitForChild("Twist of Fate")
-        local fireRemote = twistFolder:WaitForChild("Fire")
+        local twistFolder = ReplicatedStorage:WaitForChild("Remotes", 999999):WaitForChild("Items", 999999):WaitForChild("Twist of Fate", 999999)
+        local fireRemote = twistFolder:WaitForChild("Fire", 999999)
         
-        -- Hook/bypass event listener agar jika client menerima callback 'SelfDamage' dari server, kita mencegah damage-nya
-        -- Kita menghapus atau memblokir koneksi OnClientEvent yang memicu misfire/self damage animation
         for _, connection in ipairs(getconnections(fireRemote.OnClientEvent)) do
             connection:Disable()
         end
@@ -3730,7 +3705,6 @@ local function CreateMobileEscapeButton()
     sg.Name = "VDEscapeMobileUI"
     sg.ResetOnSpawn = false
     
-    -- safe parent
     local coreGui = game:GetService("CoreGui")
     if coreGui then
         sg.Parent = coreGui
@@ -3817,7 +3791,10 @@ MakeToggle("NoAimShiftToggle", "Disable Aim Camera Shift", function(val)
     end
 end)
 
+_G.VDAutoCarryFailsafe = false
+
 local function isCarryingSurvivor()
+    if not _G.VDAutoCarryFailsafe then return false end
     local char = LocalPlayer.Character
     if not char then return false end
     for _, v in ipairs(char:GetDescendants()) do
@@ -3850,11 +3827,9 @@ local advancedRemoteSpyActive = false
 
 local lastAssetLoadReset = tick()
 
--- Prevent infinite yields on VM and Melee by proactively creating dummy assets when needed
 task.spawn(function()
-    -- Prevent infinite yields on ReplicatedStorage.Animations:WaitForChild("Melee")
     task.spawn(function()
-        local animations = ReplicatedStorage:WaitForChild("Animations")
+        local animations = ReplicatedStorage:WaitForChild("Animations", 999999)
         while true do
             if tick() - lastAssetLoadReset > 6 then
                 if not animations:FindFirstChild("Melee") then
@@ -3871,7 +3846,6 @@ task.spawn(function()
         end
     end)
 
-    -- Prevent infinite yields on Workspace.Camera:WaitForChild("VM")
     task.spawn(function()
         local camera = workspace.CurrentCamera or workspace:WaitForChild("Camera")
         while true do
@@ -3892,9 +3866,8 @@ task.spawn(function()
     end)
 end)
 
--- Auto-cleanup dummy VM and Melee when the game loads the real ones
 task.spawn(function()
-    local animations = ReplicatedStorage:WaitForChild("Animations")
+    local animations = ReplicatedStorage:WaitForChild("Animations", 999999)
     animations.ChildAdded:Connect(function(child)
         if child.Name == "Melee" and child:IsA("Animation") and child.AnimationId ~= "rbxassetid://0" and child.AnimationId ~= "" then
             pcall(function()
@@ -3944,9 +3917,7 @@ if hookfunction and checkcaller then
                 end
                 
                 if name == "CarrySurvivorEvent" or name == "HookEvent" or name == "HookPhase" or name == "PlayAnimation" then
-                    -- PlayAnimation dikembalikan untuk Killer, tapi LogExploit dimatikan agar tidak spam/freeze
-                    -- LogExploit("[VD DEBUG] Carry/Hook Event detected: " .. tostring(name) .. " autoAttackActive: " .. tostring(autoAttackActive) .. " isBusyWithSurvivor: " .. tostring(isBusyWithSurvivor))
-                    if (autoAttackActive or _G.VDBrutalAttack or _G.VDOneHitAttack or killAllActive) and not isBusyWithSurvivor then
+                    if _G.VDAutoCarryFailsafe and (autoAttackActive or _G.VDBrutalAttack or _G.VDOneHitAttack or killAllActive) and not isBusyWithSurvivor then
                         isBusyWithSurvivor = true
                         hasCarryStarted = false
                         lastCarryStartTime = tick()
@@ -3987,7 +3958,7 @@ if hookfunction and checkcaller then
                     end
                 elseif name == "HookEventsucceess" or name == "HookCommit" or name == "HookReject" or name == "UnhookSuccess" or name == "UnHookEvent" then
                     LogExploit("[VD DEBUG] Drop/Hook Success Event detected: " .. tostring(name) .. " wasAutoAttackEnabled: " .. tostring(wasAutoAttackEnabled) .. " wasBrutalAttackEnabled: " .. tostring(wasBrutalAttackEnabled))
-                    if wasAutoAttackEnabled or wasBrutalAttackEnabled or wasOneHitEnabled or wasKillAllEnabled then
+                    if _G.VDAutoCarryFailsafe and (wasAutoAttackEnabled or wasBrutalAttackEnabled or wasOneHitEnabled or wasKillAllEnabled) then
                         local hadAuto = wasAutoAttackEnabled
                         local hadBrutal = wasBrutalAttackEnabled
                         local hadOneHit = wasOneHitEnabled
@@ -4060,14 +4031,6 @@ if hookfunction and checkcaller then
                                 end
                             end
                         end
-                    end
-                end
-                
-                if kebalTwistActive then
-                    local lowerName = name:lower()
-                    if lowerName:find("fail") or lowerName:find("explode") or lowerName:find("damage") or lowerName:find("knock") then
-                        print("[VD DEBUG] Blocked suspected Twist of Fate remote:", name, "Parent:", self.Parent and self.Parent.Name)
-                        return
                     end
                 end
             end
@@ -4152,7 +4115,6 @@ brutalAttackToggleObj = MakeToggle("BrutalAutoAttack", "Brutal Auto Attack (TP &
             while _G.VDBrutalAttack or wasBrutalAttackEnabled do
                 task.wait() -- Wait to reduce CPU lag
                 
-                -- Skip execution while carrying but keep the loop alive until they toggle it off entirely
                 if not _G.VDBrutalAttack and wasBrutalAttackEnabled then
                     task.wait(0.5)
                     continue
@@ -4167,7 +4129,6 @@ brutalAttackToggleObj = MakeToggle("BrutalAutoAttack", "Brutal Auto Attack (TP &
                     local closest = nil
                     local shortest = math.huge
                     
-                    -- Find closest alive survivor
                     for _, p in ipairs(Players:GetPlayers()) do
                         if p ~= LocalPlayer and p.Team ~= LocalPlayer.Team and p.Character then
                             local root = p.Character:FindFirstChild("HumanoidRootPart")
@@ -4184,17 +4145,14 @@ brutalAttackToggleObj = MakeToggle("BrutalAutoAttack", "Brutal Auto Attack (TP &
                     end
                     
                     if closest and closest:FindFirstChild("HumanoidRootPart") then
-                        -- Teleport close behind them so we can hit them easily
                         if shortest > 3 and not isCarryingSurvivor() then
                             myRoot.CFrame = closest.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
                         end
                         
-                        -- Spam Attack by forcefully Activating the equipped tool (100% accurate for any weapon)
                         local tool = myChar:FindFirstChildOfClass("Tool")
                         if tool then
                             tool:Activate()
                         else
-                            -- Fallback to remote if no tool equipped
                             local remotes = ReplicatedStorage:FindFirstChild("Remotes")
                             if remotes and remotes:FindFirstChild("Attacks") then
                                 local atk = remotes.Attacks:FindFirstChild("BasicAttack") or remotes.Attacks:FindFirstChild("Attack")
@@ -4251,7 +4209,6 @@ oneHitAttackToggleObj = MakeToggle("OneHitAttack", "Auto Attack v2 (One Hit)", f
                             if attacks then
                                 local atk = attacks:FindFirstChild("BasicAttack") or attacks:FindFirstChild("Attack")
                                 if atk then 
-                                    -- Fire multiple times instantly for a One Hit kill
                                     atk:FireServer()
                                     atk:FireServer()
                                     atk:FireServer()
@@ -4286,7 +4243,6 @@ killAllToggleObj = MakeToggle("KillAll", "Kill All (Teleport & One Hit)", functi
                     local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
                     if not myRoot then return end
                     
-                    -- Collect all valid targets
                     local targets = {}
                     for _, p in ipairs(Players:GetPlayers()) do
                         if p ~= LocalPlayer and p.Team ~= LocalPlayer.Team and p.Character then
@@ -4299,7 +4255,6 @@ killAllToggleObj = MakeToggle("KillAll", "Kill All (Teleport & One Hit)", functi
                         end
                     end
                     
-                    -- Teleport and attack each target one by one
                     for _, char in ipairs(targets) do
                         if not killAllActive then break end
                         if isBusyWithSurvivor or isCarryingSurvivor() then break end
@@ -4311,10 +4266,8 @@ killAllToggleObj = MakeToggle("KillAll", "Kill All (Teleport & One Hit)", functi
                         while root and hum and hum.Health > 0 and killAllActive and not (hum.WalkSpeed < 8 or hum.PlatformStand) and not isBusyWithSurvivor and not isCarryingSurvivor() and checkCount < 30 do
                             checkCount = checkCount + 1
                             
-                            -- Teleport close behind them (matching BrutalAutoAttack)
                             myRoot.CFrame = root.CFrame * CFrame.new(0, 0, 3)
                             
-                            -- Activating weapon / remote spam
                             local tool = myChar:FindFirstChildOfClass("Tool")
                             if tool then
                                 tool:Activate()
@@ -4339,6 +4292,9 @@ end)
 task.spawn(function()
     while true do
         task.wait(0.1) -- Faster loop for responsive Auto Attack
+        if not _G.VDAutoCarryFailsafe then
+            continue
+        end
         if isBusyWithSurvivor then
             if not hasCarryStarted then
                 if isCarryingSurvivor() then
@@ -4519,6 +4475,12 @@ MakeToggle("Fullbright", "Fullbright", function(val)
     end
 end)
 
+MakeToggle("VisualAntiLag", "Anti Lag (Extreme)", function(val)
+    if toggleAntiLag then
+        toggleAntiLag(val)
+    end
+end)
+
 MakeButton("Toggle FPS & Ping Monitor", function()
     if typeof(_G.ToggleFPSPingMonitor) == "function" then
         _G.ToggleFPSPingMonitor()
@@ -4543,10 +4505,8 @@ MakeToggle("InfFlashlight", "Infinite Flashlight", function(val)
                     if flashlight:FindFirstChild("Right Arm") and flashlight["Right Arm"]:FindFirstChild("Flashlight") then
                         local realFlashlight = flashlight["Right Arm"].Flashlight
                         
-                        -- Force client to always think battery is 100
                         realFlashlight:SetAttribute("remaining", 100)
                         
-                        -- Spam true to server ONLY when user manually activates it
                         if _G.VDFlashlightIntendedState then
                             local remotes = ReplicatedStorage:FindFirstChild("Remotes")
                             if remotes and remotes:FindFirstChild("Items") and remotes.Items:FindFirstChild("Flashlight") then
@@ -4586,7 +4546,6 @@ MakeToggle("AutoBlindKiller", "Auto Blind Killer (Aura)", function(val)
                                         local kRoot = p.Character:FindFirstChild("HumanoidRootPart")
                                         if kRoot then
                                             local dist = (kRoot.Position - myRoot.Position).Magnitude
-                                            -- Jarak 30 stud cukup jauh untuk membutakan killer
                                             if dist < 30 then
                                                 gotBlinded:FireServer(p.Character)
                                                 task.wait(2) -- Cooldown aman biar ga crash server
@@ -4658,7 +4617,6 @@ MakeButton("Instant Self Heal", function()
             }
             game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Healing"):WaitForChild("HealEvent"):FireServer(unpack(args))
             
-            -- Menampilkan notifikasi visual sukses
             local UIEvent = game:GetService("ReplicatedStorage"):FindFirstChild("UICommunicationEvent")
             if UIEvent then
                 UIEvent:Fire("ShowNotification", "Healed", "Self Heal remote fired!", 2)
@@ -4769,6 +4727,10 @@ MakeToggle("VeilAutoAim", "Veil Auto Aim", function(val)
     _G.VeilAutoAim = val
 end)
 
+MakeToggle("AutoCarryFailsafe", "Auto Carry Failsafe (Killer)", function(val)
+    _G.VDAutoCarryFailsafe = val
+end)
+
 local userInputService = game:GetService("UserInputService")
 
 local function ShootVeil()
@@ -4783,13 +4745,11 @@ local function ShootVeil()
             hasSpear = true
         end
 
-        -- Fallback: if we can somehow read a Tool
         if char:FindFirstChildWhichIsA("Tool") or char:FindFirstChild("Spear") or char:FindFirstChild("VeilSpear") then
              hasSpear = true
         end
 
         if not hasSpear then
-            -- Normal attack if not holding spear
             pcall(function()
                 game:GetService("ReplicatedStorage").Remotes.Attacks.BasicAttack:FireServer(true)
             end)
@@ -4829,7 +4789,6 @@ local function ShootVeil()
                 game:GetService("ReplicatedStorage").Remotes.Killers.Veil.Spearthrow:FireServer(finalDir, 165, origin)
             end)
         else
-            -- If no one is close to crosshair, just attack normally
             pcall(function()
                 game:GetService("ReplicatedStorage").Remotes.Attacks.BasicAttack:FireServer(true)
             end)
@@ -4837,12 +4796,10 @@ local function ShootVeil()
     end)
 end
 
--- Weapon State Tracker Setup
 task.spawn(function()
     pcall(function()
         _G.VeilSpearEquipped = false
         
-        -- Fallback 1: MouseButton2 (Right Click) for toggling the spear
         if _G.VeilWeaponKeyConn then _G.VeilWeaponKeyConn:Disconnect() end
         _G.VeilWeaponKeyConn = userInputService.InputBegan:Connect(function(input, gpe)
             if gpe then return end
@@ -4851,7 +4808,6 @@ task.spawn(function()
             end
         end)
         
-        -- Fallback 2: Hook updatewep to track when the game changes state
         if type(hookfunction) == "function" then
             local remote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes", 5)
             if remote then
@@ -4861,7 +4817,6 @@ task.spawn(function()
                     local oldFireServer
                     oldFireServer = hookfunction(updatewep.FireServer, function(self, isEquipped, ...)
                         if self == updatewep then
-                            -- User noted: "kalau megang tombang itu jadi true"
                             if isEquipped == true then
                                 _G.VeilSpearEquipped = true
                             else
@@ -5044,21 +4999,62 @@ end)
 
 MakeSection("PERFORMANCE")
 
+MakeToggle("MainAntiLag", "Main Hub Anti Lag (Extreme)", function(val)
+    if toggleAntiLag then
+        toggleAntiLag(val)
+    end
+end)
+
 MakeToggle("MobileOpt", "Mobile Optimization", function(val)
     if val then
         Lighting.GlobalShadows = false
         Lighting.FogEnd = 9e9
+        Lighting.ClockTime = 12 -- Ubah jadi Pagi/Siang hari terang
+        Lighting.Brightness = 2
         pcall(function() sethiddenproperty(Lighting, "Technology", 2) end)
-        local removed = 0
-        for _, v in ipairs(workspace:GetDescendants()) do
-            if v:IsA("BasePart") then
-                v.Material = Enum.Material.SmoothPlastic
-            elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") or v:IsA("Fire") or v:IsA("Sparkles") then
-                v:Destroy()
-                removed = removed + 1
+        
+        for _, v in ipairs(Lighting:GetDescendants()) do
+            if v:IsA("PostEffect") or v:IsA("ColorCorrectionEffect") or v:IsA("BloomEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("DepthOfFieldEffect") then
+                pcall(function() v.Enabled = false end)
+            elseif v:IsA("Atmosphere") then
+                pcall(function() v.Density = 0 end)
+            elseif v:IsA("Clouds") then
+                pcall(function() v.Cover = 0; v.Density = 0 end)
             end
         end
-        Notify("Performance", "Optimized! Removed " .. removed .. " effects", 3)
+        pcall(function() workspace.Terrain.Decoration = false end)
+        pcall(function() workspace.Terrain.WaterWaveSize = 0 end)
+        pcall(function() workspace.Terrain.WaterWaveSpeed = 0 end)
+        pcall(function() workspace.Terrain.WaterReflectance = 0 end)
+        pcall(function() workspace.Terrain.WaterTransparency = 1 end)
+
+        task.spawn(function()
+            local removed = 0
+            local count = 0
+            local queue = workspace:GetChildren()
+            while #queue > 0 do
+                local v = table.remove(queue, #queue)
+                for _, child in ipairs(v:GetChildren()) do
+                    table.insert(queue, child)
+                end
+                
+                count = count + 1
+                if count % 1000 == 0 then task.wait() end -- Mencegah game freeze
+                
+                if v:IsA("BasePart") then
+                    v.Material = Enum.Material.SmoothPlastic
+                    v.CastShadow = false -- Matikan bayangan per-part
+                    v.Reflectance = 0
+                    if v:IsA("MeshPart") then
+                        pcall(function() v.RenderFidelity = Enum.RenderFidelity.Performance end)
+                    end
+                elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") or v:IsA("Fire") or v:IsA("Sparkles") then
+                    v:Destroy()
+                    removed = removed + 1
+                end
+            end
+            Notify("Performance", "Tampilan Diubah Jadi Pagi & Super Ringan!", 3)
+        end)
     end
 end)
 
@@ -5091,7 +5087,6 @@ RefreshBtn.MouseButton1Click:Connect(function()
     RefreshAllESP()
 end)
 
--- Auto Refresh ESP in background every 1 minute
 task.spawn(function()
     while true do
         task.wait(60)
@@ -5103,7 +5098,6 @@ end)
 
 LocalPlayer.CharacterAdded:Connect(function()
     lastAssetLoadReset = tick()
-    -- Reset/destroy previous round's dummy VM and Melee to let the game load the new round's real assets first
     pcall(function()
         local oldVM = workspace.CurrentCamera:FindFirstChild("VM")
         if oldVM and not oldVM:FindFirstChild("Head") and not oldVM:FindFirstChild("Torso") and not oldVM:FindFirstChildWhichIsA("BasePart") then 
@@ -5173,7 +5167,6 @@ triggerUnload = function()
             h.Health = 100
         end
     end)
-    -- Restore original healing remotes if they were dummied
     pcall(function()
         local remotes = ReplicatedStorage:FindFirstChild("Remotes")
         if remotes then
@@ -5198,9 +5191,26 @@ triggerUnload = function()
             if hum then hum.CameraOffset = Vector3.new(0, 0, 0) end
         end)
     end
+    
+    autoAttackActive = false
+    _G.VDBrutalAttack = false
+    _G.VDOneHitAttack = false
+    killAllActive = false
+    kebalTwistActive = false
+    isShootingTwist = false
+    autoParryActive = false
+    parryNoCooldownActive = false
+    advancedRemoteSpyActive = false
+    _G.VDInfFlashlight = false
+    _G.VDAutoCarryFailsafe = false
+    _G.VDAutoGenerator = false
+    _G.VDAutoHeal = false
+    _G.VDVaccineActive = false
+    _G.VDCureLagFixActive = false
+    _G.PartESPGarbageCollector = false
+    
     if _G.VDHitboxLoop then 
         _G.VDHitboxLoop:Disconnect(); _G.VDHitboxLoop = nil 
-        -- Reset all hitboxes
         pcall(function()
             for _, player in ipairs(Players:GetPlayers()) do
                 if player ~= LocalPlayer and player.Character then
@@ -5226,10 +5236,75 @@ triggerUnload = function()
     ScreenGui:Destroy()
 end
 
--- Initialize: Show Combat category by default
 setCategory("ESP")
 
 Notify("PIXECUTE", "Violence District loaded!", 3)
+
+    _G.VDCureLagFixActive = true
+    task.spawn(function()
+        while _G.VDCureLagFixActive do
+            task.wait(5)
+            pcall(function()
+                local rs = game:GetService("ReplicatedStorage")
+                local cure = rs:FindFirstChild("Killers") and rs.Killers:FindFirstChild("Cure")
+                if cure and cure:FindFirstChild("Skins") then
+                    for _, skin in ipairs(cure.Skins:GetChildren()) do
+                        local weapon = skin:FindFirstChild("Weapon")
+                        if weapon and weapon:FindFirstChild("Flask") then
+                            weapon.Flask:Destroy()
+                        end
+                    end
+                end
+            end)
+        end
+    end)
+    
+    _G.VDVaccineActive = true
+    task.spawn(function()
+        while _G.VDVaccineActive do
+            task.wait(3)
+            pcall(function()
+                local lp = game:GetService("Players").LocalPlayer
+                if not lp then return end
+                
+                local ps = lp:FindFirstChild("PlayerScripts")
+                if ps then
+                    local broken = {"AwardLog", "MedalAutoclipping"}
+                    for _, name in ipairs(broken) do
+                        local s = ps:FindFirstChild(name)
+                        if s then
+                            s.Disabled = true
+                            s:Destroy()
+                            LogVDError("Vaccine", "Destroyed broken script: " .. name)
+                        end
+                    end
+                end
+                
+                if lp.Character then
+                    local instinct = lp.Character:FindFirstChild("Instinct")
+                    if instinct and instinct:IsA("LocalScript") then
+                        instinct.Disabled = true
+                        instinct:Destroy()
+                        LogVDError("Vaccine", "Destroyed broken Instinct script")
+                    end
+                end
+                
+                local pg = lp:FindFirstChild("PlayerGui")
+                if pg then
+                    local spec = pg:FindFirstChild("Spectator")
+                    if spec then
+                        for _, desc in ipairs(spec:GetDescendants()) do
+                            if desc:IsA("LocalScript") and desc.Name == "LocalScript" and desc.Parent and desc.Parent.Name == "TextBox" then
+                                desc.Disabled = true
+                                desc:Destroy()
+                                LogVDError("Vaccine", "Destroyed broken Spectator TextBox script")
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end)
         end
         task.spawn(func)
     end)
@@ -5448,7 +5523,6 @@ RunService.RenderStepped:Connect(function()
     if typeof(ChatLogsFrame) == "Instance" and ChatLogsFrame and ChatLogsFrame.Visible and ChatLogsFrame.Size.Y.Offset > 50 then isAnyGuiVisible = true end
     if typeof(PartScannerFrame) == "Instance" and PartScannerFrame and PartScannerFrame.Visible and PartScannerFrame.Size.Y.Offset > 50 then isAnyGuiVisible = true end
     
-    -- Dynamically check if Dex is open and NOT minimized
     local coreGui = game:GetService("CoreGui")
     local localPlayer = game:GetService("Players").LocalPlayer
     local playerGui = localPlayer and localPlayer:FindFirstChildOfClass("PlayerGui")
@@ -5461,7 +5535,6 @@ RunService.RenderStepped:Connect(function()
         end
     end
     
-    -- Dynamically check if Violence is open and NOT minimized
     local violenceGui = coreGui:FindFirstChild("PXViolenceDistrict") or (playerGui and playerGui:FindFirstChild("PXViolenceDistrict")) or (gethui and gethui():FindFirstChild("PXViolenceDistrict"))
     if violenceGui and violenceGui:IsA("ScreenGui") and violenceGui.Enabled then
         local vMain = violenceGui:FindFirstChild("MainFrame")
@@ -5734,6 +5807,13 @@ function createButton(icon, textKey)
     local padding = Instance.new("UIPadding")
     padding.PaddingLeft = UDim.new(0, 12)
     padding.Parent = btn
+    
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(255, 50, 50)
+    stroke.Thickness = 1
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    stroke.Parent = btn
+    
     local defaultColor = Color3.fromRGB(15, 15, 15)
     local hoverColor = Color3.fromRGB(25, 25, 25)
     buttonStates[btn] = false
@@ -5871,7 +5951,10 @@ local function isRealUnanchoredPart(v)
     return true
 end
 
+local hasPopulatedUnanchored = false
 local function populateInitialUnanchored()
+    if hasPopulatedUnanchored then return end
+    hasPopulatedUnanchored = true
     task.spawn(function()
         local count = 0
         for _, v in ipairs(workspace:GetDescendants()) do
@@ -5883,9 +5966,22 @@ local function populateInitialUnanchored()
         end
     end)
 end
-populateInitialUnanchored()
+
+_G.PartESPGarbageCollector = true
+task.spawn(function()
+    while _G.PartESPGarbageCollector do
+        task.wait(30)
+        for k, _ in pairs(initialUnanchoredParts) do
+            if typeof(k) == "Instance" and not k.Parent then
+                initialUnanchoredParts[k] = nil
+            end
+        end
+    end
+end)
 
 workspace.DescendantAdded:Connect(function(v)
+    if not PartESPEnabled then return end
+    if not v:IsA("BasePart") then return end
     task.defer(function()
         if isRealUnanchoredPart(v) then
             initialUnanchoredParts[v] = true
@@ -6007,6 +6103,7 @@ function togglePartESP(state)
     end
     
     if PartESPEnabled then
+        populateInitialUnanchored()
         if PartESPBtn then setButtonActive(PartESPBtn, true) end
         if MiniPartESPBtn then
             MiniPartESPBtn.Text = "Part ESP: ON"
@@ -6395,6 +6492,7 @@ function toggleFullbright(state)
     else
         fullbrightOn = state
     end
+    _G.FullbrightActive = fullbrightOn
     local Lighting = game:GetService("Lighting")
     if fullbrightOn then
         local function setFB()
@@ -6402,13 +6500,42 @@ function toggleFullbright(state)
                 Lighting.Ambient = Color3.fromRGB(255, 255, 255)
                 Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
                 Lighting.Brightness = 2
+                Lighting.ClockTime = 12 -- Terang terus (Siang hari)
                 Lighting.GlobalShadows = false
                 Lighting.FogEnd = 999999
                 Lighting.FogStart = 999999
+                pcall(function() sethiddenproperty(Lighting, "Technology", 2) end)
             end)
         end
         setFB()
         table.insert(lightingConns, Lighting.Changed:Connect(setFB))
+        
+        task.spawn(function()
+            while fullbrightOn do
+                pcall(function()
+                    for _, v in ipairs(Lighting:GetDescendants()) do
+                        if v:IsA("PostEffect") or v:IsA("ColorCorrectionEffect") or v:IsA("BloomEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("DepthOfFieldEffect") then
+                            pcall(function() v.Enabled = false end)
+                        elseif v:IsA("Atmosphere") then
+                            pcall(function() v.Density = 0 end)
+                        elseif v:IsA("Clouds") then
+                            pcall(function() v.Cover = 0; v.Density = 0 end)
+                        end
+                    end
+                    for _, v in ipairs(workspace.Terrain:GetDescendants()) do
+                        if v:IsA("PostEffect") then
+                            pcall(function() v.Enabled = false end)
+                        elseif v:IsA("Atmosphere") then
+                            pcall(function() v.Density = 0 end)
+                        elseif v:IsA("Clouds") then
+                            pcall(function() v.Cover = 0; v.Density = 0 end)
+                        end
+                    end
+                end)
+                task.wait(2)
+            end
+        end)
+        
         setButtonActive(FullbrightBtn, true)
     else
         for _, conn in ipairs(lightingConns) do
@@ -7369,7 +7496,6 @@ function stopPlistSendPart()
             pcall(function() plistSendPartDescendantConn:Disconnect() end)
             plistSendPartDescendantConn = nil
         end
-        -- Reset velocities of all parts immediately to prevent scattering and teleport them above us
         local lpChar = LocalPlayer.Character
         local lpHrp = lpChar and (lpChar:FindFirstChild("HumanoidRootPart") or lpChar:FindFirstChild("Torso"))
         local safeCF = lpHrp and (lpHrp.CFrame * CFrame.new(0, 10, 0))
@@ -11286,7 +11412,6 @@ RunService.RenderStepped:Connect(function()
 			targetPlayer = nil
 		end
 		
-		-- Transition: If we were sending but now we are not, instantly teleport parts to us
 		if lastPlistSendPartTarget and not targetPlayer then
 			pcall(function() LocalPlayer.ReplicationFocus = nil end)
 			local lpChar = LocalPlayer.Character
@@ -11304,7 +11429,6 @@ RunService.RenderStepped:Connect(function()
 				end
 			end
 		end
-		-- Transition: If we just started sending, instantly teleport parts to target to avoid hitting our character
 		if targetPlayer and not lastPlistSendPartTarget then
 			local char = targetPlayer.Character
 			local targetHRP = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("Head"))
@@ -11326,7 +11450,6 @@ RunService.RenderStepped:Connect(function()
 		local target = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("Head"))
 		if target then
 			if targetPlayer then
-				-- ReplicationFocus dihapus agar tidak kena Gameplay Paused saat target terpental
 				
 				if loopSendPartActive and loopSendPartOffset then
 					Attachment1.WorldCFrame = target.CFrame * loopSendPartOffset
@@ -15537,7 +15660,6 @@ function toggleLoopSendPart()
                         if not p or not p.Parent or p == game:GetService("Players").LocalPlayer then
                             lastSwitchTime = 0
                         elseif p.Character then
-                            -- Update label jika target berubah
                             if lastAllTargetName ~= p.Name then
                                 lastAllTargetName = p.Name
                                 local boxPlaceholder = "ALL → " .. p.Name
@@ -15561,7 +15683,6 @@ function toggleLoopSendPart()
                         local freshTarget = findPlayerByQuery(LoopSendPartBox.Text)
                         if freshTarget and freshTarget.Character then
                             plistSendPartTarget = freshTarget
-                            -- Update label jika target berubah
                             if lastAllTargetName ~= freshTarget.Name then
                                 lastAllTargetName = freshTarget.Name
                                 updateLoopSendPartLabel(freshTarget.Name)
@@ -15859,9 +15980,11 @@ function applyAntiLag()
         safeSet(t, "WaterReflectance", 0)
         safeSet(t, "WaterTransparency", 0)
         safeSet(t, "Decoration", false)
-        safeSet(l, "GlobalShadows", false)
-        safeSet(l, "FogEnd", 9e9)
-        safeSet(l, "Brightness", 0)
+        if not _G.FullbrightActive then
+            safeSet(l, "GlobalShadows", false)
+            safeSet(l, "FogEnd", 9e9)
+            safeSet(l, "Brightness", 0)
+        end
     end
     lockLightingAndTerrain()
     pcall(function()
@@ -15983,14 +16106,12 @@ function toggleBTools()
         BToolsActive = true
         setButtonActive(BToolsBtn, true)
         pcall(function()
-            -- Give standard HopperBin tools
             for i = 1, 4 do
                 local tool = Instance.new("HopperBin")
                 tool.BinType = i
                 tool.Parent = backpack
             end
             
-            -- Also give F3X (from Infinite Yield)
             task.spawn(function()
                 local success, err = pcall(function()
                     loadstring(game:HttpGet("https://raw.githubusercontent.com/bochilascript/ROBLOX/refs/heads/main/f3x.lua"))()
@@ -16558,9 +16679,6 @@ function disableNoclip()
         noclipConnection:Disconnect()
         noclipConnection = nil
     end
-    -- Do NOT manually force CanCollide = true.
-    -- Roblox's physics engine will automatically restore the correct collisions on the next frame.
-    -- Forcing it manually breaks custom hitboxes in games like DBD clones.
     local char = Player.Character
     if char then
         local hum = char:FindFirstChildOfClass("Humanoid")
@@ -16649,9 +16767,6 @@ local service = setmetatable({}, {
 	end
 })
 
--- prevent environment implosion from references
--- mainly from the executor not having some game properties in their game variable
--- so we gotta use vanilla game
 local oldgame = game
 local game = workspace.Parent
 
@@ -16663,7 +16778,6 @@ local EmbeddedModules = {
 	The main explorer interface
 ]]
 
-		-- Common Locals
 		local Main,Lib,Apps,Settings -- Main Containers
 		local Explorer, Properties, ScriptViewer, Notebook -- Major Apps
 		local API,RMD,env,service,plr,create,createSimple -- Main Locals
@@ -16716,7 +16830,6 @@ local EmbeddedModules = {
 				local rootParObj = ffa(root,"Instance")
 				local par = nodes[rootParObj]
 
-				-- Nil Handling
 				if not par then
 					if nilMap[root] then
 						nilCons[root] = nilCons[root] or {
@@ -16740,7 +16853,6 @@ local EmbeddedModules = {
 				local newNode = {Obj = root, Parent = par}
 				nodes[root] = newNode
 
-				-- Automatic sorting if expanded
 				if sortingEnabled and expanded[par] and par.Sorted then
 					local left,right = 1,#par
 					local floor = math.floor
@@ -16784,7 +16896,6 @@ local EmbeddedModules = {
 					nodes[obj] = newNode
 					par[#par+1] = newNode
 
-					-- Nil Handling
 					if isNil then
 						nilMap[obj] = true
 						nilCons[obj] = nilCons[obj] or {
@@ -16811,7 +16922,6 @@ local EmbeddedModules = {
 				local node = nodes[root]
 				if not node then return end
 
-				-- Nil Handling
 				if nilMap[node.Obj] then
 					moveObject(node.Obj)
 					return
@@ -16852,7 +16962,6 @@ local EmbeddedModules = {
 				local newPar = nodes[ffa(obj,"Instance")]
 				if oldPar == newPar then return end
 
-				-- Nil Handling
 				if not newPar then
 					if nilMap[obj] then
 						newPar = nilNode
@@ -17078,7 +17187,6 @@ local EmbeddedModules = {
 
 				recur(nodes[game],1)
 
-				-- Nil Instances
 				if env.getnilinstances then
 					if not (isSearching and not searchResults[nilNode]) then
 						tree[count] = nilNode
@@ -17560,11 +17668,6 @@ local EmbeddedModules = {
 				if expanded == Explorer.SearchExpanded then context:AddRegistered("CLEAR_SEARCH_AND_JUMP_TO") end
 				if env.setclipboard then context:AddRegistered("COPY_PATH") end
 				context:AddRegistered("INSERT_OBJECT")
-				-- context:AddRegistered("SAVE_INST")
-				-- context:AddRegistered("CALL_FUNCTION")
-				-- context:AddRegistered("VIEW_CONNECTIONS")
-				-- context:AddRegistered("GET_REFERENCES")
-				-- context:AddRegistered("VIEW_API")
 
 				context:QueueDivider()
 
@@ -17859,7 +17962,6 @@ local EmbeddedModules = {
 							if typeof(_G.saveCustomWaypointWithCFrame) == "function" then
 								_G.saveCustomWaypointWithCFrame(Obj.Name, cframe)
 							end
-							-- Save directly to ch_waypoints.json to ensure it works even if global is missing
 							pcall(function()
 								if writefile then
 									local HttpService = game:GetService("HttpService")
@@ -17989,7 +18091,6 @@ local EmbeddedModules = {
 					end
 				end})
 
-				-- this code is very bad but im lazy and it works so cope
 				local clth = function(str)
 					if str:sub(1, 28) == "game:GetService(\"Workspace\")" then str = str:gsub("game:GetService%(\"Workspace\"%)", "workspace", 1) end
 					if str:sub(1, 27 + #plr.Name) == "game:GetService(\"Players\")." .. plr.Name then str = str:gsub("game:GetService%(\"Players\"%)." .. plr.Name, "game:GetService(\"Players\").LocalPlayer", 1) end
@@ -18201,18 +18302,11 @@ local EmbeddedModules = {
 				local nilInsts = env.getnilinstances()
 				local game = game
 				local getDescs = game.GetDescendants
-				--local newNilMap = {}
-				--local newNilRoots = {}
-				--local nilRoots = Explorer.NilRoots
-				--local connect = game.DescendantAdded.Connect
-				--local disconnect
-				--if not nilRoots then nilRoots = {} Explorer.NilRoots = nilRoots end
 
 				for i = 1,#nilInsts do
 					local obj = nilInsts[i]
 					if obj ~= game then
 						nilMap[obj] = true
-						--newNilRoots[obj] = true
 
 						local descs = getDescs(obj)
 						for j = 1,#descs do
@@ -18221,7 +18315,6 @@ local EmbeddedModules = {
 					end
 				end
 
-				-- Remove unmapped nil nodes
 		--[[for i = 1,#nilNode do
 			local node = nilNode[i]
 			if not newNilMap[node.Obj] then
@@ -18230,7 +18323,6 @@ local EmbeddedModules = {
 			end
 		end]]
 
-				--nilMap = newNilMap
 
 				for i = 1,#nilInsts do
 					local obj = nilInsts[i]
@@ -18239,7 +18331,6 @@ local EmbeddedModules = {
 				end
 
 		--[[
-		-- Remove old root connections
 		for obj in next,nilRoots do
 			if not newNilRoots[obj] then
 				if not disconnect then disconnect = obj[1].Disconnect end
@@ -18257,8 +18348,6 @@ local EmbeddedModules = {
 			end
 		end]]
 
-				--nilMap = newNilMap
-				--Explorer.NilRoots = newNilRoots
 
 				Explorer.Update()
 				Explorer.Refresh()
@@ -18519,7 +18608,6 @@ local EmbeddedModules = {
 			if Main.Elevated then
 				local start = tick()
 				searchFunc,specFilters = Explorer.BuildSearchFunc(query)
-				--print("BUILD SEARCH",tick()-start)
 			else
 				searchFunc = defaultSearch
 			end
@@ -18543,7 +18631,6 @@ local EmbeddedModules = {
 				local start = tick()
 				searchFunc(nodes[game])
 				searchFunc(nilNode)
-				--warn(tick()-start)
 			end
 		end]=]
 
@@ -18780,7 +18867,6 @@ local EmbeddedModules = {
 				end
 				holder:ClearAllChildren()
 
-				-- Updates theme
 				for i,v in pairs(Explorer.SelectionVisualGui:GetChildren()) do
 					v.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 				end
@@ -18955,13 +19041,11 @@ local EmbeddedModules = {
 				scrollV.Gui.Parent = window.GuiElems.Content
 				scrollH.Gui.Parent = window.GuiElems.Content
 
-				-- Init stuff that requires the window
 				Explorer.InitRenameBox()
 				Explorer.InitSearch()
 				Explorer.InitDelCleaner()
 				selection.Changed:Connect(Explorer.UpdateSelectionVisuals)
 
-				-- Window events
 				window.GuiElems.Main:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
 					if Explorer.Active then
 						Explorer.UpdateView()
@@ -18983,14 +19067,11 @@ local EmbeddedModules = {
 				window.OnDeactivate:Connect(function() Explorer.Active = false end)
 				window.OnMinimize:Connect(function() Explorer.Active = false end)
 
-				-- Settings
 				autoUpdateSearch = Settings.Explorer.AutoUpdateSearch
 
-				-- Fill in nodes
 				nodes[game] = {Obj = game}
 				expanded[nodes[game]] = true
 
-				-- Nil Instances
 				if env.getnilinstances then
 					nodes[nilNode.Obj] = nilNode
 				end
@@ -19038,7 +19119,6 @@ local EmbeddedModules = {
 	The main properties interface
 ]]
 
-		-- Common Locals
 		local Main,Lib,Apps,Settings -- Main Containers
 		local Explorer, Properties, ScriptViewer, Notebook -- Major Apps
 		local API,RMD,env,service,plr,create,createSimple -- Main Locals
@@ -19421,7 +19501,6 @@ local EmbeddedModules = {
 				end
 			end
 
-			-- Fetches the properties to be displayed based on the explorer selection
 			Settings.Properties.ShowAttributes = true -- im making it true anyway since its useful by default and people complain
 			Properties.ShowExplorerProps = function()
 				local maxConflictCheck = Settings.Properties.MaxConflictCheck
@@ -19511,10 +19590,8 @@ local EmbeddedModules = {
 					end
 				end)
 
-				-- Find conflicts and get auto-update instances
 				Properties.ClassLists = classLists
 				Properties.ComputeConflicts()
-				--warn("CONFLICT",tick()-start)
 				if #props > 0 then
 					props[#props+1] = Properties.AddAttributeProp
 				end
@@ -20334,7 +20411,6 @@ local EmbeddedModules = {
 				local offset = 4
 				local endOffset = 6
 
-				-- Offsetting the ValueBox for ValueType specific buttons
 				if (typeName == "Color3" or typeName == "BrickColor" or typeName == "ColorSequence") then
 					colorButton.Visible = true
 					enumArrow.Visible = false
@@ -20362,7 +20438,6 @@ local EmbeddedModules = {
 				valueBox.Position = UDim2.new(0,offset,0,0)
 				valueBox.Size = UDim2.new(1,-endOffset,1,0)
 
-				-- Right button
 				if inputFullName == gName and typeData.Category == "Class" then
 					Main.MiscIcons:DisplayByKey(guiElems.RightButtonIcon, "Delete")
 					guiElems.RightButtonIcon.Visible = true
@@ -20376,7 +20451,6 @@ local EmbeddedModules = {
 					rightButton.Visible = false
 				end
 
-				-- Displays the correct ValueBox for the ValueType, and sets it to the prop value
 				if typeName == "bool" or typeName == "PhysicalProperties" then
 					valueBox.Visible = false
 					checkbox.Visible = true
@@ -20429,13 +20503,11 @@ local EmbeddedModules = {
 				local stringSplit = string.split
 				local scaleType = Settings.Properties.ScaleType
 
-				-- Clear connections
 				for i = 1,#propCons do
 					propCons[i]:Disconnect()
 				end
 				table.clear(propCons)
 
-				-- Hide full name viewer
 				Properties.FullNameFrame.Visible = false
 				Properties.FullNameFrameAttach.Disable()
 
@@ -20469,7 +20541,6 @@ local EmbeddedModules = {
 								guiElems.RowButton.Visible = true
 							end
 						else
-							-- Revert special row stuff
 							nameFrame.Visible = true
 							guiElems.RowButton.Visible = false
 
@@ -20508,7 +20579,6 @@ local EmbeddedModules = {
 								editAttributeButton.Visible = (prop.IsAttribute and not prop.RootType)
 								toggleAttributes.Visible = false
 
-								-- Moving around the frames
 								if scaleType == 0 then
 									nameFrame.Size = UDim2.new(0,Properties.ViewWidth - leftOffset - 1,1,0)
 									valueFrame.Position = UDim2.new(0,Properties.ViewWidth,0,0)
@@ -20528,7 +20598,6 @@ local EmbeddedModules = {
 								expand.Visible = typeData.Category == "DataType" and Properties.ExpandableTypes[typeName] or Properties.ExpandableProps[gName]
 								propNameBox.TextColor3 = tags.ReadOnly and Settings.Theme.PlaceholderText or Settings.Theme.Text
 
-								-- Display property value
 								Properties.DisplayProp(prop,i)
 								if propObj then
 									if prop.IsAttribute then
@@ -20542,7 +20611,6 @@ local EmbeddedModules = {
 									end
 								end
 
-								-- Position and resize Input Box
 								local beforeVisible = valueBox.Visible
 								local inputFullName = inputProp and (inputProp.Class.."."..inputProp.Name..(inputProp.SubName or ""))
 								if gName == inputFullName then
@@ -20580,7 +20648,6 @@ local EmbeddedModules = {
 								end
 							end
 
-							-- Expand
 							if prop.CategoryName or Properties.ExpandableTypes[prop.ValueType and prop.ValueType.Name] or Properties.ExpandableProps[gName] then
 								if Lib.CheckMouseInGui(expand) then
 									Main.MiscIcons:DisplayByKey(expand.Icon, expanded[gName] and "Collapse_Over" or "Expand_Over")
@@ -20880,7 +20947,6 @@ local EmbeddedModules = {
 					{12,"Frame",{BackgroundColor3=Color3.new(1,1,1),BackgroundTransparency=1,ClipsDescendants=true,Name="List",Parent={1},Position=UDim2.new(0,0,0,23),Size=UDim2.new(1,0,1,-23),}},
 				})
 
-				-- Vars
 				categoryOrder =	API.CategoryOrder
 				for category,_ in next,categoryOrder do
 					if not Properties.CollapsedCategories[category] then
@@ -20889,7 +20955,6 @@ local EmbeddedModules = {
 				end
 				expanded["Sound.SoundId"] = true
 
-				-- Init window
 				window = Lib.Window.new()
 				Properties.Window = window
 				window:SetTitle("Properties")
@@ -20902,7 +20967,6 @@ local EmbeddedModules = {
 
 				Properties.InitEntryStuff()
 
-				-- Window events
 				window.GuiElems.Main:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
 					if Properties.Window:IsContentVisible() then
 						Properties.UpdateView()
@@ -20920,7 +20984,6 @@ local EmbeddedModules = {
 					Properties.Refresh()
 				end)
 
-				-- Init scrollbars
 				scrollV = Lib.ScrollBar.new()		
 				scrollV.WheelIncrement = 3
 				scrollV.Gui.Position = UDim2.new(1,-16,0,23)
@@ -20938,7 +21001,6 @@ local EmbeddedModules = {
 					Properties.Refresh()
 				end)
 
-				-- Setup Gui
 				window.GuiElems.Line.Position = UDim2.new(0,0,0,22)
 				toolBar.Parent = window.GuiElems.Content
 				propsFrame.Parent = window.GuiElems.Content
@@ -20961,7 +21023,6 @@ local EmbeddedModules = {
 	A script viewer that is basically a notepad
 ]]
 
-		-- Common Locals
 		local Main,Lib,Apps,Settings -- Main Containers
 		local Explorer, Properties, ScriptViewer, Notebook -- Major Apps
 		local API,RMD,env,service,plr,create,createSimple -- Main Locals
@@ -21011,7 +21072,6 @@ local EmbeddedModules = {
 				codeFrame.Frame.Size = UDim2.new(1,0,1,-20)
 				codeFrame.Frame.Parent = window.GuiElems.Content
 
-				-- TODO: REMOVE AND MAKE BETTER
 				local copy = Instance.new("TextButton", window.GuiElems.Content)
 				copy.BackgroundTransparency = 1
 				copy.Size = UDim2.new(0.5,0,0,20)
@@ -21050,7 +21110,6 @@ local EmbeddedModules = {
 				dumpbtn.MouseButton1Click:Connect(function()
 					if PreviousScr ~= nil then
 						pcall(function()
-							-- thanks King.Kevin#6025 you'll obviously be credited (no discord tag since that can easily be impersonated)
 							local getgc = getgc or get_gc_objects
 							local getupvalues = (debug and debug.getupvalues) or getupvalues or getupvals
 							local getconstants = (debug and debug.getconstants) or getconstants or getconsts
@@ -21149,7 +21208,6 @@ local EmbeddedModules = {
 	Container for functions and classes
 ]]
 
-		-- Common Locals
 		local Main,Lib,Apps,Settings -- Main Containers
 		local Explorer, Properties, ScriptViewer, Notebook -- Major Apps
 		local API,RMD,env,service,plr,create,createSimple -- Main Locals
@@ -21184,7 +21242,6 @@ local EmbeddedModules = {
 			local PH = newproxy() -- Placeholder, must be replaced in constructor
 			local SIGNAL = newproxy()
 
-			-- Usually for classes that work with a Roblox Object
 			local function initObj(props,mt)
 				local type = type
 				local function copy(t)
@@ -21210,7 +21267,6 @@ local EmbeddedModules = {
 				__newindex = function(self,ind,val) if not props[ind] then self.Gui[ind] = val else rawset(self,ind,val) end end}
 			end
 
-			-- Functions
 
 			Lib.FormatLuaString = (function()
 				local string = string
@@ -21304,12 +21360,9 @@ local EmbeddedModules = {
 
 			Lib.ParseXML = (function()
 				local func = function()
-					-- Only exists to parse RMD
-					-- from https://github.com/jonathanpoelen/xmlparser
 
 					local string, print, pairs = string, print, pairs
 
-					-- http://lua-users.org/wiki/StringTrim
 					local trim = function(s)
 						local from = s:match"^%s*()"
 						return from > #s and "" or s:match(".*%S", from)
@@ -21321,7 +21374,6 @@ local EmbeddedModules = {
 					local E = string.byte('E', 1)
 
 					function parse(s, evalEntities)
-						-- remove comments
 						s = s:gsub('<!%-%-(.-)%-%->', '')
 
 						local entities, tentities = {}
@@ -21347,7 +21399,6 @@ local EmbeddedModules = {
 						end
 
 						s:gsub('<([?!/]?)([-:_%w]+)%s*(/?>?)([^<]*)', function(type, name, closed, txt)
-							-- open
 							if #type == 0 then
 								local a = {}
 								if #closed == 0 then
@@ -21370,25 +21421,17 @@ local EmbeddedModules = {
 								end
 
 								addtext(txt)
-								-- close
 							elseif '/' == type then
 								t = l[#l]
 								l[#l] = nil
 
 								addtext(txt)
-								-- ENTITY
 							elseif '!' == type then
 								if E == name:byte(1) then
 									txt:gsub('([_%w]+)%s+(.)(.-)%2', function(name, q, entity)
 										entities[#entities+1] = {name=name, value=entity}
 									end, 1)
 								end
-								-- elseif '?' == type then
-								--	 print('?	' .. name .. ' // ' .. attrs .. '$$')
-								-- elseif '-' == type then
-								--	 print('comment	' .. name .. ' // ' .. attrs .. '$$')
-								-- else
-								--	 print('o	' .. #p .. ' // ' .. name .. ' // ' .. attrs .. '$$')
 							end
 						end)
 
@@ -21611,7 +21654,6 @@ local EmbeddedModules = {
 				return Lib.LoadCustomAsset(filepath)
 			end
 
-			-- Classes
 
 			Lib.Signal = (function()
 				local funcs = {}
@@ -22789,8 +22831,6 @@ local EmbeddedModules = {
 					leftSide.Frame.Resizer.Position = UDim2.new(0,leftSide.Width,0,0)
 					rightSide.Frame.Resizer.Position = UDim2.new(0,-5,0,0)
 
-					--leftSide.Frame.Visible = (#leftSide.Windows > 0)
-					--rightSide.Frame.Visible = (#rightSide.Windows > 0)
 
 			--[[if #leftSide.Windows > 0 and leftSide.Frame.Position == UDim2.new(0,-leftSide.Width-5,0,0) then
 				leftSide.Frame:TweenPosition(UDim2.new(0,0,0,0),Enum.EasingDirection.Out,Enum.EasingStyle.Quad,0.3,true)
@@ -22961,7 +23001,6 @@ local EmbeddedModules = {
 						local size = UDim2.new(0,side.Width,0,v.SizeY)
 						local pos = UDim2.new(sideFramePos.X.Scale,sideFramePos.X.Offset,0,currentPos)
 						Lib.ShowGui(v.Gui)
-						--v.GuiElems.Main:TweenSizeAndPosition(size,pos,Enum.EasingDirection.Out,Enum.EasingStyle.Quad,0.3,true)
 						if noTween then
 							v.GuiElems.Main.Size = size
 							v.GuiElems.Main.Position = pos
@@ -22986,8 +23025,6 @@ local EmbeddedModules = {
 						end
 					end
 
-					--side.Frame.Back.Position = UDim2.new(0,0,0,0)
-					--side.Frame.Back.Size = UDim2.new(0,side.Width,1,0)
 				end
 
 				local function updateSide(side,noTween)
@@ -23153,7 +23190,6 @@ local EmbeddedModules = {
 					if not silent then
 						side.Hidden = false
 					end
-					-- updateWindows(silent)
 				end
 
 				funcs.Close = function(self)
@@ -23280,7 +23316,6 @@ local EmbeddedModules = {
 						else
 							if table.find(visibleWindows,window) then return end
 
-							-- TODO: make better
 							window.GuiElems.Main.Size = UDim2.new(0,window.SizeX,0,20)
 							local ti = TweenInfo.new(0.2,Enum.EasingStyle.Quad,Enum.EasingDirection.Out)
 							window:StopTweens()
@@ -23623,7 +23658,6 @@ local EmbeddedModules = {
 								newEntry.Icon.Visible = false
 							else
 								local iconIndex = item.Disabled and item.DisabledIcon or item.Icon
-								-- Explorer.MiscIcons:DisplayExplorerIcons(newEntry.Icon, iconIndex)
 								if item.IconMap then
 									if type(iconIndex) == "number" then
 										item.IconMap:Display(newEntry.Icon, iconIndex)
@@ -23687,12 +23721,10 @@ local EmbeddedModules = {
 						self:Refresh()
 					end
 
-					-- Vars
 					local reverseY = false
 					local x,y = x or mouse.X, y or mouse.Y
 					local maxX,maxY = mouse.ViewSizeX,mouse.ViewSizeY
 
-					-- Position and show
 					if x + self.Width > maxX then
 						x = self.ReverseX and x - self.Width or maxX - self.Width
 					end
@@ -23701,7 +23733,6 @@ local EmbeddedModules = {
 					self.Gui.DisplayOrder = Main.DisplayOrders.Menu
 					Lib.ShowGui(self.Gui)
 
-					-- Size adjustment
 					local toSize = elems.List.UIListLayout.AbsoluteContentSize.Y + 6 -- Padding
 					if self.MaxHeight and toSize > self.MaxHeight then
 						elems.List.CanvasSize = UDim2.new(0,0,0,toSize-6)
@@ -23711,7 +23742,6 @@ local EmbeddedModules = {
 					end
 					if y + toSize > maxY then reverseY = true end
 
-					-- Close event
 					local closable
 					if self.CloseEvent then self.CloseEvent:Disconnect() end
 					self.CloseEvent = service.UserInputService.InputBegan:Connect(function(input)
@@ -23725,7 +23755,6 @@ local EmbeddedModules = {
 						end
 					end)
 
-					-- Resize
 					if reverseY then
 						elems.Main.Position = UDim2.new(0,x,0,y-(self.ReverseYOffset or 0))
 						local newY = y - toSize - (self.ReverseYOffset or 0)
@@ -23735,7 +23764,6 @@ local EmbeddedModules = {
 						elems.Main:TweenSize(UDim2.new(0,self.Width,0,toSize),Enum.EasingDirection.Out,Enum.EasingStyle.Quart,0.2,true)
 					end
 
-					-- Close debounce
 					Lib.FastWait()
 					if self.SearchEnabled and self.FocusSearchOnShow then elems.SearchBar:CaptureFocus() end
 					closable = true
@@ -24391,7 +24419,6 @@ local EmbeddedModules = {
 					self.ScrollH:ScrollTo(self.ScrollH.Index + x)
 				end
 
-				-- x and y starts at 0
 				funcs.TabAdjust = function(self,x,y)
 					local lines = self.Lines
 					local line = lines[y+1]
@@ -24496,7 +24523,6 @@ local EmbeddedModules = {
 
 					cursorX = cursorX + self:TabAdjust(cursorX,cursorY)
 
-					-- Update modified
 					self.CursorX = cursorX
 					self.CursorY = cursorY
 
@@ -24534,7 +24560,6 @@ local EmbeddedModules = {
 				funcs.PreHighlight = function(self)
 					local start = tick()
 					local text = self.Text:gsub("\\\\","	")
-					--print("BACKSLASH SUB",tick()-start)
 					local textLen = #text
 					local found = {}
 					local foundMap = {}
@@ -24608,14 +24633,12 @@ local EmbeddedModules = {
 
 						while pos > lineEnd do
 							curLine = curLine + 1
-							--lineTableCount = 1
 							lineEnd = newLines[curLine] or textLen+1
 						end
 						while true do
 							local lineTable = foundHighlights[curLine]
 							if not lineTable then lineTable = {} foundHighlights[curLine] = lineTable end
 							lineTable[pos] = {typ,ending}
-							--lineTableCount = lineTableCount + 1
 
 							if ending > lineEnd then
 								curLine = curLine + 1
@@ -24626,11 +24649,8 @@ local EmbeddedModules = {
 						end
 
 						lastEnding = ending
-						--if i < 200 then print(curLine) end
 					end
 					self.PreHighlights = foundHighlights
-					--print(tick()-start)
-					--print(#found,curLine)
 				end
 
 				funcs.HighlightLine = function(self,line)
@@ -24657,7 +24677,6 @@ local EmbeddedModules = {
 						if relativePos < 1 then
 							currentType = data[1]
 							lastEnding = data[2] - lineStart
-							--warn(pos,data[2])
 						else
 							preHighlightMap[relativePos] = {data[1],data[2]-lineStart}
 						end
@@ -24823,7 +24842,6 @@ local EmbeddedModules = {
 						local curType = highlights[colStart]
 						local curTemplate = richTemplates[typeMap[curType]] or textTemplate
 
-						-- Selection Highlight
 						local selectionRange = self.SelectionRange
 						local selPos1 = selectionRange[1]
 						local selPos2 = selectionRange[2]
@@ -24843,7 +24861,6 @@ local EmbeddedModules = {
 							lineFrame.SelectionHighlight.Visible = false
 						end
 
-						-- Selection Text Color for first char
 						local inSelection = selRelaY >= selRow and selRelaY <= sel2Row and (selRelaY == selRow and viewX >= selColumn or selRelaY ~= selRow) and (selRelaY == sel2Row and viewX < sel2Column or selRelaY ~= sel2Row)
 						if inSelection then
 							curType = -999
@@ -24855,7 +24872,6 @@ local EmbeddedModules = {
 							local selRelaX = relaX-1
 							local posType = highlights[relaX]
 
-							-- Selection Text Color
 							local inSelection = selRelaY >= selRow and selRelaY <= sel2Row and (selRelaY == selRow and selRelaX >= selColumn or selRelaY ~= selRow) and (selRelaY == sel2Row and selRelaX < sel2Column or selRelaY ~= sel2Row)
 							if inSelection then
 								posType = -999
@@ -24875,7 +24891,6 @@ local EmbeddedModules = {
 						end
 
 						local lastText = gsub(sub(lineText,colStart,viewX+maxCols),"['\"<>&]",richReplace)
-						--warn("SUB",colStart,viewX+maxCols-1)
 						if #lastText > 0 then
 							resText = resText .. (curTemplate ~= textTemplate and (curTemplate .. lastText .. "</font>") or lastText)
 						end
@@ -24895,7 +24910,6 @@ local EmbeddedModules = {
 					self.Frame.LineNumbers.Text = lineNumberStr
 					self:UpdateCursor()
 
-					--print("REFRESH TIME",tick()-start)
 				end
 
 				funcs.UpdateView = function(self)
@@ -24964,7 +24978,6 @@ local EmbeddedModules = {
 					self:MapNewLines()
 					self:PreHighlight()
 					self:Refresh()
-					--self.TextChanged:Fire()
 				end
 
 				funcs.ConvertText = function(self,text,toEditor)
@@ -25133,7 +25146,6 @@ local EmbeddedModules = {
 					local checkmark = filler.checkmark
 					local ripples_container = checkbox.ripples
 
-					-- walls
 					local top, bottom, left, right = filler.top, filler.bottom, filler.left, filler.right
 
 					self.Gui = checkbox
@@ -25165,7 +25177,6 @@ local EmbeddedModules = {
 						end
 					end)
 
-					-- Old:
 			--[[checkbox.InputBegan:Connect(function(i)
 				if i.UserInputType == Enum.UserInputType.MouseButton1 then
 					local release
@@ -27190,7 +27201,6 @@ local EmbeddedModules = {
 --[[
 	Console Module
 ]]
-		-- Common Locals
 		local Main,Lib,Apps,Settings -- Main Containers
 		local Explorer, Properties, ScriptViewer, Notebook -- Major Apps
 		local API,RMD,env,service,plr,create,createSimple -- Main Locals
@@ -27225,16 +27235,13 @@ local EmbeddedModules = {
 			local OutputLimit = 500 -- Same as Roblox Console.
 
 
-			-- Instances: 29 | Scripts: 1 | Modules: 1 | Tags: 0
 			local G2L = {};
 
-			-- StarterGui.ScreenGui
 			window = Lib.Window.new()
 			window:SetTitle("Console")
 			window:Resize(500,400)
 			Console.Window = window
 
-			-- StarterGui.ScreenGui.Console
 			ConsoleFrame = Instance.new("ImageButton", window.GuiElems.Content);
 			ConsoleFrame["BorderSizePixel"] = 0;
 			ConsoleFrame["AutoButtonColor"] = false;
@@ -27247,7 +27254,6 @@ local EmbeddedModules = {
 			ConsoleFrame["Position"] = UDim2.new(0,0,0,0);
 
 
-			-- StarterGui.ScreenGui.Console.CommandLine
 			G2L["3"] = Lib.Frame.new().Gui--Instance.new("Frame", ConsoleFrame);
 			G2L["3"].Parent = ConsoleFrame
 			G2L["3"]["BorderSizePixel"] = 0;
@@ -27260,13 +27266,11 @@ local EmbeddedModules = {
 			G2L["3"]["Name"] = [[CommandLine]];
 
 
-			-- StarterGui.ScreenGui.Console.CommandLine.UIStroke
 			G2L["4"] = Instance.new("UIStroke", G2L["3"]);
 			G2L["4"]["Transparency"] = 0.65;
 			G2L["4"]["Thickness"] = 1.25;
 
 
-			-- StarterGui.ScreenGui.Console.CommandLine.ScrollingFrame
 			G2L["5"] = Instance.new("ScrollingFrame", G2L["3"]);
 			G2L["5"]["Active"] = true;
 			G2L["5"]["ScrollingDirection"] = Enum.ScrollingDirection.X;
@@ -27284,7 +27288,6 @@ local EmbeddedModules = {
 			G2L["5"]["ScrollBarThickness"] = 2;
 			G2L["5"]["BackgroundTransparency"] = 1;
 
-			-- StarterGui.ScreenGui.Console.CommandLine.ScrollingFrame.TextBox
 			G2L["6"] = Instance.new("TextBox", G2L["5"]);
 			G2L["6"]["CursorPosition"] = -1;
 			G2L["6"]["TextXAlignment"] = Enum.TextXAlignment.Left;
@@ -27303,12 +27306,10 @@ local EmbeddedModules = {
 			G2L["6"]["BackgroundTransparency"] = 1;
 
 
-			-- StarterGui.ScreenGui.Console.CommandLine.ScrollingFrame.TextBox.UIPadding
 			G2L["7"] = Instance.new("UIPadding", G2L["6"]);
 			G2L["7"]["PaddingLeft"] = UDim.new(0, 7);
 
 
-			-- StarterGui.ScreenGui.Console.CommandLine.ScrollingFrame.Highlight
 			G2L["8"] = Instance.new("TextLabel", G2L["5"]);
 			G2L["8"]["Interactable"] = false;
 			G2L["8"]["ZIndex"] = 2;
@@ -27328,7 +27329,6 @@ local EmbeddedModules = {
 			G2L["8"]["Name"] = [[Highlight]];
 
 
-			-- StarterGui.ScreenGui.Console.CommandLine.ScrollingFrame.Highlight.UIPadding
 			G2L["9"] = Instance.new("UIPadding", G2L["8"]);
 			G2L["9"]["PaddingLeft"] = UDim.new(0, 7);
 
@@ -27349,7 +27349,6 @@ local EmbeddedModules = {
 			scrollbar.Gui.Up.ZIndex = 3
 			scrollbar.Gui.Down.ZIndex = 3
 
-			-- StarterGui.ScreenGui.Console.Output
 			G2L["a"] = Instance.new("ScrollingFrame", ConsoleFrame);
 			G2L["a"]["Active"] = true;
 			G2L["a"]["BorderSizePixel"] = 0;
@@ -27377,36 +27376,30 @@ local EmbeddedModules = {
 				end
 			end)
 
-			-- StarterGui.ScreenGui.Console.Output.UIListLayout
 			G2L["b"] = Instance.new("UIListLayout", G2L["a"]);
 			G2L["b"]["SortOrder"] = Enum.SortOrder.LayoutOrder;
 
 
-			-- StarterGui.ScreenGui.Console.Output.UIStroke
 			G2L["c"] = Instance.new("UIStroke", G2L["a"]);
 			G2L["c"]["Transparency"] = 0.7;
 			G2L["c"]["Thickness"] = 1.25;
 			G2L["c"]["Color"] = Color3.fromRGB(12, 12, 12);
 
 
-			-- StarterGui.ScreenGui.Console.Output.OutputTextSize
 			G2L["d"] = Instance.new("NumberValue", G2L["a"]);
 			G2L["d"]["Name"] = [[OutputTextSize]];
 			G2L["d"]["Value"] = 15;
 
 
-			-- StarterGui.ScreenGui.Console.Output.OutputLimit
 			G2L["e"] = Instance.new("NumberValue", G2L["a"]);
 			G2L["e"]["Name"] = [[OutputLimit]];
 			G2L["e"]["Value"] = OutputLimit;
 
 
-			-- StarterGui.ScreenGui.Console.Output.UIPadding
 			G2L["f"] = Instance.new("UIPadding", G2L["a"]);
 			G2L["f"]["PaddingTop"] = UDim.new(0, 2);
 
 
-			-- StarterGui.ScreenGui.Console.TextSizeBox
 			G2L["10"] = Instance.new("Frame", ConsoleFrame);
 			G2L["10"]["BorderSizePixel"] = 0;
 			G2L["10"]["BackgroundColor3"] = Color3.fromRGB(37, 37, 37);
@@ -27417,7 +27410,6 @@ local EmbeddedModules = {
 			G2L["10"]["Name"] = [[TextSizeBox]];
 
 
-			-- StarterGui.ScreenGui.Console.TextSizeBox.TextBox
 			G2L["11"] = Instance.new("TextBox", G2L["10"]);
 			G2L["11"]["PlaceholderColor3"] = Color3.fromRGB(108, 108, 108);
 			G2L["11"]["BorderSizePixel"] = 0;
@@ -27434,7 +27426,6 @@ local EmbeddedModules = {
 			G2L["11"]["BackgroundTransparency"] = 1;
 
 
-			-- StarterGui.ScreenGui.Console.TextSizeBox.TextBox.UIPadding
 			G2L["12"] = Instance.new("UIPadding", G2L["11"]);
 			G2L["12"]["PaddingTop"] = UDim.new(0, 2);
 			G2L["12"]["PaddingRight"] = UDim.new(0, 5);
@@ -27442,13 +27433,11 @@ local EmbeddedModules = {
 			G2L["12"]["PaddingBottom"] = UDim.new(0, 2);
 
 
-			-- StarterGui.ScreenGui.Console.TextSizeBox.UIStroke
 			G2L["13"] = Instance.new("UIStroke", G2L["10"]);
 			G2L["13"]["Transparency"] = 0.65;
 			G2L["13"]["Thickness"] = 1.25;
 
 
-			-- StarterGui.ScreenGui.Console.Clear
 			G2L["14"] = Instance.new("ImageButton", ConsoleFrame);
 			G2L["14"]["BorderSizePixel"] = 0;
 			G2L["14"]["BackgroundColor3"] = Color3.fromRGB(57, 57, 57);
@@ -27458,7 +27447,6 @@ local EmbeddedModules = {
 			G2L["14"]["Position"] = UDim2.new(1, -42, 0, 4);
 
 
-			-- StarterGui.ScreenGui.Console.Clear.TextLabel
 			G2L["15"] = Instance.new("TextLabel", G2L["14"]);
 			G2L["15"]["TextWrapped"] = true;
 			G2L["15"]["Interactable"] = false;
@@ -27474,13 +27462,11 @@ local EmbeddedModules = {
 			G2L["15"]["Text"] = [[Clear]];
 
 
-			-- StarterGui.ScreenGui.Console.Clear.UIPadding
 			G2L["16"] = Instance.new("UIPadding", G2L["14"]);
 			G2L["16"]["PaddingTop"] = UDim.new(0, 1);
 			G2L["16"]["PaddingBottom"] = UDim.new(0, 1);
 
 
-			-- StarterGui.ScreenGui.Console.OutputTemplate
 			G2L["17"] = Instance.new("TextBox", ConsoleFrame);
 			G2L["17"]["Visible"] = false;
 			G2L["17"]["Active"] = false;
@@ -27504,13 +27490,11 @@ local EmbeddedModules = {
 			G2L["17"]["BackgroundTransparency"] = 1;
 
 
-			-- StarterGui.ScreenGui.Console.OutputTemplate.UIPadding
 			G2L["18"] = Instance.new("UIPadding", G2L["17"]);
 			G2L["18"]["PaddingRight"] = UDim.new(0, 6);
 			G2L["18"]["PaddingLeft"] = UDim.new(0, 6);
 
 
-			-- StarterGui.ScreenGui.Console.CtrlScroll
 			G2L["19"] = Instance.new("ImageButton", ConsoleFrame);
 			G2L["19"]["BorderSizePixel"] = 0;
 			G2L["19"]["BackgroundColor3"] = Color3.fromRGB(57, 57, 57);
@@ -27520,7 +27504,6 @@ local EmbeddedModules = {
 			G2L["19"]["Position"] = UDim2.new(0, 46, 0, 4);
 
 
-			-- StarterGui.ScreenGui.Console.CtrlScroll.TextLabel
 			G2L["1a"] = Instance.new("TextLabel", G2L["19"]);
 			G2L["1a"]["TextWrapped"] = true;
 			G2L["1a"]["Interactable"] = false;
@@ -27536,12 +27519,10 @@ local EmbeddedModules = {
 			G2L["1a"]["Text"] = [[Ctrl Scroll]];
 
 
-			-- StarterGui.ScreenGui.Console.CtrlScroll.UIPadding
 			G2L["1b"] = Instance.new("UIPadding", G2L["19"]);
 			G2L["1b"]["PaddingTop"] = UDim.new(0, 1);
 			G2L["1b"]["PaddingBottom"] = UDim.new(0, 1);
 
-			-- StarterGui.ScreenGui.Console.AutoScroll
 			G2L["20"] = Instance.new("ImageButton", ConsoleFrame);
 			G2L["20"]["BorderSizePixel"] = 0;
 			G2L["20"]["BackgroundColor3"] = Color3.fromRGB(57, 57, 57);
@@ -27551,7 +27532,6 @@ local EmbeddedModules = {
 			G2L["20"]["Position"] = UDim2.new(0, 110, 0, 4);
 
 
-			-- StarterGui.ScreenGui.Console.AutoScroll.TextLabel
 			G2L["1e"] = Instance.new("TextLabel", G2L["20"]);
 			G2L["1e"]["TextWrapped"] = true;
 			G2L["1e"]["Interactable"] = false;
@@ -27567,23 +27547,19 @@ local EmbeddedModules = {
 			G2L["1e"]["Text"] = [[Auto Scroll]];
 
 
-			-- StarterGui.ScreenGui.Console.AutoScroll.UIPadding
 			G2L["1f"] = Instance.new("UIPadding", G2L["20"]);
 			G2L["1f"]["PaddingTop"] = UDim.new(0, 1);
 			G2L["1f"]["PaddingBottom"] = UDim.new(0, 1);
 
 
-			-- StarterGui.ScreenGui.ConsoleHandler
 			G2L["1c"] = Instance.new("LocalScript", G2L["1"]);
 			G2L["1c"]["Name"] = [[ConsoleHandler]];
 
 
-			-- StarterGui.ScreenGui.ConsoleHandler.SyntaxHighlighter
 			G2L["1d"] = Instance.new("ModuleScript", G2L["1c"]);
 			G2L["1d"]["Name"] = [[SyntaxHighlighter]];
 
 
-			-- Require G2L wrapper
 			local G2L_REQUIRE = require;
 			local G2L_MODULES = {};
 			local function require(Module)
@@ -27783,7 +27759,6 @@ local EmbeddedModules = {
 			};
 
 			Console.Init = function()
-				-- StarterGui.ScreenGui.ConsoleHandler
 
 				local CtrlScroll = false
 				local AutoScroll = false
@@ -27807,7 +27782,6 @@ local EmbeddedModules = {
 
 
 
-				-- MOUSE STUFFS
 
 				if CtrlScroll == true then
 					Console.CtrlScroll.BackgroundColor3 = Color3.fromRGB(11, 90, 175)
@@ -27854,7 +27828,6 @@ local EmbeddedModules = {
 					end
 				end)
 
-				-- Console part
 				local displayedOutput = {}
 				local OutputLimit = Console.Output.OutputLimit
 
@@ -27985,7 +27958,6 @@ local EmbeddedModules = {
 --[[
 	Save Instance Module
 ]]
-		-- Common Locals
 		local Main,Lib,Apps,Settings -- Main Containers
 		local Explorer, Properties, ScriptViewer, Notebook -- Major Apps
 		local API,RMD,env,service,plr,create,createSimple -- Main Locals
@@ -28044,13 +28016,11 @@ local EmbeddedModules = {
 				listlayout.VerticalAlignment = Enum.VerticalAlignment.Center
 				listlayout.Padding = UDim.new(0, 10)
 
-				-- Checkbox
 				local checkbox = Lib.Checkbox.new()
 
 				checkbox.Gui.Parent = frame.Gui
 				checkbox.Gui.Size = UDim2.new(0,15,0,15)
 
-				-- Label
 				local label = Lib.Label.new()
 
 				label.Gui.Parent = frame.Gui
@@ -28077,7 +28047,6 @@ local EmbeddedModules = {
 				listlayout.VerticalAlignment = Enum.VerticalAlignment.Center
 				listlayout.Padding = UDim.new(0, 10)
 
-				-- Textbox
 				local textbox = Lib.ViewportTextBox.new()
 
 				textbox.Gui.Parent = frame.Gui
@@ -28090,7 +28059,6 @@ local EmbeddedModules = {
 				textbox.Gui.AutomaticSize = Enum.AutomaticSize.X
 				textbox.TextBox.AutomaticSize = Enum.AutomaticSize.X
 
-				-- Label
 				local label = Lib.Label.new()
 
 				label.Gui.Parent = frame.Gui
@@ -28116,7 +28084,6 @@ local EmbeddedModules = {
 				listlayout.VerticalAlignment = Enum.VerticalAlignment.Center
 				listlayout.Padding = UDim.new(0, 10)
 
-				-- Textbox
 				local dropdown = Lib.ViewportTextBox.new()
 
 				dropdown.Gui.Parent = frame.Gui
@@ -28126,7 +28093,6 @@ local EmbeddedModules = {
 					dropdown.Gui.Size = UDim2.new(0,65,0,15)
 				end
 
-				-- Label
 				local label = Lib.Label.new()
 
 				label.Gui.Parent = frame.Gui
@@ -28146,9 +28112,7 @@ local EmbeddedModules = {
 				window:Resize(350,350)
 				SaveInstance.Window = window
 
-				-- ListFrame
 
-				-- Fake ScrollBar dex, because its too advanced
 				ListFrame = Instance.new("ScrollingFrame")
 				ListFrame.Parent = window.GuiElems.Content
 				ListFrame.Size = UDim2.new(1, 0,1, -40)
@@ -28189,7 +28153,6 @@ local EmbeddedModules = {
 				Padding.PaddingRight = UDim.new(0, 10)
 				Padding.PaddingTop = UDim.new(0, 5)
 
-				-- Options
 
 				local Decompile = AddCheckbox("Decompile Scripts (LocalScript and ModuleScript)", SaveInstanceArgs.Decompile)
 				Decompile.OnInput:Connect(function()
@@ -28253,7 +28216,6 @@ local EmbeddedModules = {
 				end)
 
 
-				-- Decompile buttons below
 				local FilenameTextBox = Lib.ViewportTextBox.new()
 				FilenameTextBox.Gui.Parent = window.GuiElems.Content
 				FilenameTextBox.Size = UDim2.new(1,0, 0,20)
@@ -28305,11 +28267,9 @@ local EmbeddedModules = {
 	end
 }
 
--- Main vars
 local Main, Explorer, Properties, ScriptViewer, DefaultSettings, Notebook, Serializer, Lib, Console, SaveInstance
 local API, RM
 
--- Default Settings
 DefaultSettings = (function()
 	local rgb = Color3.fromRGB
 	return {
@@ -28384,7 +28344,6 @@ DefaultSettings = (function()
 	}
 end)()
 
--- Vars
 local Settings = {}
 local Apps = {}
 local env = {}
@@ -28513,7 +28472,6 @@ Main = (function()
 			end
 		end
 
-		-- Init Major Apps and define them in modules
 		Explorer = Apps.Explorer
 		Properties = Apps.Properties
 		ScriptViewer = Apps.ScriptViewer
@@ -28544,7 +28502,6 @@ Main = (function()
 			rawset(self, name, func)
 		end})
 
-		-- file
 		env.readfile = missing("function", readfile)
 		env.writefile = missing("function", writefile)
 		env.appendfile = missing("function", appendfile)
@@ -28553,7 +28510,6 @@ Main = (function()
 		env.loadfile = missing("function", loadfile)
 		env.movefileas = missing("function", movefileas)
 		env.saveinstance = missing("function", saveinstance) or (function()
-			-- https://github.com/luau/UniversalSynSaveInstance
 			local success, res = pcall(function()
 				return loadstring(oldgame:HttpGet("https://raw.githubusercontent.com/luau/SynSaveInstance/main/saveinstance.luau"))()
 			end)
@@ -28563,19 +28519,14 @@ Main = (function()
 			return tostring(name):gsub("[*\\?:<>|]+", ""):sub(1, 175)
 		end
 
-		-- debug
 		env.getupvalues = missing("function", (debug and debug.getupvalues) or getupvalues or getupvals)
 		env.getconstants = missing("function", (debug and debug.getconstants) or getconstants or getconsts)
 		env.getinfo = missing("function", (debug and (debug.getinfo or debug.info)) or getinfo)
 		env.islclosure = missing("function", islclosure or is_l_closure or is_lclosure)
 		env.checkcaller = missing("function", checkcaller)
-		--env.getreg = missing("function", getreg)
 		env.getgc = missing("function", getgc or get_gc_objects)
-		--env.base64encode = missing("function", crypt and crypt.base64 and crypt.base64.encode)
 		env.getscriptbytecode = missing("function", getscriptbytecode)
 
-		-- other
-		--env.setfflag = missing("function", setfflag)
 		env.request = missing("function", request or http_request or (syn and syn.request) or (http and http.request) or (fluxus and fluxus.request))
 		env.decompile = missing("function", decompile) or (env.getscriptbytecode and env.request and (function()
 			local success, err = pcall(function()
@@ -28622,7 +28573,6 @@ Main = (function()
 
 				end
 			else
-				-- TODO: Notification
 			end
 		else
 			Main.ResetSettings()
@@ -28673,7 +28623,6 @@ Main = (function()
 		Main.RawAPI = rawAPI
 		api = jsonDecode(rawAPI)
 
-		-- backup for kaboom
 		if not api then
 			rawAPI = oldgame:HttpGet("https://raw.githubusercontent.com/bochilascript/ROBLOX/refs/heads/main/rbx_api.dat")
 			Main.RawAPI = rawAPI
@@ -29237,7 +29186,6 @@ Main = (function()
 			gui:Destroy()
 		end)
 
-		-- Create Main Apps
 		Main.CreateApp({Name = "Explorer", IconMap = Main.LargeIcons, Icon = "Explorer", Open = true, Window = Explorer.Window})
 
 		Main.CreateApp({Name = "Properties", IconMap = Main.LargeIcons, Icon = "Properties", Open = true, Window = Properties.Window})
@@ -29287,15 +29235,11 @@ Main = (function()
 		Main.LoadSettings()
 		Main.SetupFilesystem()
 
-		-- Load Lib
 		local intro = Main.CreateIntro("Initializing Library")
 		Lib = Main.LoadModule("Lib")
 		Lib.FastWait()
 
-		-- Init other stuff
-		--Main.IncompatibleTest()
 
-		-- Init icons
 		Main.MiscIcons = Lib.IconMap.new("http://www.roblox.com/asset/?id=6511490623",256,256,16,16) -- 6579106223
 
 		Main.MiscIcons:SetDict({
@@ -29344,7 +29288,6 @@ Main = (function()
 			Explorer = 0, Properties = 1, Script_Viewer = 2, Watcher = 3, Output = 4
 		})
 
-		-- Fetch version if needed
 		intro.SetProgress("Fetching Roblox Version",0.2)
 		if Main.Elevated then
 			local fileVer = Lib.ReadFile("dex/deps_version.dat")
@@ -29358,13 +29301,11 @@ Main = (function()
 			end
 			Main.RobloxVersion = Main.RobloxVersion or oldgame:HttpGet("http://setup.roblox.com/versionQTStudio")
 
-			-- backup for kaboom
 			if #Main.RobloxVersion < 1 then
 				Main.RobloxVersion = oldgame:HttpGet("https://raw.githubusercontent.com/bochilascript/ROBLOX/refs/heads/main/deps_version.dat"):gsub("%s+", "")
 			end
 		end
 
-		-- Fetch external deps
 		intro.SetProgress("Fetching API",0.35)
 		API = Main.FetchAPI()
 		Lib.FastWait()
@@ -29372,20 +29313,17 @@ Main = (function()
 		RMD = Main.FetchRMD()
 		Lib.FastWait()
 
-		-- Save external deps locally if needed
 		if Main.Elevated and env.writefile and not Main.LocalDepsUpToDate() then
 			env.writefile("dex/deps_version.dat",Main.ClientVersion.."\n"..Main.RobloxVersion)
 			env.writefile("dex/rbx_api.dat",Main.RawAPI)
 			env.writefile("dex/rbx_rmd.dat",Main.RawRMD)
 		end
 
-		-- Load other modules
 		intro.SetProgress("Loading Modules",0.75)
 		Main.AppControls.Lib.InitDeps(Main.GetInitDeps()) -- Missing deps now available
 		Main.LoadModules()
 		Lib.FastWait()
 
-		-- Init other modules
 		intro.SetProgress("Initializing Modules",0.9)
 		Explorer.Init()
 		Properties.Init()
@@ -29394,14 +29332,12 @@ Main = (function()
 		SaveInstance.Init()
 		Lib.FastWait()
 
-		-- Done
 		intro.SetProgress("Complete",1)
 		coroutine.wrap(function()
 			Lib.FastWait(1.25)
 			intro.Close()
 		end)()
 
-		-- Init window system, create main menu, show explorer and properties
 		Lib.Window.Init()
 		Main.CreateMainGui()
 		Explorer.Window:Show({Align = "right", Pos = 1, Size = 0.5, Silent = true})
@@ -29412,7 +29348,6 @@ Main = (function()
 	return Main
 end)()
 
--- Start
 Main.Init()
     end
     task.spawn(func)
