@@ -647,11 +647,13 @@ MainGuiToggleConn = UserInputService.InputBegan:Connect(function(input, gameProc
     if UserInputService:GetFocusedTextBox() then return end
     if input.KeyCode == Enum.KeyCode.LeftBracket then
         if MainFrame.Visible then
+            ModalFix.Modal = false
             local tw = TweenService:Create(MainFrame, TweenInfo.new(0.25), {Size = UDim2.new(0,0,0,0)})
             tw:Play()
             tw.Completed:Connect(function() MainFrame.Visible = false end)
         else
             MainFrame.Visible = true
+            ModalFix.Modal = true
             MainFrame.Size = UDim2.new(0, 0, 0, 0)
             TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = MainFrameSize}):Play()
             pcall(function() updateExternalCursorVisibility() end)
@@ -3014,47 +3016,44 @@ local function refreshObjectESP()
     clearObjectESPByTag("WindowESP")
     clearObjectESPByTag("GateESP")
 
+    local myRoot = LocalPlayer.Character and getRoot(LocalPlayer.Character)
     local closestHook, closestDist = nil, math.huge
-    if ESPConfig.ShowClosestHookOnly and ESPConfig.HookESP then
-        local myRoot = LocalPlayer.Character and getRoot(LocalPlayer.Character)
-        if myRoot then
-            for _, obj in ipairs(workspace:GetDescendants()) do
-                if obj.Name == "Hook" and obj:IsA("Model") then
-                    local p = obj:FindFirstChild("Main") or obj:FindFirstChildWhichIsA("BasePart")
-                    if p then
-                        local d = (myRoot.Position - p.Position).Magnitude
-                        if d < closestDist then closestDist = d; closestHook = obj end
-                    end
-                end
-            end
-        end
-    end
-
-    local searchArea = workspace:GetChildren()
+    
     local mapFolder = workspace:FindFirstChild("Map") or workspace:FindFirstChild("MapLighting")
-    if mapFolder then
-        for _, v in ipairs(mapFolder:GetDescendants()) do
-            if v:IsA("Model") then table.insert(searchArea, v) end
-        end
-    else
-        searchArea = workspace:GetDescendants()     end
+    local rootArea = mapFolder or workspace
 
     local count = 0
-    for _, obj in ipairs(searchArea) do
+    local queue = rootArea:GetChildren()
+    
+    while #queue > 0 do
+        local obj = table.remove(queue, #queue)
+        
+        -- Add children to queue
+        for _, child in ipairs(obj:GetChildren()) do
+            table.insert(queue, child)
+        end
+        
         count = count + 1
-        if count % 1500 == 0 then task.wait() end -- Yield to prevent freezing Roblox!
+        if count % 1000 == 0 then task.wait() end -- Yield safely to avoid freeze
         
         if obj:IsA("Model") then
             local name = obj.Name
+            
+            if ESPConfig.ShowClosestHookOnly and ESPConfig.HookESP and name == "Hook" then
+                local p = obj:FindFirstChild("Main") or obj:FindFirstChildWhichIsA("BasePart")
+                if p and myRoot then
+                    local d = (myRoot.Position - p.Position).Magnitude
+                    if d < closestDist then closestDist = d; closestHook = obj end
+                end
+            end
+            
             if name == "Generator" and ESPConfig.GeneratorESP then
                 if obj:FindFirstChild("Main") or obj:FindFirstChildWhichIsA("BasePart") then
                     createObjectESP("GeneratorESP", obj, "Generator", ESPColors.Generator, true)
                 end
             elseif name == "Hook" and ESPConfig.HookESP then
                 if ESPConfig.ShowClosestHookOnly then
-                    if obj == closestHook then
-                        createObjectESP("HookESP", obj, "CLOSEST HOOK", ESPColors.Hook, false)
-                    end
+                    -- Process closest hook at the end
                 else
                     createObjectESP("HookESP", obj, "Hook", ESPColors.Hook, false)
                 end
@@ -3068,6 +3067,10 @@ local function refreshObjectESP()
                 createObjectESP("GateESP", obj, "Exit", ESPColors.Gate, false)
             end
         end
+    end
+    
+    if ESPConfig.ShowClosestHookOnly and ESPConfig.HookESP and closestHook then
+        createObjectESP("HookESP", closestHook, "CLOSEST HOOK", ESPColors.Hook, false)
     end
 end
 
@@ -3250,30 +3253,24 @@ MakeButton("Instant Self Heal/Revive", function()
 end)
 
 MakeToggle("AutoGen", "Auto Complete Generator", function(val)
-    _G.VDAutoGenLoop = val
     if val then
-        task.spawn(function()
-            while _G.VDAutoGenLoop do
-                task.wait(1)
-                pcall(function()
-                    local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
-                    if remotes then
-                        local gen = remotes:FindFirstChild("Generator")
-                        if gen then
-                            local names = {"SkillCheckResultEvent", "SkillCheckFailEvent", "SkillCheckEvent"}
-                            for _, n in ipairs(names) do
-                                local r = gen:FindFirstChild(n)
-                                if r and not r:GetAttribute("IsDummy") then
-                                    local dummy = Instance.new("RemoteEvent")
-                                    dummy.Name = r.Name
-                                    dummy:SetAttribute("IsDummy", true)
-                                    dummy.Parent = gen
-                                    r:Destroy()
-                                end
-                            end
+        pcall(function()
+            local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
+            if remotes then
+                local gen = remotes:FindFirstChild("Generator")
+                if gen then
+                    local names = {"SkillCheckResultEvent", "SkillCheckFailEvent", "SkillCheckEvent"}
+                    for _, n in ipairs(names) do
+                        local r = gen:FindFirstChild(n)
+                        if r and not r:GetAttribute("IsDummy") then
+                            local dummy = Instance.new("RemoteEvent")
+                            dummy.Name = r.Name
+                            dummy:SetAttribute("IsDummy", true)
+                            dummy.Parent = gen
+                            r:Destroy()
                         end
                     end
-                end)
+                end
             end
         end)
     end
@@ -3283,9 +3280,32 @@ MakeToggle("AutoRepairBypass", "Bypass Interact (Gen/Gate)", function(val)
     _G.VDBypassInteract = val
     if val then
         task.spawn(function()
+            local interactCache = {}
+            local lastMap = nil
+
             while _G.VDBypassInteract do
                 task.wait(0.25)
                 pcall(function()
+                    local map = workspace:FindFirstChild("Map")
+                    if map ~= lastMap then
+                        lastMap = map
+                        interactCache = {}
+                        if map then
+                            local searchAreas = {}
+                            if map:FindFirstChild("Generators") then table.insert(searchAreas, map.Generators) end
+                            if map:FindFirstChild("Escape") then table.insert(searchAreas, map.Escape) end
+                            if map:FindFirstChild("Gates") then table.insert(searchAreas, map.Gates) end
+                            
+                            for _, area in ipairs(searchAreas) do
+                                for _, obj in ipairs(area:GetDescendants()) do
+                                    if obj:IsA("BasePart") then
+                                        table.insert(interactCache, obj)
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    
                     local char = LocalPlayer.Character
                     if not char then return end
                     local root = char:FindFirstChild("HumanoidRootPart")
@@ -3299,33 +3319,22 @@ MakeToggle("AutoRepairBypass", "Bypass Interact (Gen/Gate)", function(val)
                     local gateRemote2 = remotes:FindFirstChild("Gate") and (remotes.Gate:FindFirstChild("OpenEvent") or remotes.Gate:FindFirstChild("EscapeEvent"))
                     local leverRemote = remotes:FindFirstChild("Lever") and (remotes.Lever:FindFirstChild("PullEvent") or remotes.Lever:FindFirstChild("OpenEvent"))
                     
-                    local map = workspace:FindFirstChild("Map")
-                    if not map then return end
-                    
-                    local searchAreas = {}
-                    if map:FindFirstChild("Generators") then table.insert(searchAreas, map.Generators) end
-                    if map:FindFirstChild("Escape") then table.insert(searchAreas, map.Escape) end
-                    if map:FindFirstChild("Gates") then table.insert(searchAreas, map.Gates) end
-                    
-                    for _, area in ipairs(searchAreas) do
-                        for _, obj in ipairs(area:GetDescendants()) do
-                            if obj:IsA("BasePart") then
-                                local dist = (obj.Position - myPos).Magnitude
-                                if dist < 15 then
-                                    if string.find(obj.Name, "GeneratorPoint") and genRemote then
-                                        local model = obj.Parent
-                                        if model and (model:GetAttribute("RepairProgress") or 0) < 1 then
-                                            genRemote:FireServer(obj, true)
-                                        end
-                                    elseif (string.find(obj.Name, "Lever") or string.find(obj.Name, "GatePoint")) then
-                                        if gateRemote1 then gateRemote1:FireServer(obj, true) end
-                                        if gateRemote2 then gateRemote2:FireServer(obj, true) end
-                                        if leverRemote then leverRemote:FireServer(obj, true) end
-                                        
-                                        -- Try direct FireServer if it's a ProximityPrompt
-                                        local prompt = obj:FindFirstChildWhichIsA("ProximityPrompt")
-                                        if prompt then fireproximityprompt(prompt) end
+                    for _, obj in ipairs(interactCache) do
+                        if obj and obj.Parent then
+                            local dist = (obj.Position - myPos).Magnitude
+                            if dist < 15 then
+                                if string.find(obj.Name, "GeneratorPoint") and genRemote then
+                                    local model = obj.Parent
+                                    if model and (model:GetAttribute("RepairProgress") or 0) < 1 then
+                                        genRemote:FireServer(obj, true)
                                     end
+                                elseif (string.find(obj.Name, "Lever") or string.find(obj.Name, "GatePoint")) then
+                                    if gateRemote1 then gateRemote1:FireServer(obj, true) end
+                                    if gateRemote2 then gateRemote2:FireServer(obj, true) end
+                                    if leverRemote then leverRemote:FireServer(obj, true) end
+                                    
+                                    local prompt = obj:FindFirstChildWhichIsA("ProximityPrompt")
+                                    if prompt then fireproximityprompt(prompt) end
                                 end
                             end
                         end
@@ -3339,31 +3348,25 @@ end)
 local originalHealRemotes = {}
 
 MakeToggle("AntiFailHeal", "Anti-Fail Healing", function(val)
-    _G.VDAntiFailHealLoop = val
     if val then
-        task.spawn(function()
-            while _G.VDAntiFailHealLoop do
-                task.wait(1)
-                pcall(function()
-                    local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
-                    if remotes then
-                        local heal = remotes:FindFirstChild("Healing")
-                        if heal then
-                            local names = {"SkillCheckResultEvent", "SkillCheckFailEvent", "SkillCheckEvent"}
-                            for _, n in ipairs(names) do
-                                local r = heal:FindFirstChild(n)
-                                if r and not r:GetAttribute("IsDummy") then
-                                    if not originalHealRemotes[n] then originalHealRemotes[n] = r:Clone() end
-                                    local dummy = Instance.new("RemoteEvent")
-                                    dummy.Name = r.Name
-                                    dummy:SetAttribute("IsDummy", true)
-                                    dummy.Parent = heal
-                                    r:Destroy()
-                                end
-                            end
+        pcall(function()
+            local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
+            if remotes then
+                local heal = remotes:FindFirstChild("Healing")
+                if heal then
+                    local names = {"SkillCheckResultEvent", "SkillCheckFailEvent", "SkillCheckEvent"}
+                    for _, n in ipairs(names) do
+                        local r = heal:FindFirstChild(n)
+                        if r and not r:GetAttribute("IsDummy") then
+                            if not originalHealRemotes[n] then originalHealRemotes[n] = r:Clone() end
+                            local dummy = Instance.new("RemoteEvent")
+                            dummy.Name = r.Name
+                            dummy:SetAttribute("IsDummy", true)
+                            dummy.Parent = heal
+                            r:Destroy()
                         end
                     end
-                end)
+                end
             end
         end)
     end
@@ -3941,7 +3944,8 @@ if hookfunction and checkcaller then
                 end
                 
                 if name == "CarrySurvivorEvent" or name == "HookEvent" or name == "HookPhase" or name == "PlayAnimation" then
-                    LogExploit("[VD DEBUG] Carry/Hook Event detected: " .. tostring(name) .. " autoAttackActive: " .. tostring(autoAttackActive) .. " isBusyWithSurvivor: " .. tostring(isBusyWithSurvivor))
+                    -- PlayAnimation dikembalikan untuk Killer, tapi LogExploit dimatikan agar tidak spam/freeze
+                    -- LogExploit("[VD DEBUG] Carry/Hook Event detected: " .. tostring(name) .. " autoAttackActive: " .. tostring(autoAttackActive) .. " isBusyWithSurvivor: " .. tostring(isBusyWithSurvivor))
                     if (autoAttackActive or _G.VDBrutalAttack or _G.VDOneHitAttack or killAllActive) and not isBusyWithSurvivor then
                         isBusyWithSurvivor = true
                         hasCarryStarted = false
@@ -4604,6 +4608,16 @@ MakeToggle("AutoSelfUnhook", "Auto Self Unhook", function(val)
     _G.VDAutoUnhook = val
     if val then
         task.spawn(function()
+            local map = workspace:FindFirstChild("Map")
+            local promptsCache = {}
+            if map then
+                for _, obj in ipairs(map:GetDescendants()) do
+                    if obj:IsA("ProximityPrompt") then
+                        table.insert(promptsCache, obj)
+                    end
+                end
+            end
+            
             while _G.VDAutoUnhook do
                 task.wait(0.15)
                 pcall(function()
@@ -4611,24 +4625,16 @@ MakeToggle("AutoSelfUnhook", "Auto Self Unhook", function(val)
                     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
                     local myRoot = char.HumanoidRootPart
                     
-                    -- ONLY use ProximityPrompt on Hook objects to fill the struggle bar
-                    -- DO NOT fire SelfUnHookEvent directly - it kills the player
                     if fireproximityprompt then
-                        local map = workspace:FindFirstChild("Map")
-                        if map then
-                            for _, obj in ipairs(map:GetDescendants()) do
-                                if obj:IsA("ProximityPrompt") then
-                                    local parent = obj.Parent
-                                    if parent and parent:IsA("BasePart") then
-                                        local dist = (parent.Position - myRoot.Position).Magnitude
-                                        -- Only fire prompts on Hook objects within 8 studs
-                                        if dist < 8 then
-                                            local parentName = parent.Name:lower()
-                                            local grandParentName = parent.Parent and parent.Parent.Name:lower() or ""
-                                            if parentName:find("hook") or grandParentName:find("hook") then
-                                                fireproximityprompt(obj)
-                                            end
-                                        end
+                        for _, obj in ipairs(promptsCache) do
+                            local parent = obj.Parent
+                            if parent and parent:IsA("BasePart") then
+                                local dist = (parent.Position - myRoot.Position).Magnitude
+                                if dist < 8 then
+                                    local parentName = parent.Name:lower()
+                                    local grandParentName = parent.Parent and parent.Parent.Name:lower() or ""
+                                    if parentName:find("hook") or grandParentName:find("hook") then
+                                        fireproximityprompt(obj)
                                     end
                                 end
                             end
@@ -4704,6 +4710,23 @@ MakeToggle("AutoVault", "Auto Vault (Windows/Pallets)", function(val)
     _G.VDAutoVault = val
     if val then
         task.spawn(function()
+            local map = workspace:FindFirstChild("Map")
+            local vaultCache = {}
+            if map then
+                local searchAreas = {map}
+                if map:FindFirstChild("Model") then table.insert(searchAreas, map.Model) end
+                if map:FindFirstChild("Models") then table.insert(searchAreas, map.Models) end
+                if map:FindFirstChild("Rooftop") then table.insert(searchAreas, map.Rooftop) end
+                
+                for _, area in ipairs(searchAreas) do
+                    for _, obj in ipairs(area:GetDescendants()) do
+                        if obj:IsA("BasePart") and (string.find(obj.Name, "VaultTrigger") or string.find(obj.Name, "PalletPointSlide")) then
+                            table.insert(vaultCache, obj)
+                        end
+                    end
+                end
+            end
+
             while _G.VDAutoVault do
                 task.wait(0.25)
                 pcall(function()
@@ -4717,29 +4740,18 @@ MakeToggle("AutoVault", "Auto Vault (Windows/Pallets)", function(val)
                     local winRemotes = remotes:FindFirstChild("Window")
                     local palRemotes = remotes:FindFirstChild("Pallet")
                     
-                    local map = workspace:FindFirstChild("Map")
-                    if not map then return end
-                    
-                    local searchAreas = {map}
-                    if map:FindFirstChild("Model") then table.insert(searchAreas, map.Model) end
-                    if map:FindFirstChild("Models") then table.insert(searchAreas, map.Models) end
-                    if map:FindFirstChild("Rooftop") then table.insert(searchAreas, map.Rooftop) end
-                    
-                    for _, area in ipairs(searchAreas) do
-                        for _, obj in ipairs(area:GetDescendants()) do
-                            if obj:IsA("BasePart") then
-                                local dist = (obj.Position - myRoot.Position).Magnitude
-                                if dist < 12 then
-
-                                    if string.find(obj.Name, "VaultTrigger") and winRemotes then
-                                        if winRemotes:FindFirstChild("VaultEvent") then winRemotes.VaultEvent:FireServer(obj, true) end
-                                        if winRemotes:FindFirstChild("VaultCompleteEventpart1") then winRemotes.VaultCompleteEventpart1:FireServer() end
-                                        if winRemotes:FindFirstChild("fastvault") then winRemotes.fastvault:FireServer(LocalPlayer) end
-                                    elseif string.find(obj.Name, "PalletPointSlide") and palRemotes then
-                                        if palRemotes:FindFirstChild("PalletDropEvent") then palRemotes.PalletDropEvent:FireServer(obj) end
-                                        if palRemotes:FindFirstChild("PalletSlideEvent") then palRemotes.PalletSlideEvent:FireServer(obj, true) end
-                                        if palRemotes:FindFirstChild("PalletSlideCompleteEvent") then palRemotes.PalletSlideCompleteEvent:FireServer(obj) end
-                                    end
+                    for _, obj in ipairs(vaultCache) do
+                        if obj and obj.Parent then
+                            local dist = (obj.Position - myRoot.Position).Magnitude
+                            if dist < 12 then
+                                if string.find(obj.Name, "VaultTrigger") and winRemotes then
+                                    if winRemotes:FindFirstChild("VaultEvent") then winRemotes.VaultEvent:FireServer(obj, true) end
+                                    if winRemotes:FindFirstChild("VaultCompleteEventpart1") then winRemotes.VaultCompleteEventpart1:FireServer() end
+                                    if winRemotes:FindFirstChild("fastvault") then winRemotes.fastvault:FireServer(LocalPlayer) end
+                                elseif string.find(obj.Name, "PalletPointSlide") and palRemotes then
+                                    if palRemotes:FindFirstChild("PalletDropEvent") then palRemotes.PalletDropEvent:FireServer(obj) end
+                                    if palRemotes:FindFirstChild("PalletSlideEvent") then palRemotes.PalletSlideEvent:FireServer(obj, true) end
+                                    if palRemotes:FindFirstChild("PalletSlideCompleteEvent") then palRemotes.PalletSlideCompleteEvent:FireServer(obj) end
                                 end
                             end
                         end
@@ -4753,10 +4765,142 @@ end)
 activeCategoryName = "Killer"
 MakeSection("KILLER FEATURES")
 
+MakeToggle("VeilAutoAim", "Veil Auto Aim", function(val)
+    _G.VeilAutoAim = val
+end)
+
+local userInputService = game:GetService("UserInputService")
+
+local function ShootVeil()
+    pcall(function()
+        local lp = game:GetService("Players").LocalPlayer
+        local char = lp.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+
+        local hasSpear = false
+        if _G.VeilSpearEquipped == true then
+            hasSpear = true
+        end
+
+        -- Fallback: if we can somehow read a Tool
+        if char:FindFirstChildWhichIsA("Tool") or char:FindFirstChild("Spear") or char:FindFirstChild("VeilSpear") then
+             hasSpear = true
+        end
+
+        if not hasSpear then
+            -- Normal attack if not holding spear
+            pcall(function()
+                game:GetService("ReplicatedStorage").Remotes.Attacks.BasicAttack:FireServer(true)
+            end)
+            return
+        end
+
+        local cam = workspace.CurrentCamera
+        local mouse = lp:GetMouse()
+        local mousePos = Vector2.new(mouse.X, mouse.Y)
+        
+        local closest = nil
+        local shortest = math.huge
+        for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
+            if p ~= lp and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                local pos, onScreen = cam:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
+                if onScreen then
+                    local dist = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
+                    if dist < 400 then -- limit lock-on radius to avoid grabbing people across the map when not aiming at them
+                        if dist < shortest then
+                            shortest = dist
+                            closest = p
+                        end
+                    end
+                end
+            end
+        end
+        
+        if closest then
+            local targetPos = closest.Character.HumanoidRootPart.Position
+            local origin = hrp.Position
+            
+            local finalDir = (targetPos - origin).Unit
+            
+            hrp.CFrame = CFrame.lookAt(hrp.Position, Vector3.new(targetPos.X, hrp.Position.Y, targetPos.Z))
+            
+            pcall(function()
+                game:GetService("ReplicatedStorage").Remotes.Killers.Veil.Spearthrow:FireServer(finalDir, 165, origin)
+            end)
+        else
+            -- If no one is close to crosshair, just attack normally
+            pcall(function()
+                game:GetService("ReplicatedStorage").Remotes.Attacks.BasicAttack:FireServer(true)
+            end)
+        end
+    end)
+end
+
+-- Weapon State Tracker Setup
+task.spawn(function()
+    pcall(function()
+        _G.VeilSpearEquipped = false
+        
+        -- Fallback 1: MouseButton2 (Right Click) for toggling the spear
+        if _G.VeilWeaponKeyConn then _G.VeilWeaponKeyConn:Disconnect() end
+        _G.VeilWeaponKeyConn = userInputService.InputBegan:Connect(function(input, gpe)
+            if gpe then return end
+            if input.UserInputType == Enum.UserInputType.MouseButton2 then
+                _G.VeilSpearEquipped = not _G.VeilSpearEquipped
+            end
+        end)
+        
+        -- Fallback 2: Hook updatewep to track when the game changes state
+        if type(hookfunction) == "function" then
+            local remote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes", 5)
+            if remote then
+                local updatewep = remote:WaitForChild("Killers", 5):WaitForChild("Veil", 5):WaitForChild("updatewep", 5)
+                if updatewep and not _G.VeilWeaponHooked then
+                    _G.VeilWeaponHooked = true
+                    local oldFireServer
+                    oldFireServer = hookfunction(updatewep.FireServer, function(self, isEquipped, ...)
+                        if self == updatewep then
+                            -- User noted: "kalau megang tombang itu jadi true"
+                            if isEquipped == true then
+                                _G.VeilSpearEquipped = true
+                            else
+                                _G.VeilSpearEquipped = false
+                            end
+                        end
+                        return oldFireServer(self, isEquipped, ...)
+                    end)
+                end
+            end
+        end
+    end)
+end)
+
+if _G.VeilInputConn then
+    _G.VeilInputConn:Disconnect()
+end
+_G.VeilInputConn = userInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        if _G.VeilAutoAim then
+            ShootVeil()
+        end
+    end
+end)
+
 MakeToggle("AutoBreakPallet", "Auto Break Pallet", function(val)
     _G.VDAutoBreakPallet = val
     if val then
         task.spawn(function()
+            local map = workspace:FindFirstChild("Map")
+            local searchArea = map and map:FindFirstChild("Model") or map or workspace
+            local palletCache = {}
+            for _, obj in ipairs(searchArea:GetDescendants()) do
+                if obj:IsA("BasePart") and string.find(obj.Name, "Pallet") then
+                    table.insert(palletCache, obj)
+                end
+            end
+
             while _G.VDAutoBreakPallet do
                 task.wait(0.25)
                 pcall(function()
@@ -4768,11 +4912,8 @@ MakeToggle("AutoBreakPallet", "Auto Break Pallet", function(val)
                     local jasonPallet = remotes and remotes:FindFirstChild("Pallet") and remotes.Pallet:FindFirstChild("Jason")
                     if not jasonPallet then return end
                     
-                    local map = workspace:FindFirstChild("Map")
-                    local searchArea = map and map:FindFirstChild("Model") or map or workspace
-                    
-                    for _, obj in ipairs(searchArea:GetDescendants()) do
-                        if obj:IsA("BasePart") and string.find(obj.Name, "Pallet") then
+                    for _, obj in ipairs(palletCache) do
+                        if obj and obj.Parent then
                             local dist = (obj.Position - myRoot.Position).Magnitude
                             if dist < 15 then
                                 if jasonPallet:FindFirstChild("Destroy-Global") then
@@ -5277,7 +5418,7 @@ MiniFrameToggleConn = UserInputService.InputBegan:Connect(function(input, gpe)
 end)
 local CursorGui = Instance.new("ScreenGui")
 CursorGui.Name = "VD_CursorGui"
-CursorGui.DisplayOrder = 999999999
+CursorGui.DisplayOrder = 2147483647 -- Maximum DisplayOrder to be above everything
 CursorGui.ResetOnSpawn = false
 CursorGui.IgnoreGuiInset = true
 CursorGui.Parent = ScreenGui.Parent or ScreenGui
@@ -5330,10 +5471,10 @@ RunService.RenderStepped:Connect(function()
         end
     end
     
-    if mouseLocked then
-        ExternalCursor.Visible = false
+    if isAnyGuiVisible then
+        ExternalCursor.Visible = true
     else
-        ExternalCursor.Visible = isAnyGuiVisible
+        ExternalCursor.Visible = false
     end
 
     local vis = ExternalCursor.Visible
@@ -5494,6 +5635,8 @@ CloseBtn.MouseButton1Click:Connect(function()
         if followTarget then pcall(stopFollow) end
         if headsitTarget then pcall(stopHeadsit) end
         if currentSpectateTarget then pcall(stopSpectate) end
+        if typeof(CursorGui) == "Instance" then pcall(function() CursorGui:Destroy() end) end
+        pcall(function() UserInputService.MouseIconEnabled = true end)
         if ESPenabled then pcall(toggleESP, false) end
         if isEspEnabled then pcall(toggleESP, false) end
         if noclipActive then pcall(toggleNoclip, false) end
@@ -5729,18 +5872,25 @@ local function isRealUnanchoredPart(v)
 end
 
 local function populateInitialUnanchored()
-    for _, v in ipairs(workspace:GetDescendants()) do
-        if isRealUnanchoredPart(v) then
-            initialUnanchoredParts[v] = true
+    task.spawn(function()
+        local count = 0
+        for _, v in ipairs(workspace:GetDescendants()) do
+            count = count + 1
+            if count % 1000 == 0 then task.wait() end
+            if isRealUnanchoredPart(v) then
+                initialUnanchoredParts[v] = true
+            end
         end
-    end
+    end)
 end
 populateInitialUnanchored()
 
 workspace.DescendantAdded:Connect(function(v)
-    if isRealUnanchoredPart(v) then
-        initialUnanchoredParts[v] = true
-    end
+    task.defer(function()
+        if isRealUnanchoredPart(v) then
+            initialUnanchoredParts[v] = true
+        end
+    end)
 end)
 
 local function createSinglePartESP(part)
@@ -34128,6 +34278,7 @@ function refreshPartScanner()
             end
             return a.Name < b.Name
         end)
+        if not ScannerState.Scroll then return end
         for _, child in ipairs(ScannerState.Scroll:GetChildren()) do
             if child:IsA("Frame") and child.Name == "PartItem" then child:Destroy() end
         end
@@ -34305,7 +34456,7 @@ function createPartScannerWindow()
     scannerModal.Size = UDim2.new(0, 0, 0, 0)
     scannerModal.BackgroundTransparency = 1
     scannerModal.Text = ""
-    scannermodal.Modal = false
+    scannerModal.Modal = false
     local stroke = Instance.new("UIStroke", PartScannerFrame)
     stroke.Color = Color3.fromRGB(255, 255, 255)
     stroke.Thickness = 2
@@ -34538,3 +34689,21 @@ if setCategory then
         setCategory("Menu")
     end)
 end
+
+task.spawn(function()
+    while task.wait(1) do
+        pcall(function()
+            local lp = game:GetService("Players").LocalPlayer
+            if lp then
+                local ps = lp:FindFirstChild("PlayerScripts")
+                if ps then
+                    local antiSpeed = ps:FindFirstChild("AntiSpeedServer")
+                    if antiSpeed then
+                        antiSpeed.Disabled = true
+                        antiSpeed:Destroy()
+                    end
+                end
+            end
+        end)
+    end
+end)
