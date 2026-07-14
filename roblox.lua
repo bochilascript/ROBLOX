@@ -2210,6 +2210,14 @@ MainFrame.Active = true
 MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
 
+local ModalFix = Instance.new("TextButton")
+ModalFix.Name = "ModalFix"
+ModalFix.Size = UDim2.new(0, 0, 0, 0)
+ModalFix.BackgroundTransparency = 1
+ModalFix.Text = ""
+ModalFix.Modal = true
+ModalFix.Parent = MainFrame
+
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
 local mainStroke = Instance.new("UIStroke", MainFrame)
 mainStroke.Color = Theme.Border
@@ -2453,12 +2461,22 @@ local minimized = false
 local fullSize = UDim2.new(0, WINDOW_WIDTH, 0, WINDOW_HEIGHT)
 local minSize = UDim2.new(0, WINDOW_WIDTH, 0, HEADER_HEIGHT)
 
-MinBtn.MouseButton1Click:Connect(function()
+local function toggleViolenceUI()
+    if not ScreenGui.Enabled then return end -- jangan bereaksi jika di-close
     minimized = not minimized
     TweenService:Create(MainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
         Size = minimized and minSize or fullSize
     }):Play()
     BodyFrame.Visible = not minimized
+    if ModalFix then ModalFix.Modal = not minimized end
+end
+
+MinBtn.MouseButton1Click:Connect(toggleViolenceUI)
+
+UserInputService.InputBegan:Connect(function(input, processed)
+    if not processed and input.KeyCode == Enum.KeyCode.Zero then
+        toggleViolenceUI()
+    end
 end)
 
 local triggerUnload = function() ScreenGui.Enabled = false end
@@ -2728,7 +2746,7 @@ local ESPConfig = {
 local ESPColors = {
     Killer    = Color3.fromRGB(255, 30, 45),
     Survivor  = Color3.fromRGB(50, 255, 50),
-    Generator = Color3.fromRGB(255, 180, 30),
+    Generator = Color3.fromRGB(180, 50, 255),
     Hook      = Color3.fromRGB(255, 80, 80),
     Pallet    = Color3.fromRGB(255, 255, 50),
     Window = Color3.fromRGB(0, 255, 255),
@@ -2898,7 +2916,17 @@ local function createObjectESP(tag, obj, displayName, color, showPercent)
     hl.OutlineTransparency = 0
     hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
 
-    local attachPart = obj:FindFirstChild("Main") or obj:FindFirstChild("Head") or obj:FindFirstChildWhichIsA("BasePart")
+    local attachPart = obj:FindFirstChild("Main") or obj:FindFirstChild("Head")
+        or obj:FindFirstChild("Handle") or obj:FindFirstChild("Lever")
+        or obj:FindFirstChild("Base") or obj:FindFirstChild("Tuas")
+        or (obj:IsA("BasePart") and obj)
+        or obj:FindFirstChildWhichIsA("BasePart")
+        or obj:FindFirstChildOfClass("BasePart")
+        or (function()
+            for _, d in ipairs(obj:GetDescendants()) do
+                if d:IsA("BasePart") then return d end
+            end
+        end)()
     if attachPart then
         local bb = Instance.new("BillboardGui", holder)
         bb.Adornee = attachPart
@@ -2929,8 +2957,9 @@ local function createObjectESP(tag, obj, displayName, color, showPercent)
                 break
             end
 
-            local myRoot = LocalPlayer.Character and getRoot(LocalPlayer.Character)
-            if not myRoot or not attachPart or not attachPart.Parent then return end
+                local myRoot = LocalPlayer.Character and getRoot(LocalPlayer.Character)
+                -- Gunakan if-then bukan return agar coroutine tidak mati permanen saat respawn
+                if myRoot and attachPart and attachPart.Parent then
 
             local dist = math.floor((myRoot.Position - attachPart.Position).Magnitude)
 
@@ -2941,10 +2970,10 @@ local function createObjectESP(tag, obj, displayName, color, showPercent)
             if showPercent then
                 local function getObjectProgress(targetObj)
                     if not targetObj then return 0 end
-                    local progAttr = targetObj:GetAttribute("Progress") or targetObj:GetAttribute("RepairProgress") or targetObj:GetAttribute("OpenProgress") or targetObj:GetAttribute("ActivationProgress")
+                    local progAttr = targetObj:GetAttribute("Progress") or targetObj:GetAttribute("RepairProgress") or targetObj:GetAttribute("OpenProgress") or targetObj:GetAttribute("ActivationProgress") or targetObj:GetAttribute("LeverProgress") or targetObj:GetAttribute("PullProgress")
                     if progAttr then return progAttr end
                     
-                    for _, name in ipairs({"Progress", "RepairProgress", "OpenProgress", "ActivationProgress"}) do
+                    for _, name in ipairs({"Progress", "RepairProgress", "OpenProgress", "ActivationProgress", "LeverProgress", "PullProgress"}) do
                         local valObj = targetObj:FindFirstChild(name)
                         if valObj and (valObj:IsA("NumberValue") or valObj:IsA("IntValue") or valObj:IsA("DoubleConstrainedValue")) then
                             return valObj.Value
@@ -2953,10 +2982,10 @@ local function createObjectESP(tag, obj, displayName, color, showPercent)
                     
                     local main = targetObj:FindFirstChild("Main") or targetObj:FindFirstChild("Head") or targetObj:FindFirstChildWhichIsA("BasePart")
                     if main then
-                        local mAttr = main:GetAttribute("Progress") or main:GetAttribute("RepairProgress") or main:GetAttribute("OpenProgress") or main:GetAttribute("ActivationProgress")
+                        local mAttr = main:GetAttribute("Progress") or main:GetAttribute("RepairProgress") or main:GetAttribute("OpenProgress") or main:GetAttribute("ActivationProgress") or main:GetAttribute("LeverProgress") or main:GetAttribute("PullProgress")
                         if mAttr then return mAttr end
                         
-                        for _, name in ipairs({"Progress", "RepairProgress", "OpenProgress", "ActivationProgress"}) do
+                        for _, name in ipairs({"Progress", "RepairProgress", "OpenProgress", "ActivationProgress", "LeverProgress", "PullProgress"}) do
                             local valObj = main:FindFirstChild(name)
                             if valObj and (valObj:IsA("NumberValue") or valObj:IsA("IntValue") or valObj:IsA("DoubleConstrainedValue")) then
                                 return valObj.Value
@@ -2965,10 +2994,10 @@ local function createObjectESP(tag, obj, displayName, color, showPercent)
                     end
                     
                     if targetObj.Parent then
-                        local pAttr = targetObj.Parent:GetAttribute("Progress") or targetObj.Parent:GetAttribute("RepairProgress") or targetObj.Parent:GetAttribute("OpenProgress") or targetObj.Parent:GetAttribute("ActivationProgress")
+                        local pAttr = targetObj.Parent:GetAttribute("Progress") or targetObj.Parent:GetAttribute("RepairProgress") or targetObj.Parent:GetAttribute("OpenProgress") or targetObj.Parent:GetAttribute("ActivationProgress") or targetObj.Parent:GetAttribute("LeverProgress") or targetObj.Parent:GetAttribute("PullProgress")
                         if pAttr then return pAttr end
                         
-                        for _, name in ipairs({"Progress", "RepairProgress", "OpenProgress", "ActivationProgress"}) do
+                        for _, name in ipairs({"Progress", "RepairProgress", "OpenProgress", "ActivationProgress", "LeverProgress", "PullProgress"}) do
                             local valObj = targetObj.Parent:FindFirstChild(name)
                             if valObj and (valObj:IsA("NumberValue") or valObj:IsA("IntValue") or valObj:IsA("DoubleConstrainedValue")) then
                                 return valObj.Value
@@ -2979,16 +3008,35 @@ local function createObjectESP(tag, obj, displayName, color, showPercent)
                     return 0
                 end
                 
-                local prog = getObjectProgress(obj)
-                local pct = math.floor(prog > 1 and prog or (prog * 100))
-                if pct >= 100 then pct = 100 end
-                if pct < 0 then pct = 0 end
-                display = displayName .. " [" .. pct .. "%]"
-                
-                if tag == "GeneratorESP" and pct == 100 then
-                    hl.FillColor = Color3.fromRGB(50, 255, 50) -- Green when finished
-                    txt.TextColor3 = Color3.fromRGB(50, 255, 50)
+                -- Hanya Lever yang tampil progress %, Exit Gate tidak
+                if displayName == "Lever" then
+                    local prog = getObjectProgress(obj)
+                    local pct = math.floor(prog > 1 and prog or (prog * 100))
+                    if pct >= 100 then pct = 100 end
+                    if pct < 0 then pct = 0 end
+                    display = displayName .. " [" .. pct .. "%]"
+                    if pct == 100 then
+                        hl.FillColor = Color3.fromRGB(50, 255, 50) -- Hijau saat lever sudah ditarik
+                        txt.TextColor3 = Color3.fromRGB(50, 255, 50)
+                    else
+                        hl.FillColor = color
+                        txt.TextColor3 = color
+                    end
+                elseif tag == "GeneratorESP" then
+                    local prog = getObjectProgress(obj)
+                    local pct = math.floor(prog > 1 and prog or (prog * 100))
+                    if pct >= 100 then pct = 100 end
+                    if pct < 0 then pct = 0 end
+                    display = displayName .. " [" .. pct .. "%]"
+                    if pct == 100 then
+                        hl.FillColor = Color3.fromRGB(50, 255, 50) -- Hijau saat gen selesai
+                        txt.TextColor3 = Color3.fromRGB(50, 255, 50)
+                    else
+                        hl.FillColor = color
+                        txt.TextColor3 = color
+                    end
                 else
+                    -- Exit Gate: hanya nama, tanpa progress
                     hl.FillColor = color
                     txt.TextColor3 = color
                 end
@@ -2998,23 +3046,35 @@ local function createObjectESP(tag, obj, displayName, color, showPercent)
                 display = display .. "\n" .. dist .. "m"
             end
             txt.Text = display
-            end         end)
-        table.insert(objectESPConns, conn)
+                end -- end if myRoot
+            end -- end while
+        end)
+        if conn then
+            table.insert(objectESPConns, {thread = conn, tag = tag})
+        end
     end
 end
 
 local function clearObjectESPByTag(tag)
     for _, child in ipairs(ESPFolder:GetChildren()) do
         if tag == "All" or string.sub(child.Name, 1, #tag) == tag then
-            child:Destroy()
+            pcall(function() child:Destroy() end)
         end
     end
-    for i, thread in ipairs(objectESPConns) do
-        if type(thread) == "thread" then
-            task.cancel(thread)
+    -- Fix thread leak: bersihkan entry per-tag, bukan hanya saat "All"
+    local remaining = {}
+    for _, entry in ipairs(objectESPConns) do
+        if tag == "All" or (type(entry) == "table" and entry.tag == tag) then
+            if type(entry) == "table" and type(entry.thread) == "thread" then
+                pcall(function() task.cancel(entry.thread) end)
+            elseif type(entry) == "thread" then
+                pcall(function() task.cancel(entry) end)
+            end
+        else
+            table.insert(remaining, entry)
         end
     end
-    if tag == "All" then objectESPConns = {} end
+    objectESPConns = remaining
 end
 
 local function refreshObjectESP()
@@ -3066,8 +3126,13 @@ local function refreshObjectESP()
                 createObjectESP("PalletESP", obj, "Pallet", ESPColors.Pallet, false)
             elseif (name == "Window" or name == "Vault") and ESPConfig.WindowESP then
                 createObjectESP("WindowESP", obj, "Window", ESPColors.Window, false)
-            elseif (name == "Lever" or name == "Gate" or name == "ExitGate" or name == "Escape" or name == "Exit") and ESPConfig.GateESP then
-                local displayName = (name == "Lever") and "Lever" or "Exit Gate"
+            elseif (name == "Lever" or name == "Gate" or name == "ExitGate" or name == "Escape" or name == "Exit"
+                or name == "GateLever" or name == "PullLever" or name == "SwitchLever" or name == "Switch" or name == "Tuas"
+                or name:lower():find("lever")) and ESPConfig.GateESP then
+                local isLever = (name == "Lever" or name == "GateLever" or name == "PullLever"
+                    or name == "SwitchLever" or name == "Switch" or name == "Tuas"
+                    or (name:lower():find("lever") ~= nil))
+                local displayName = isLever and "Lever" or "Exit Gate"
                 createObjectESP("GateESP", obj, displayName, ESPColors.Gate, true)
             end
         end
@@ -5129,9 +5194,9 @@ Notify("PIXECUTE", "Violence District loaded!", 3)
             end)
         end
     end)
-        end
-        task.spawn(func)
-    end)
+    end
+    task.spawn(func)
+end)
     local btnExecutor = makeSmallBtn("Executor", 5)
     print("[CIT Debug] Connected Executor sidebar button click event.")
     btnExecutor.MouseButton1Click:Connect(function()
@@ -5362,16 +5427,16 @@ RunService.RenderStepped:Connect(function()
     local violenceGui = coreGui:FindFirstChild("PXViolenceDistrict") or (playerGui and playerGui:FindFirstChild("PXViolenceDistrict")) or (gethui and gethui():FindFirstChild("PXViolenceDistrict"))
     if violenceGui and violenceGui:IsA("ScreenGui") and violenceGui.Enabled then
         local vMain = violenceGui:FindFirstChild("MainFrame")
-        local vBody = vMain and vMain:FindFirstChild("BodyFrame")
+        local vBody = vMain and vMain:FindFirstChild("Body")
         if vMain and vMain.Visible and vBody and vBody.Visible then
             isAnyGuiVisible = true
         end
     end
     
-    if isAnyGuiVisible then
-        ExternalCursor.Visible = true
-    else
+    if mouseLocked then
         ExternalCursor.Visible = false
+    else
+        ExternalCursor.Visible = isAnyGuiVisible
     end
 
     local vis = ExternalCursor.Visible
@@ -34540,36 +34605,118 @@ task.spawn(function()
 end)
 
 -- =============================================================================
+-- TRACE LOGGER: Deteksi penyebab freeze secara rinci
+-- Log ke PIXECUTE_CONFIG/VD_Errors.txt + warn di console
+-- =============================================================================
+pcall(function()
+    local function VDLog(category, msg)
+        pcall(function()
+            if not isfolder("PIXECUTE_CONFIG") then makefolder("PIXECUTE_CONFIG") end
+            local existing = ""
+            if isfile("PIXECUTE_CONFIG/VD_Errors.txt") then existing = readfile("PIXECUTE_CONFIG/VD_Errors.txt") end
+            local timeStr = os.date and os.date("[%X] ") or ""
+            writefile("PIXECUTE_CONFIG/VD_Errors.txt", existing .. timeStr .. category .. ": " .. tostring(msg) .. "\n")
+        end)
+        warn("[VD Trace] " .. category .. ": " .. tostring(msg))
+    end
+
+    -- Monitor attribute karakter yang berkaitan freeze/stun (Knocked, Stunned, dll)
+    local function watchCharacter(c)
+        if not c then return end
+        local watchAttrs = {"Knocked", "IsDead", "Stunned", "IsStunned", "Blinded", "Hooked", "Infected"}
+        for _, attr in ipairs(watchAttrs) do
+            pcall(function()
+                c:GetAttributeChangedSignal(attr):Connect(function()
+                    local val = c:GetAttribute(attr)
+                    VDLog("CharState_" .. attr, tostring(val) .. " | SpeedBoost=" .. tostring(getgenv().SpeedBoostActive or false))
+                end)
+            end)
+        end
+        -- Monitor RemoteEvent dari game (Twist of Fate, The Cure, dll)
+        task.spawn(function()
+            local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
+            if not remotes then return end
+            local items = remotes:FindFirstChild("Items")
+            if items then
+                for _, folder in ipairs(items:GetChildren()) do
+                    for _, remote in ipairs(folder:GetChildren()) do
+                        pcall(function()
+                            if remote:IsA("RemoteEvent") then
+                                remote.OnClientEvent:Connect(function(...)
+                                    local args, argStr = {...}, ""
+                                    for i, v in ipairs(args) do argStr = argStr .. "[" .. i .. "]=" .. tostring(v) .. " " end
+                                    VDLog("Remote_" .. folder.Name .. "/" .. remote.Name, argStr)
+                                end)
+                            end
+                        end)
+                    end
+                end
+            end
+        end)
+    end
+
+    local char = LocalPlayer.Character
+    if char then watchCharacter(char) end
+    LocalPlayer.CharacterAdded:Connect(function(newChar)
+        task.wait(1)
+        watchCharacter(newChar)
+        VDLog("CharacterAdded", "Karakter baru - SpeedBoost=" .. tostring(getgenv().SpeedBoostActive or false))
+    end)
+    VDLog("System", "Trace Logger (Rinci) aktif")
+end)
+
+-- =============================================================================
 -- STANDALONE AUTO GENERATOR & ANTI-FAIL SYSTEM (Decrypted Logic)
 -- =============================================================================
 getgenv().AntiFailGenActive = getgenv().AntiFailGenActive or false
 getgenv().AutoPerfectActive = getgenv().AutoPerfectActive or false
 getgenv().SpeedBoostActive = getgenv().SpeedBoostActive or false
-getgenv().SpeedBoostMultiplier = getgenv().SpeedBoostMultiplier or 0.1
+-- Default 0.03 studs per-move-frame agar lebih wajar dan tidak keliatan hacking
+getgenv().SpeedBoostMultiplier = getgenv().SpeedBoostMultiplier or 0.03
 
 local ActualPlayerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 
--- Speed Boost Loop (decrypted from Violence: TP / TranslateBy method)
+-- Speed Boost Loop dengan throttle dan pengecekan state karakter
+-- Throttle: jalan setiap 3 frame (~20x/detik) bukan setiap frame
+local _speedBoostFrameCounter = 0
 RunService.Heartbeat:Connect(function(dt)
-    if getgenv().SpeedBoostActive then
-        local char = LocalPlayer.Character
-        local root = char and char:FindFirstChild("HumanoidRootPart")
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        
-        -- Deteksi Sprint (Lari): Tekan Shift (PC) atau WalkSpeed > 15 (Mobile)
-        local UserInputService = game:GetService("UserInputService")
-        local isSprinting = false
+    if not getgenv().SpeedBoostActive then return end
+    _speedBoostFrameCounter = _speedBoostFrameCounter + 1
+    if _speedBoostFrameCounter % 3 ~= 0 then return end -- throttle ke ~20x/detik
+    
+    local char = LocalPlayer.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if not root or not hum then return end
+    
+    -- Jangan gerakkan jika karakter sedang kena efek (Knocked, Stunned, Dead, Seated)
+    -- Ini mencegah freeze saat kena Twist of Fate / The Cure
+    if char:GetAttribute("Knocked") or char:GetAttribute("IsDead") or
+       char:GetAttribute("Stunned") or char:GetAttribute("IsStunned") then
+        return
+    end
+    if hum.Health <= 0 then return end
+    if hum:GetState() == Enum.HumanoidStateType.Dead then return end
+    if hum:GetState() == Enum.HumanoidStateType.Seated then return end
+    -- Jangan aktif saat tidak bergerak sama sekali
+    if hum.MoveDirection.Magnitude < 0.1 then return end
+    
+    local UserInputService = game:GetService("UserInputService")
+    local isSprinting = false
+    pcall(function()
+        isSprinting = UserInputService:IsKeyDown(Enum.KeyCode.LeftShift)
+            or UserInputService:IsKeyDown(Enum.KeyCode.RightShift)
+    end)
+    if hum.WalkSpeed > 15 then isSprinting = true end
+    
+    if isSprinting then
+        -- Convert value to number to prevent string math errors from TextBox
+        local userVal = tonumber(getgenv().SpeedBoostMultiplier) or 0.03
+        -- Clamp multiplier to prevent insane speeds (max 0.2 studs/frame)
+        local safeMultiplier = math.clamp(userVal, 0, 0.2)
         pcall(function()
-            isSprinting = UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) or UserInputService:IsKeyDown(Enum.KeyCode.RightShift)
+            char:TranslateBy(hum.MoveDirection * safeMultiplier)
         end)
-        
-        if hum and hum.WalkSpeed > 15 then
-            isSprinting = true
-        end
-        
-        if root and hum and hum.MoveDirection.Magnitude > 0 and isSprinting then
-            char:TranslateBy(hum.MoveDirection * getgenv().SpeedBoostMultiplier)
-        end
     end
 end)
 
