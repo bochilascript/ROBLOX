@@ -3394,7 +3394,7 @@ MakeToggle("VDSpeedBoost", "Speed Boost (Violence)", function(val)
     getgenv().SpeedBoostActive = val
 end)
 
-MakeTextBox("Speed Boost Value (Studs)", getgenv().SpeedBoostMultiplier, function(val)
+MakeTextBox("Speed Boost Value (Studs)", getgenv().SpeedBoostMultiplier or 0.05, function(val)
     getgenv().SpeedBoostMultiplier = val
 end)
 
@@ -32947,15 +32947,13 @@ local success, err = pcall(function()
 
             local fpsLabel = createLabel("FPS: ...", 1)
             local pingLabel = createLabel("Ping: ...", 2)
-            local cpuLabel = createLabel("CPU: ...", 3)
-            local gpuLabel = createLabel("GPU: ...", 4)
-            local memLabel = createLabel("Mem: ...", 5)
+            local memLabel = createLabel("Mem: ...", 3)
 
             -- Right padding spacer to push close button and make room
             local rightSpacer = Instance.new("Frame")
             rightSpacer.Size = UDim2.new(0, 10, 1, 0)
             rightSpacer.BackgroundTransparency = 1
-            rightSpacer.LayoutOrder = 6
+            rightSpacer.LayoutOrder = 4
             rightSpacer.Parent = monitorFrame
 
             local closeBtn = Instance.new("TextButton")
@@ -32965,7 +32963,7 @@ local success, err = pcall(function()
             closeBtn.TextColor3 = Color3.fromRGB(255, 0, 0) -- Red text
             closeBtn.Font = Enum.Font.GothamBold
             closeBtn.TextSize = 16
-            closeBtn.LayoutOrder = 7
+            closeBtn.LayoutOrder = 5
             closeBtn.Parent = monitorFrame
             closeBtn.MouseButton1Click:Connect(function()
                 _G.ToggleFPSPingMonitor()
@@ -33000,33 +32998,6 @@ local success, err = pcall(function()
                     else
                         memLabel.Text = "Mem: N/A"
                     end
-                    
-                    -- CPU
-                    local okCpu, cpuStr = pcall(function()
-                        local hbTime = Stats.Workspace:FindFirstChild("Heartbeat Time")
-                        if hbTime then
-                            return string.format("%.1f", hbTime:GetValue()) .. " ms"
-                        end
-                        -- Fallback: Frame Time (1000 / FPS) sebagai proxy
-                        local frameTime = 1000 / math.max(1, frames)
-                        return string.format("%.1f", frameTime) .. " ms"
-                    end)
-                    if okCpu and type(cpuStr) == "string" then
-                        cpuLabel.Text = "CPU: " .. cpuStr
-                    else
-                        cpuLabel.Text = "CPU: N/A"
-                    end
-                    
-                    -- GPU
-                    local okGpu, gpuStr = pcall(function()
-                        -- Estimasi render GPU dari frame time
-                        local frameTime = 1000 / math.max(1, frames)
-                        return string.format("%.1f", frameTime * 0.8) .. " ms"
-                    end)
-                    if okGpu and type(gpuStr) == "string" then
-                        gpuLabel.Text = "GPU: " .. gpuStr
-                    else
-                        gpuLabel.Text = "GPU: N/A"
                     end
 
                 end
@@ -34672,7 +34643,7 @@ getgenv().AntiFailGenActive = getgenv().AntiFailGenActive or false
 getgenv().AutoPerfectActive = getgenv().AutoPerfectActive or false
 getgenv().SpeedBoostActive = getgenv().SpeedBoostActive or false
 -- Default 0.03 studs per-move-frame agar lebih wajar dan tidak keliatan hacking
-getgenv().SpeedBoostMultiplier = getgenv().SpeedBoostMultiplier or 0.03
+getgenv().SpeedBoostMultiplier = getgenv().SpeedBoostMultiplier or 0.05
 
 local ActualPlayerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 
@@ -34711,7 +34682,7 @@ RunService.Heartbeat:Connect(function(dt)
     
     if isSprinting then
         -- Convert value to number to prevent string math errors from TextBox
-        local userVal = tonumber(getgenv().SpeedBoostMultiplier) or 0.03
+        local userVal = tonumber(getgenv().SpeedBoostMultiplier) or 0.05
         -- Clamp multiplier to prevent insane speeds (max 0.2 studs/frame)
         local safeMultiplier = math.clamp(userVal, 0, 0.2)
         pcall(function()
