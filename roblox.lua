@@ -1147,7 +1147,7 @@ do
             moveBtnByNames("BToolsBtn", "BTools", 15)
             moveBtnByNames("ChatLogsBtn", "Chat Logs", 16)
             moveBtnByNames("CmdBarBtn", "Command Bar", 17)
-            moveBtnByNames("FPSPingBtn", "FPS & Ping", 18)
+            moveBtnByNames("FPSPingBtn", "Hardware Monitor", 18)
             moveBtnByNames("JumpBtn", "Infinite Jump", 19)
             moveBtnByNames("InvisibleBtn", "Invisible", 20)
             moveBtnByNames("JumpTrailBtn", "Jump Trail", 21)
@@ -2736,6 +2736,7 @@ local ESPColors = {
 }
 
 local playerESPConns = {}
+local playerCharConns = {}
 
 local function destroyPlayerESP(name)
     local folder = ESPFolder:FindFirstChild(name .. "_ESP")
@@ -2815,7 +2816,10 @@ local function CreatePlayerESP(plr)
         table.insert(playerESPConns, conn)
     end
 
-    plr.CharacterAdded:Connect(function()
+    if playerCharConns[plr.Name] then
+        playerCharConns[plr.Name]:Disconnect()
+    end
+    playerCharConns[plr.Name] = plr.CharacterAdded:Connect(function()
         destroyPlayerESP(plr.Name)
         if ESPConfig.PlayerESP then
             repeat task.wait(1) until plr.Character and getRoot(plr.Character) and plr.Character:FindFirstChildOfClass("Humanoid")
@@ -2825,8 +2829,10 @@ local function CreatePlayerESP(plr)
 end
 
 local playerAddedConn = nil
+local stopPlayerESP
 
 local function startPlayerESP()
+    stopPlayerESP()
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr ~= LocalPlayer then
             CreatePlayerESP(plr)
@@ -2835,7 +2841,10 @@ local function startPlayerESP()
     if not playerAddedConn then
         playerAddedConn = Players.PlayerAdded:Connect(function(plr)
             if ESPConfig.PlayerESP then
-                plr.CharacterAdded:Connect(function()
+                if playerCharConns[plr.Name] then
+                    playerCharConns[plr.Name]:Disconnect()
+                end
+                playerCharConns[plr.Name] = plr.CharacterAdded:Connect(function()
                     if ESPConfig.PlayerESP then
                         destroyPlayerESP(plr.Name)
                         repeat task.wait(1) until plr.Character and getRoot(plr.Character) and plr.Character:FindFirstChildOfClass("Humanoid")
@@ -2850,7 +2859,7 @@ local function startPlayerESP()
     end
 end
 
-local function stopPlayerESP()
+stopPlayerESP = function()
     for _, v in ipairs(ESPFolder:GetChildren()) do
         if v.Name:sub(-4) == "_ESP" then
             v:Destroy()
@@ -2860,6 +2869,10 @@ local function stopPlayerESP()
         pcall(function() conn:Disconnect() end)
     end
     playerESPConns = {}
+    for name, conn in pairs(playerCharConns) do
+        pcall(function() conn:Disconnect() end)
+    end
+    playerCharConns = {}
     if playerAddedConn then
         playerAddedConn:Disconnect()
         playerAddedConn = nil
@@ -3054,10 +3067,15 @@ local function refreshObjectESP()
                 createObjectESP("PalletESP", obj, "Pallet", ESPColors.Pallet, false)
             elseif name == "Window" and ESPConfig.WindowESP then
                 createObjectESP("WindowESP", obj, "Window", ESPColors.Window, false)
-            elseif name:find("Lever") and ESPConfig.GateESP then
-                createObjectESP("GateESP", obj, "Lever", ESPColors.Gate, true)
-            elseif (name == "Gate" or name == "Escape" or name:find("Exit")) and ESPConfig.GateESP then
-                createObjectESP("GateESP", obj, "Exit", ESPColors.Gate, false)
+            elseif (name:find("Lever") or name:find("Gate") or name == "Escape" or name:find("Exit")) and ESPConfig.GateESP then
+                local displayName = name:find("Lever") and "Lever" or "Exit Gate"
+                createObjectESP("GateESP", obj, displayName, ESPColors.Gate, true)
+            end
+        elseif obj:IsA("BasePart") then
+            local name = obj.Name
+            if (name:find("Lever") or name:find("Gate") or name == "Escape" or name:find("Exit")) and ESPConfig.GateESP then
+                local displayName = name:find("Lever") and "Lever" or "Exit Gate"
+                createObjectESP("GateESP", obj, displayName, ESPColors.Gate, true)
             end
         end
     end
@@ -3066,6 +3084,20 @@ local function refreshObjectESP()
         createObjectESP("HookESP", closestHook, "CLOSEST HOOK", ESPColors.Hook, false)
     end
 end
+
+-- Generator / Gene Action Logging System
+pcall(function()
+    local mapFolder = workspace:FindFirstChild("Map") or workspace:FindFirstChild("MapLighting")
+    local rootArea = mapFolder or workspace
+    
+    rootArea.DescendantAdded:Connect(function(descendant)
+        if descendant.Name == "Generator" and ESPConfig.GeneratorESP then
+            task.wait(1)
+            refreshObjectESP()
+            Notify("ESP Info", "New Generator Spawned!", 2)
+        end
+    end)
+end)
 
 task.spawn(function()
     while task.wait(5) do
@@ -3242,108 +3274,79 @@ MakeButton("Instant Self Heal/Revive", function()
     end)
 end)
 
-MakeToggle("AutoGen", "Auto Complete Generator", function(val)
-    if val then
-        pcall(function()
-            local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
-            if remotes then
-                local gen = remotes:FindFirstChild("Generator")
-                if gen then
-                    local names = {"SkillCheckResultEvent", "SkillCheckFailEvent", "SkillCheckEvent"}
-                    for _, n in ipairs(names) do
-                        local r = gen:FindFirstChild(n)
-                        if r and not r:GetAttribute("IsDummy") then
-                            local dummy = Instance.new("RemoteEvent")
-                            dummy.Name = r.Name
-                            dummy:SetAttribute("IsDummy", true)
-                            dummy.Parent = gen
-                            r:Destroy()
-                        end
-                    end
-                end
-            end
-        end)
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+local function MakeTextBox(text, defaultVal, callback)
+    local frame = Instance.new("Frame", Content)
+    frame.Size = UDim2.new(1, 0, 0, 45)
+    frame.BackgroundColor3 = Theme.SurfaceAlt
+    frame.BackgroundTransparency = 0.3
+    frame.BorderSizePixel = 0
+    frame.LayoutOrder = nextOrder()
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 6)
+
+    local label = Instance.new("TextLabel", frame)
+    label.Size = UDim2.new(0.6, 0, 1, 0)
+    label.Position = UDim2.new(0, 10, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = Theme.TextDim
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 11
+    label.TextXAlignment = Enum.TextXAlignment.Left
+
+    local box = Instance.new("TextBox", frame)
+    box.Size = UDim2.new(0, 60, 0, 24)
+    box.Position = UDim2.new(1, -70, 0.5, -12)
+    box.BackgroundColor3 = Theme.SurfaceAlt
+    box.BorderSizePixel = 1
+    box.BorderColor3 = Theme.ToggleOff
+    box.Text = tostring(defaultVal)
+    box.TextColor3 = Color3.fromRGB(255, 255, 255)
+    box.Font = Enum.Font.GothamBold
+    box.TextSize = 11
+    Instance.new("UICorner", box).CornerRadius = UDim.new(0, 4)
+
+    box.FocusLost:Connect(function(enterPressed)
+        local num = tonumber(box.Text)
+        if num then
+            if callback then callback(num) end
+        else
+            box.Text = tostring(getgenv().SpeedBoostMultiplier)
+        end
+    end)
+end
+
+activeCategoryName = "Auto Features"
+
+MakeToggle("AutoGen", "Auto Perfect Skill Check", function(val)
+    getgenv().AutoPerfectActive = val
+    if val and getgenv().InitializeAutoPerfect then
+        getgenv().InitializeAutoPerfect()
     end
 end)
 
-MakeToggle("AutoRepairBypass", "Bypass Interact (Gen/Gate)", function(val)
-    _G.VDBypassInteract = val
-    if val then
-        task.spawn(function()
-            local interactCache = {}
-            local lastMap = nil
+MakeToggle("AntiFailGen", "Anti-Fail Generator", function(val)
+    getgenv().AntiFailGenActive = val
+end)
 
-            while _G.VDBypassInteract do
-                task.wait(0.25)
-                pcall(function()
-                    local map = workspace:FindFirstChild("Map")
-                    if map ~= lastMap then
-                        lastMap = map
-                        interactCache = {}
-                        if map then
-                            local searchAreas = {}
-                            if map:FindFirstChild("Generators") then table.insert(searchAreas, map.Generators) end
-                            if map:FindFirstChild("Escape") then table.insert(searchAreas, map.Escape) end
-                            if map:FindFirstChild("Gates") then table.insert(searchAreas, map.Gates) end
-                            
-                            for _, area in ipairs(searchAreas) do
-                                for _, obj in ipairs(area:GetDescendants()) do
-                                    if obj:IsA("BasePart") then
-                                        table.insert(interactCache, obj)
-                                    end
-                                end
-                            end
-                        end
-                    end
-                    
-                    local char = LocalPlayer.Character
-                    if not char then return end
-                    local root = char:FindFirstChild("HumanoidRootPart")
-                    if not root then return end
-                    local myPos = root.Position
-                    local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
-                    if not remotes then return end
-                    
-                    local genRemote = remotes:FindFirstChild("Generator") and remotes.Generator:FindFirstChild("RepairEvent")
-                    local gateRemote1 = remotes:FindFirstChild("Escape") and (remotes.Escape:FindFirstChild("EscapeEvent") or remotes.Escape:FindFirstChild("OpenEvent"))
-                    local gateRemote2 = remotes:FindFirstChild("Gate") and (remotes.Gate:FindFirstChild("OpenEvent") or remotes.Gate:FindFirstChild("EscapeEvent"))
-                    local leverRemote = remotes:FindFirstChild("Lever") and (remotes.Lever:FindFirstChild("PullEvent") or remotes.Lever:FindFirstChild("OpenEvent"))
-                    
-                    for _, obj in ipairs(interactCache) do
-                        if obj and obj.Parent then
-                            local dist = (obj.Position - myPos).Magnitude
-                            if dist < 15 then
-                                if string.find(obj.Name, "GeneratorPoint") and genRemote then
-                                    local model = obj.Parent
-                                    if model and (model:GetAttribute("RepairProgress") or 0) < 1 then
-                                        genRemote:FireServer(obj, true)
-                                    end
-                                elseif (string.find(obj.Name, "Lever") or string.find(obj.Name, "GatePoint")) then
-                                    if gateRemote1 then gateRemote1:FireServer(obj, true) end
-                                    if gateRemote2 then gateRemote2:FireServer(obj, true) end
-                                    if leverRemote then leverRemote:FireServer(obj, true) end
-                                    
-                                    local prompt = obj:FindFirstChildWhichIsA("ProximityPrompt")
-                                    if prompt then fireproximityprompt(prompt) end
-                                end
-                            end
-                        end
-                    end
-                end)
-            end
-        end)
-    end
+MakeToggle("VDSpeedBoost", "Speed Boost (Violence)", function(val)
+    getgenv().SpeedBoostActive = val
+end)
+
+MakeTextBox("Speed Boost Value (Studs)", getgenv().SpeedBoostMultiplier, function(val)
+    getgenv().SpeedBoostMultiplier = val
 end)
 
 local originalHealRemotes = {}
 
 MakeToggle("AntiFailHeal", "Anti-Fail Healing", function(val)
-    if val then
-        pcall(function()
-            local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
-            if remotes then
-                local heal = remotes:FindFirstChild("Healing")
-                if heal then
+    pcall(function()
+        local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
+        if remotes then
+            local heal = remotes:FindFirstChild("Healing")
+            if heal then
+                if val then
                     local names = {"SkillCheckResultEvent", "SkillCheckFailEvent", "SkillCheckEvent"}
                     for _, n in ipairs(names) do
                         local r = heal:FindFirstChild(n)
@@ -3356,10 +3359,22 @@ MakeToggle("AntiFailHeal", "Anti-Fail Healing", function(val)
                             r:Destroy()
                         end
                     end
+                else
+                    -- Restore original remotes
+                    for n, r in pairs(originalHealRemotes) do
+                        local dummy = heal:FindFirstChild(n)
+                        if dummy and dummy:GetAttribute("IsDummy") then
+                            dummy:Destroy()
+                        end
+                        if not heal:FindFirstChild(n) then
+                            local orig = r:Clone()
+                            orig.Parent = heal
+                        end
+                    end
                 end
             end
-        end)
-    end
+        end
+    end)
 end)
 
 activeCategoryName = "Survivor"
@@ -3483,6 +3498,7 @@ MakeToggle("CrosshairToggle", "External Crosshair", function(val)
     if val then
         if not crosshairDot then
             local cg = Instance.new("ScreenGui")
+            uiProjectParent = cg
             cg.Name = "ViolenceDistrictCrosshair"
             cg.ResetOnSpawn = false
             pcall(function() cg.Parent = game:GetService("CoreGui") end)
@@ -3775,22 +3791,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
-local noAimShiftActive = false
-MakeToggle("NoAimShiftToggle", "Disable Aim Camera Shift", function(val)
-    noAimShiftActive = val
-    if not _G.VDNoAimShiftLoop then
-        _G.VDNoAimShiftLoop = runService.RenderStepped:Connect(function()
-            if noAimShiftActive then
-                local char = LocalPlayer.Character
-                local hum = char and char:FindFirstChildOfClass("Humanoid")
-                if hum and hum.CameraOffset ~= Vector3.new(0, 0, 0) then
-                    hum.CameraOffset = Vector3.new(0, 0, 0)
-                end
-            end
-        end)
-    end
-end)
-
 _G.VDAutoCarryFailsafe = false
 
 local function isCarryingSurvivor()
@@ -4038,63 +4038,6 @@ if hookfunction and checkcaller then
         return oldFireServer(self, ...)
     end))
 end
-
-MakeToggle("AutoParry", "Auto Parry (Parrying Dagger)", function(val)
-    autoParryActive = val
-    if val then
-        task.spawn(function()
-            while autoParryActive do
-                task.wait(0.1)
-                pcall(function()
-                    local myChar = LocalPlayer.Character
-                    if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return end
-                    
-                    local closestPlayer = nil
-                    local shortestDistance = autoParryDistance
-                    for _, p in ipairs(Players:GetPlayers()) do
-                        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
-                            if p:GetAttribute("Role") == "Killer" then
-                                local dist = (p.Character.HumanoidRootPart.Position - myChar.HumanoidRootPart.Position).Magnitude
-                                if dist <= shortestDistance then
-                                    shortestDistance = dist
-                                    closestPlayer = p
-                                end
-                            end
-                        end
-                    end
-                    
-                    if closestPlayer then
-                        local items = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes") and game:GetService("ReplicatedStorage").Remotes:FindFirstChild("Items")
-                        if items and items:FindFirstChild("Parrying Dagger") and items["Parrying Dagger"]:FindFirstChild("parry") then
-                            items["Parrying Dagger"].parry:FireServer()
-                        end
-                    end
-                end)
-            end
-        end)
-    end
-end)
-
-MakeSlider("Auto Parry Distance", 5, 30, 10, function(val)
-    autoParryDistance = val
-end)
-
-MakeToggle("ParryNoCooldown", "Parry No Cooldown (Spam)", function(val)
-    parryNoCooldownActive = val
-    if val then
-        task.spawn(function()
-            while parryNoCooldownActive do
-                task.wait(0.01)
-                pcall(function()
-                    local items = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes") and game:GetService("ReplicatedStorage").Remotes:FindFirstChild("Items")
-                    if items and items:FindFirstChild("Parrying Dagger") and items["Parrying Dagger"]:FindFirstChild("parry") then
-                        items["Parrying Dagger"].parry:FireServer()
-                    end
-                end)
-            end
-        end)
-    end
-end)
 
 activeCategoryName = "Killer"
 MakeSection("KILLER ATTACKS")
@@ -4481,7 +4424,7 @@ MakeToggle("VisualAntiLag", "Anti Lag (Extreme)", function(val)
     end
 end)
 
-MakeButton("Toggle FPS & Ping Monitor", function()
+MakeButton("Toggle Hardware Monitor", function()
     if typeof(_G.ToggleFPSPingMonitor) == "function" then
         _G.ToggleFPSPingMonitor()
     end
@@ -4489,121 +4432,6 @@ end)
 
 activeCategoryName = "Survivor"
 MakeSection("SURVIVOR & HEALING")
-
-MakeToggle("InfFlashlight", "Infinite Flashlight", function(val)
-    _G.VDInfFlashlight = val
-    if val then
-        task.spawn(function()
-            while _G.VDInfFlashlight do
-                task.wait(0.1)
-                pcall(function()
-                    local char = LocalPlayer.Character
-                    if not char then _G.VDFlashlightIntendedState = false return end
-                    local flashlight = char:FindFirstChild("Flashlight")
-                    if not flashlight then _G.VDFlashlightIntendedState = false return end
-                    
-                    if flashlight:FindFirstChild("Right Arm") and flashlight["Right Arm"]:FindFirstChild("Flashlight") then
-                        local realFlashlight = flashlight["Right Arm"].Flashlight
-                        
-                        realFlashlight:SetAttribute("remaining", 100)
-                        
-                        if _G.VDFlashlightIntendedState then
-                            local remotes = ReplicatedStorage:FindFirstChild("Remotes")
-                            if remotes and remotes:FindFirstChild("Items") and remotes.Items:FindFirstChild("Flashlight") then
-                                local act = remotes.Items.Flashlight:FindFirstChild("Activate")
-                                if act then
-                                    act:FireServer(realFlashlight, true)
-                                end
-                            end
-                        end
-                    end
-                end)
-            end
-        end)
-    end
-end)
-
-MakeToggle("AutoBlindKiller", "Auto Blind Killer (Aura)", function(val)
-    _G.VDAutoBlind = val
-    if val then
-        task.spawn(function()
-            while _G.VDAutoBlind do
-                task.wait(0.2)
-                local s, err = pcall(function()
-                    local char = LocalPlayer.Character
-                    if not char then return end
-                    local myRoot = char:FindFirstChild("HumanoidRootPart")
-                    if not myRoot then return end
-                    
-                    local remotes = ReplicatedStorage:FindFirstChild("Remotes")
-                    if remotes and remotes:FindFirstChild("Items") and remotes.Items:FindFirstChild("Flashlight") then
-                        local gotBlinded = remotes.Items.Flashlight:FindFirstChild("GotBlinded")
-                        if gotBlinded then
-                            for _, p in ipairs(Players:GetPlayers()) do
-                                if p ~= LocalPlayer and p.Character then
-                                    local role = p:GetAttribute("Role")
-                                    if role == "Killer" then
-                                        local kRoot = p.Character:FindFirstChild("HumanoidRootPart")
-                                        if kRoot then
-                                            local dist = (kRoot.Position - myRoot.Position).Magnitude
-                                            if dist < 30 then
-                                                gotBlinded:FireServer(p.Character)
-                                                task.wait(2) -- Cooldown aman biar ga crash server
-                                            end
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end)
-                if not s then LogVDError("Auto Blind", err) end
-            end
-        end)
-    end
-end)
-
-MakeToggle("AutoSelfUnhook", "Auto Self Unhook", function(val)
-    _G.VDAutoUnhook = val
-    if val then
-        task.spawn(function()
-            local map = workspace:FindFirstChild("Map")
-            local promptsCache = {}
-            if map then
-                for _, obj in ipairs(map:GetDescendants()) do
-                    if obj:IsA("ProximityPrompt") then
-                        table.insert(promptsCache, obj)
-                    end
-                end
-            end
-            
-            while _G.VDAutoUnhook do
-                task.wait(0.15)
-                pcall(function()
-                    local char = LocalPlayer.Character
-                    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-                    local myRoot = char.HumanoidRootPart
-                    
-                    if fireproximityprompt then
-                        for _, obj in ipairs(promptsCache) do
-                            local parent = obj.Parent
-                            if parent and parent:IsA("BasePart") then
-                                local dist = (parent.Position - myRoot.Position).Magnitude
-                                if dist < 8 then
-                                    local parentName = parent.Name:lower()
-                                    local grandParentName = parent.Parent and parent.Parent.Name:lower() or ""
-                                    if parentName:find("hook") or grandParentName:find("hook") then
-                                        fireproximityprompt(obj)
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end)
-            end
-        end)
-    end
-end)
 
 MakeButton("Instant Self Heal", function()
     pcall(function()
@@ -5269,7 +5097,8 @@ Notify("PIXECUTE", "Violence District loaded!", 3)
                 
                 local ps = lp:FindFirstChild("PlayerScripts")
                 if ps then
-                    local broken = {"AwardLog", "MedalAutoclipping"}
+                    -- "AwardLog", "MedalAutoclipping" removed per user request (so Medals still show up)
+                    local broken = {} 
                     for _, name in ipairs(broken) do
                         local s = ps:FindFirstChild(name)
                         if s then
@@ -6561,7 +6390,7 @@ InvisibleBtn = createButton("", "Invisible")
 InvisibleBtn.Name = "InvisibleBtn"
 VisibleBtn = createButton("", "Visible")
 VisibleBtn.Name = "VisibleBtn"
-FPSPingBtn = createButton("", "FPS & Ping")
+FPSPingBtn = createButton("", "Hardware Monitor")
 FPSPingBtn.Name = "FPSPingBtn"
 local invisRunning = false
 local invisFakeChar = nil
@@ -32982,20 +32811,40 @@ local success, err = pcall(function()
             else guiParent = PlayerGui end
             monitorGui.Parent = guiParent
             local monitorFrame = Instance.new("Frame")
-            monitorFrame.Size = UDim2.new(0, 140, 0, 70)
-            monitorFrame.Position = UDim2.new(1, -150, 0, 10)
-            monitorFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-            monitorFrame.BackgroundTransparency = 0.3
+            monitorFrame.Size = UDim2.new(0, 0, 0, 40) -- Auto width
+            monitorFrame.AutomaticSize = Enum.AutomaticSize.X -- Automatically adjust width
+            monitorFrame.Position = UDim2.new(0.5, 0, 0, 10) -- Center top, anchor point handles exact centering
+            monitorFrame.AnchorPoint = Vector2.new(0.5, 0)
+            monitorFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- Solid black
+            monitorFrame.BackgroundTransparency = 0.2
             monitorFrame.BorderSizePixel = 0
             monitorFrame.Active = true
             monitorFrame.Parent = monitorGui
             local corner = Instance.new("UICorner")
             corner.CornerRadius = UDim.new(0, 8)
             corner.Parent = monitorFrame
-            local topBar = Instance.new("Frame")
-            topBar.Size = UDim2.new(1, 0, 0, 20)
-            topBar.BackgroundTransparency = 1
-            topBar.Parent = monitorFrame
+            
+            local stroke = Instance.new("UIStroke")
+            stroke.Color = Color3.fromRGB(255, 0, 0) -- Red outline
+            stroke.Thickness = 2
+            stroke.Parent = monitorFrame
+            
+            -- UIListLayout for horizontal arrangement
+            local listLayout = Instance.new("UIListLayout")
+            listLayout.FillDirection = Enum.FillDirection.Horizontal
+            listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+            listLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+            listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+            listLayout.Padding = UDim.new(0, 15)
+            listLayout.Parent = monitorFrame
+
+            -- Add a spacer for left padding
+            local leftSpacer = Instance.new("Frame")
+            leftSpacer.Size = UDim2.new(0, 10, 1, 0)
+            leftSpacer.BackgroundTransparency = 1
+            leftSpacer.LayoutOrder = 0
+            leftSpacer.Parent = monitorFrame
+
             local dragging = false
             local dragInput, dragStart, startPos
             monitorFrame.InputBegan:Connect(function(input)
@@ -33016,43 +32865,58 @@ local success, err = pcall(function()
             UserInputService.InputChanged:Connect(function(input)
                 if input == dragInput and dragging then
                     local delta = input.Position - dragStart
+                    -- Update position considering anchor point
                     monitorFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
                 end
             end)
+            
+            -- Helper function to create labels
+            local function createLabel(text, layoutOrder)
+                local label = Instance.new("TextLabel")
+                label.Size = UDim2.new(0, 0, 1, 0) -- Auto size width
+                label.AutomaticSize = Enum.AutomaticSize.X
+                label.BackgroundTransparency = 1
+                label.Text = text
+                label.TextColor3 = Color3.fromRGB(255, 0, 0) -- Red text
+                label.Font = Enum.Font.GothamBold
+                label.TextSize = 14
+                label.LayoutOrder = layoutOrder
+                label.Parent = monitorFrame
+                return label
+            end
+
+            local fpsLabel = createLabel("FPS: ...", 1)
+            local pingLabel = createLabel("Ping: ...", 2)
+            local cpuLabel = createLabel("CPU: ...", 3)
+            local gpuLabel = createLabel("GPU: ...", 4)
+            local memLabel = createLabel("Mem: ...", 5)
+
+            -- Right padding spacer to push close button and make room
+            local rightSpacer = Instance.new("Frame")
+            rightSpacer.Size = UDim2.new(0, 10, 1, 0)
+            rightSpacer.BackgroundTransparency = 1
+            rightSpacer.LayoutOrder = 6
+            rightSpacer.Parent = monitorFrame
+
             local closeBtn = Instance.new("TextButton")
-            closeBtn.Size = UDim2.new(0, 20, 0, 20)
-            closeBtn.Position = UDim2.new(1, -25, 0, 2)
+            closeBtn.Size = UDim2.new(0, 30, 1, 0)
             closeBtn.BackgroundTransparency = 1
             closeBtn.Text = "X"
-            closeBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
+            closeBtn.TextColor3 = Color3.fromRGB(255, 0, 0) -- Red text
             closeBtn.Font = Enum.Font.GothamBold
-            closeBtn.TextSize = 14
+            closeBtn.TextSize = 16
+            closeBtn.LayoutOrder = 7
             closeBtn.Parent = monitorFrame
             closeBtn.MouseButton1Click:Connect(function()
                 _G.ToggleFPSPingMonitor()
             end)
-            local fpsLabel = Instance.new("TextLabel")
-            fpsLabel.Size = UDim2.new(1, -30, 0, 25)
-            fpsLabel.Position = UDim2.new(0, 10, 0, 15)
-            fpsLabel.BackgroundTransparency = 1
-            fpsLabel.Text = "FPS: ..."
-            fpsLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-            fpsLabel.Font = Enum.Font.GothamBold
-            fpsLabel.TextSize = 14
-            fpsLabel.TextXAlignment = Enum.TextXAlignment.Left
-            fpsLabel.Parent = monitorFrame
-            local pingLabel = Instance.new("TextLabel")
-            pingLabel.Size = UDim2.new(1, -30, 0, 25)
-            pingLabel.Position = UDim2.new(0, 10, 0, 40)
-            pingLabel.BackgroundTransparency = 1
-            pingLabel.Text = "Ping: ..."
-            pingLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-            pingLabel.Font = Enum.Font.GothamBold
-            pingLabel.TextSize = 14
-            pingLabel.TextXAlignment = Enum.TextXAlignment.Left
-            pingLabel.Parent = monitorFrame
+
             local lastUpdate = tick()
             local frames = 0
+            
+            -- Performance Stats Services
+            local Stats = game:GetService("Stats")
+            
             monitorConnection = RunService.RenderStepped:Connect(function()
                 frames = frames + 1
                 local now = tick()
@@ -33060,17 +32924,48 @@ local success, err = pcall(function()
                     fpsLabel.Text = "FPS: " .. frames
                     frames = 0
                     lastUpdate = now
-                    local ok, pingData = pcall(function()
-                        return game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue()
-                    end)
-                    if ok and pingData then
+                    
+                    -- Ping
+                    local ok, pingData = pcall(function() return Stats.Network.ServerStatsItem["Data Ping"]:GetValue() end)
+                    if ok and type(pingData) == "number" then
                         pingLabel.Text = "Ping: " .. string.format("%.0f", pingData) .. " ms"
                     else
                         pingLabel.Text = "Ping: N/A"
                     end
+                    
+                    -- Memory
+                    local okMem, memData = pcall(function() return Stats:GetTotalMemoryUsageMb() end)
+                    if okMem and type(memData) == "number" then
+                        memLabel.Text = "Mem: " .. string.format("%.0f", memData) .. " MB"
+                    else
+                        memLabel.Text = "Mem: N/A"
+                    end
+                    
+                    -- CPU
+                    local okCpu, cpuStr = pcall(function()
+                        local phys = Stats.Workspace.HeartbeatTimeMs:GetValue()
+                        return string.format("%.1f", phys) .. " ms"
+                    end)
+                    if okCpu and type(cpuStr) == "string" then
+                        cpuLabel.Text = "CPU: " .. cpuStr
+                    else
+                        cpuLabel.Text = "CPU: N/A"
+                    end
+                    
+                    -- GPU
+                    local okGpu, gpuStr = pcall(function()
+                        -- Try getting render stats safely
+                        return string.format("%.1f", Stats.PerformanceStats.Render.Value) .. " ms"
+                    end)
+                    if okGpu and type(gpuStr) == "string" then
+                        gpuLabel.Text = "GPU: " .. gpuStr
+                    else
+                        gpuLabel.Text = "GPU: N/A"
+                    end
+
                 end
             end)
-            notifyPlayer("Monitor", "FPS & Ping Monitor dibuka.")
+            notifyPlayer("Monitor", "Hardware Monitor dibuka.")
         end
     end
     local function toggleFPSMonitor()
@@ -34642,3 +34537,215 @@ task.spawn(function()
         end)
     end
 end)
+
+-- =============================================================================
+-- STANDALONE AUTO GENERATOR & ANTI-FAIL SYSTEM (Decrypted Logic)
+-- =============================================================================
+getgenv().AntiFailGenActive = getgenv().AntiFailGenActive or false
+getgenv().AutoPerfectActive = getgenv().AutoPerfectActive or false
+getgenv().SpeedBoostActive = getgenv().SpeedBoostActive or false
+getgenv().SpeedBoostMultiplier = getgenv().SpeedBoostMultiplier or 0.1
+
+local ActualPlayerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+
+-- Speed Boost Loop (decrypted from Violence: TP / TranslateBy method)
+RunService.Heartbeat:Connect(function(dt)
+    if getgenv().SpeedBoostActive then
+        local char = LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if root and hum and hum.MoveDirection.Magnitude > 0 then
+            char:TranslateBy(hum.MoveDirection * getgenv().SpeedBoostMultiplier)
+        end
+    end
+end)
+
+-- Movement detection helper
+local function isTryingToMove()
+    for _, key in ipairs(UserInputService:GetKeysPressed()) do
+        if key.KeyCode == Enum.KeyCode.W or key.KeyCode == Enum.KeyCode.A or key.KeyCode == Enum.KeyCode.S or key.KeyCode == Enum.KeyCode.D then
+            return true
+        end
+    end
+    local gamepad = UserInputService:GetGamepadState(Enum.UserInputType.Gamepad1)
+    for _, input in ipairs(gamepad) do
+        if input.KeyCode == Enum.KeyCode.Thumbstick1 and input.Position.Magnitude > 0.2 then
+            return true
+        end
+    end
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if hum and hum.MoveDirection.Magnitude > 0.05 then
+        return true
+    end
+    return false
+end
+
+-- Disable skillcheck script helper
+local function disableSkillcheckScript(parent)
+    if not parent or not getgenv().AntiFailGenActive then return end
+    for _, child in ipairs(parent:GetChildren()) do
+        if child:IsA("LocalScript") and (child.Name == "Skillcheck-gen" or child.Name:find("Skillcheck")) then
+            child.Enabled = false
+        end
+    end
+end
+
+-- Active movement monitoring
+RunService.Stepped:Connect(function()
+    if isTryingToMove() then
+        if getgenv().AntiFailGenActive then
+            disableSkillcheckScript(LocalPlayer.Character)
+            disableSkillcheckScript(ActualPlayerGui)
+        end
+        local char = LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if root and root.Anchored then
+            root.Anchored = false
+        end
+        if hum and hum.WalkSpeed < 10 then
+            hum.WalkSpeed = 16
+        end
+    end
+end)
+
+local HeartbeatConnection = nil
+local VisibilityConnection = nil
+
+getgenv().InitializeAutoPerfect = function()
+    task.spawn(function()
+        local prompt = ActualPlayerGui:WaitForChild("SkillCheckPromptGui", 10)
+        local check = prompt and prompt:WaitForChild("Check", 10)
+        if not check then return end
+        
+        local line = check:WaitForChild("Line")
+        local goal = check:WaitForChild("Goal")
+        
+        if VisibilityConnection then VisibilityConnection:Disconnect() end
+        if getgenv().SkillCheckLoggerConnection then getgenv().SkillCheckLoggerConnection:Disconnect() end
+        
+        VisibilityConnection = check:GetPropertyChangedSignal("Visible"):Connect(function()
+            if check.Visible then
+                local UserInputService = game:GetService("UserInputService")
+                if getgenv().SkillCheckLoggerConnection then getgenv().SkillCheckLoggerConnection:Disconnect() end
+                
+                getgenv().SkillCheckLoggerConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+                    if input.KeyCode == Enum.KeyCode.Space then
+                        local lr = line.Rotation % 360
+                        local gr = goal.Rotation % 360
+                        local diff = (lr - gr) % 360
+                        warn(string.format("[SKILL CHECK LOGGER] Line: %.1f | Goal: %.1f | Offset Difference: %.1f", lr, gr, diff))
+                        
+                        -- Cek juga apa ada nama part spesial di dalam check
+                        local childNames = ""
+                        for _, v in ipairs(check:GetChildren()) do
+                            childNames = childNames .. v.Name .. ", "
+                        end
+                        print("[SKILL CHECK LOGGER] UI Elements in Check: " .. childNames)
+                    end
+                end)
+
+                if isTryingToMove() and getgenv().AntiFailGenActive then
+                    disableSkillcheckScript(LocalPlayer.Character)
+                    disableSkillcheckScript(ActualPlayerGui)
+                    return
+                end
+                
+                if not getgenv().AutoPerfectActive then return end
+                if HeartbeatConnection then HeartbeatConnection:Disconnect() end
+                
+                local hasPressedForThisCycle = false
+                HeartbeatConnection = RunService.Heartbeat:Connect(function()
+                    if not getgenv().AutoPerfectActive then
+                        if HeartbeatConnection then HeartbeatConnection:Disconnect() HeartbeatConnection = nil end
+                        return
+                    end
+                    
+                    local lr, gr = line.Rotation % 360, goal.Rotation % 360
+                    local ss, se = (gr + 104) % 360, (gr + 112) % 360
+                    
+                    -- Reset debounce if line is far from the goal
+                    local diff = (lr - gr) % 360
+                    if diff < 90 or diff > 130 then
+                        hasPressedForThisCycle = false
+                    end
+                    
+                    if not hasPressedForThisCycle then
+                        if (ss > se and (lr >= ss or lr <= se)) or (lr >= ss and lr <= se) then
+                            hasPressedForThisCycle = true
+                            local VirtualInputManager = game:GetService("VirtualInputManager")
+                            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
+                            task.spawn(function()
+                                task.wait(0.01)
+                                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+                            end)
+                            -- Hapus fungsi disconnect di sini agar heartbeat tetap jalan 
+                            -- untuk mengakomodasi Special Skill Check (multiple checks in a row)
+                        end
+                    end
+                end)
+            else
+                if HeartbeatConnection then 
+                    HeartbeatConnection:Disconnect() 
+                    HeartbeatConnection = nil 
+                end
+                if getgenv().SkillCheckLoggerConnection then
+                    getgenv().SkillCheckLoggerConnection:Disconnect()
+                    getgenv().SkillCheckLoggerConnection = nil
+                end
+            end
+        end)
+    end)
+end
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+    if HeartbeatConnection then HeartbeatConnection:Disconnect() end
+    if VisibilityConnection then VisibilityConnection:Disconnect() end
+    
+    char.ChildAdded:Connect(function(child)
+        if getgenv().AntiFailGenActive and isTryingToMove() and child:IsA("LocalScript") and (child.Name == "Skillcheck-gen" or child.Name:find("Skillcheck")) then
+            child.Enabled = false
+        end
+    end)
+    
+    task.wait(1)
+    if getgenv().InitializeAutoPerfect then
+        getgenv().InitializeAutoPerfect()
+    end
+end)
+
+ActualPlayerGui.ChildAdded:Connect(function(child)
+    if child.Name == "SkillCheckPromptGui" then
+        if getgenv().InitializeAutoPerfect then
+            getgenv().InitializeAutoPerfect()
+        end
+    elseif getgenv().AntiFailGenActive and isTryingToMove() and child:IsA("LocalScript") and (child.Name == "Skillcheck-gen" or child.Name:find("Skillcheck")) then
+        child.Enabled = false
+    end
+end)
+
+if getgenv().InitializeAutoPerfect then
+    getgenv().InitializeAutoPerfect()
+end
+
+-- Namecall hook to enforce Auto Perfect / Anti Fail for King's Scourge
+if not getgenv().KingsScourgeHooked then
+    getgenv().KingsScourgeHooked = true
+    local oldNamecall
+    oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        if not checkcaller() and method == "FireServer" then
+            if self.Name == "KingScourgeHit" then
+                local args = {...}
+                if getgenv().AutoPerfectActive or getgenv().AntiFailGenActive then
+                    if args[2] == "fail" then
+                        args[2] = "success"
+                    end
+                end
+                return oldNamecall(self, unpack(args))
+            end
+        end
+        return oldNamecall(self, ...)
+    end))
+end
