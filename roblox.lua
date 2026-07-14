@@ -3059,22 +3059,15 @@ local function refreshObjectESP()
                     createObjectESP("GeneratorESP", obj, "Generator", ESPColors.Generator, true)
                 end
             elseif name == "Hook" and ESPConfig.HookESP then
-                if ESPConfig.ShowClosestHookOnly then
-                else
+                if not ESPConfig.ShowClosestHookOnly then
                     createObjectESP("HookESP", obj, "Hook", ESPColors.Hook, false)
                 end
             elseif (name == "Pallet" or name == "Palletwrong") and ESPConfig.PalletESP then
                 createObjectESP("PalletESP", obj, "Pallet", ESPColors.Pallet, false)
-            elseif name == "Window" and ESPConfig.WindowESP then
+            elseif (name == "Window" or name == "Vault") and ESPConfig.WindowESP then
                 createObjectESP("WindowESP", obj, "Window", ESPColors.Window, false)
-            elseif (name:find("Lever") or name:find("Gate") or name == "Escape" or name:find("Exit")) and ESPConfig.GateESP then
-                local displayName = name:find("Lever") and "Lever" or "Exit Gate"
-                createObjectESP("GateESP", obj, displayName, ESPColors.Gate, true)
-            end
-        elseif obj:IsA("BasePart") then
-            local name = obj.Name
-            if (name:find("Lever") or name:find("Gate") or name == "Escape" or name:find("Exit")) and ESPConfig.GateESP then
-                local displayName = name:find("Lever") and "Lever" or "Exit Gate"
+            elseif (name == "Lever" or name == "Gate" or name == "ExitGate" or name == "Escape" or name == "Exit") and ESPConfig.GateESP then
+                local displayName = (name == "Lever") and "Lever" or "Exit Gate"
                 createObjectESP("GateESP", obj, displayName, ESPColors.Gate, true)
             end
         end
@@ -3315,6 +3308,8 @@ local function MakeTextBox(text, defaultVal, callback)
             box.Text = tostring(getgenv().SpeedBoostMultiplier)
         end
     end)
+    
+    registerItem(frame)
 end
 
 activeCategoryName = "Auto Features"
@@ -32943,8 +32938,13 @@ local success, err = pcall(function()
                     
                     -- CPU
                     local okCpu, cpuStr = pcall(function()
-                        local phys = Stats.Workspace.HeartbeatTimeMs:GetValue()
-                        return string.format("%.1f", phys) .. " ms"
+                        local hbTime = Stats.Workspace:FindFirstChild("Heartbeat Time")
+                        if hbTime then
+                            return string.format("%.1f", hbTime:GetValue()) .. " ms"
+                        end
+                        -- Fallback: Frame Time (1000 / FPS) sebagai proxy
+                        local frameTime = 1000 / math.max(1, frames)
+                        return string.format("%.1f", frameTime) .. " ms"
                     end)
                     if okCpu and type(cpuStr) == "string" then
                         cpuLabel.Text = "CPU: " .. cpuStr
@@ -32954,8 +32954,9 @@ local success, err = pcall(function()
                     
                     -- GPU
                     local okGpu, gpuStr = pcall(function()
-                        -- Try getting render stats safely
-                        return string.format("%.1f", Stats.PerformanceStats.Render.Value) .. " ms"
+                        -- Estimasi render GPU dari frame time
+                        local frameTime = 1000 / math.max(1, frames)
+                        return string.format("%.1f", frameTime * 0.8) .. " ms"
                     end)
                     if okGpu and type(gpuStr) == "string" then
                         gpuLabel.Text = "GPU: " .. gpuStr
@@ -34554,7 +34555,19 @@ RunService.Heartbeat:Connect(function(dt)
         local char = LocalPlayer.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
         local hum = char and char:FindFirstChildOfClass("Humanoid")
-        if root and hum and hum.MoveDirection.Magnitude > 0 then
+        
+        -- Deteksi Sprint (Lari): Tekan Shift (PC) atau WalkSpeed > 15 (Mobile)
+        local UserInputService = game:GetService("UserInputService")
+        local isSprinting = false
+        pcall(function()
+            isSprinting = UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) or UserInputService:IsKeyDown(Enum.KeyCode.RightShift)
+        end)
+        
+        if hum and hum.WalkSpeed > 15 then
+            isSprinting = true
+        end
+        
+        if root and hum and hum.MoveDirection.Magnitude > 0 and isSprinting then
             char:TranslateBy(hum.MoveDirection * getgenv().SpeedBoostMultiplier)
         end
     end
@@ -34746,6 +34759,6 @@ if not getgenv().KingsScourgeHooked then
                 return oldNamecall(self, unpack(args))
             end
         end
-        return oldNamecall(self, ...)
+        return oldNamecall(self, ...)   
     end))
 end
