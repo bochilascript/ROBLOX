@@ -32998,7 +32998,6 @@ local success, err = pcall(function()
                     else
                         memLabel.Text = "Mem: N/A"
                     end
-                    end
 
                 end
             end)
