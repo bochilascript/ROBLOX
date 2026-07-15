@@ -5382,7 +5382,7 @@ MiniFrameToggleConn = UserInputService.InputBegan:Connect(function(input, gpe)
 end)
 local CursorGui = Instance.new("ScreenGui")
 CursorGui.Name = "VD_CursorGui"
-CursorGui.DisplayOrder = 2147483647 -- Maximum DisplayOrder to be above everything
+CursorGui.DisplayOrder = 2147483647
 CursorGui.ResetOnSpawn = false
 CursorGui.IgnoreGuiInset = true
 CursorGui.Parent = ScreenGui.Parent or ScreenGui
@@ -5397,12 +5397,20 @@ ExternalCursor.Visible = false
 ExternalCursor.ZIndex = 100000000
 ExternalCursor.Parent = CursorGui
 
+local MasterModalFix = Instance.new("TextButton")
+MasterModalFix.Name = "MasterModalFix"
+MasterModalFix.Size = UDim2.new(0, 0, 0, 0)
+MasterModalFix.BackgroundTransparency = 1
+MasterModalFix.Text = ""
+MasterModalFix.Parent = CursorGui
+
 local lastExternalCursorVis = false
+
 RunService.RenderStepped:Connect(function()
     local mouseLocked = (UserInputService.MouseBehavior ~= Enum.MouseBehavior.Default)
     
     local isAnyGuiVisible = false
-    if typeof(MainFrame) == "Instance" and MainFrame and MainFrame.Visible then isAnyGuiVisible = true end
+    if typeof(MainFrame) == "Instance" and MainFrame and MainFrame.Visible and MainFrame.Size.Y.Offset > 50 then isAnyGuiVisible = true end
     if typeof(CmdBarFrame) == "Instance" and CmdBarFrame and CmdBarFrame.Visible then isAnyGuiVisible = true end
     if typeof(PlayerListFrame) == "Instance" and PlayerListFrame and PlayerListFrame.Visible and PlayerListFrame.Size.Y.Offset > 50 then isAnyGuiVisible = true end
     if typeof(MiniPanelFrame) == "Instance" and MiniPanelFrame and MiniPanelFrame.Visible and MiniPanelFrame.Size.Y.Offset > 50 then isAnyGuiVisible = true end
@@ -5424,29 +5432,40 @@ RunService.RenderStepped:Connect(function()
         end
     end
     
-    local violenceGui = coreGui:FindFirstChild("PXViolenceDistrict") or (playerGui and playerGui:FindFirstChild("PXViolenceDistrict")) or (gethui and gethui():FindFirstChild("PXViolenceDistrict"))
+    local violenceGui = coreGui:FindFirstChild("PXViolenceDistrict") or (playerGui and playerGui:FindFirstChild("PXViolenceDistrict"))
+    if not violenceGui and gethui then
+        pcall(function() violenceGui = gethui():FindFirstChild("PXViolenceDistrict") end)
+    end
     if violenceGui and violenceGui:IsA("ScreenGui") and violenceGui.Enabled then
         local vMain = violenceGui:FindFirstChild("MainFrame")
         local vBody = vMain and vMain:FindFirstChild("Body")
         if vMain and vMain.Visible and vBody and vBody.Visible then
             isAnyGuiVisible = true
         end
+        
+        if vMain then
+            local vdModal = vMain:FindFirstChild("ModalFix")
+            if vdModal then pcall(function() vdModal.Modal = false end) end
+        end
     end
     
-    if mouseLocked then
-        ExternalCursor.Visible = false
-    else
-        ExternalCursor.Visible = isAnyGuiVisible
+    if typeof(MainFrame) == "Instance" and MainFrame then
+        local mfModal = MainFrame:FindFirstChild("ModalFix")
+        if mfModal then pcall(function() mfModal.Modal = false end) end
+    end
+    
+    ExternalCursor.Visible = isAnyGuiVisible
+    MasterModalFix.Modal = isAnyGuiVisible
+    
+    if isAnyGuiVisible then
+        local pos = UserInputService:GetMouseLocation()
+        ExternalCursor.Position = UDim2.fromOffset(pos.X, pos.Y)
     end
 
     local vis = ExternalCursor.Visible
     if vis ~= lastExternalCursorVis then
         lastExternalCursorVis = vis
-        if vis then
-            UserInputService.MouseIconEnabled = false
-        else
-            UserInputService.MouseIconEnabled = true
-        end
+        UserInputService.MouseIconEnabled = not vis
     end
 
     if vis then
