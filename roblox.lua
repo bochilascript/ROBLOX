@@ -2474,7 +2474,7 @@ end
 MinBtn.MouseButton1Click:Connect(toggleViolenceUI)
 
 UserInputService.InputBegan:Connect(function(input, processed)
-    if not processed and input.KeyCode == Enum.KeyCode.Zero then
+    if not processed and input.KeyCode == Enum.KeyCode.RightAlt then
         toggleViolenceUI()
     end
 end)
