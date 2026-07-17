@@ -1972,27 +1972,52 @@ do
     local btnViolence = makeSmallBtn("Violence", 4)
     btnViolence.MouseButton1Click:Connect(function()
         local func = function()
-local errorCacheVD = {}
-local function LogVDError(featureName, errorMsg)
-    local errKey = tostring(featureName) .. "_" .. tostring(errorMsg)
+local errorCachePixecute = {}
+local function LogPixecuteError(category, msg)
+    local errKey = tostring(category) .. "_" .. tostring(msg)
     local now = os.time()
-    if errorCacheVD[errKey] and now - errorCacheVD[errKey] < 5 then return end
-    errorCacheVD[errKey] = now
+    if errorCachePixecute[errKey] and now - errorCachePixecute[errKey] < 5 then return end
+    errorCachePixecute[errKey] = now
     
     pcall(function()
         if not isfolder("PIXECUTE_CONFIG") then makefolder("PIXECUTE_CONFIG") end
         local timeStr = os.date and os.date("[%X] ") or ""
-        local logStr = timeStr .. featureName .. ": " .. tostring(errorMsg) .. "\n"
+        local logStr = timeStr .. "[" .. tostring(category) .. "] " .. tostring(msg) .. "\n"
         if type(appendfile) == "function" then
-            appendfile("PIXECUTE_CONFIG/VD_Errors.txt", logStr)
+            appendfile("PIXECUTE_CONFIG/PIXECUTE_ERRORS.txt", logStr)
         else
             local existing = ""
-            if isfile("PIXECUTE_CONFIG/VD_Errors.txt") then existing = readfile("PIXECUTE_CONFIG/VD_Errors.txt") end
-            writefile("PIXECUTE_CONFIG/VD_Errors.txt", existing .. logStr)
+            if isfile("PIXECUTE_CONFIG/PIXECUTE_ERRORS.txt") then existing = readfile("PIXECUTE_CONFIG/PIXECUTE_ERRORS.txt") end
+            writefile("PIXECUTE_CONFIG/PIXECUTE_ERRORS.txt", existing .. logStr)
         end
     end)
-    warn("[VD Error] " .. featureName .. ": " .. tostring(errorMsg))
 end
+
+local function LogVDError(featureName, errorMsg)
+    LogPixecuteError("VD", featureName .. ": " .. tostring(errorMsg))
+end
+
+pcall(function()
+    game:GetService("GuiService").ErrorMessageChanged:Connect(function(msg)
+        if msg and msg ~= "" then
+            LogPixecuteError("Kick/Disconnect", msg)
+        end
+    end)
+    
+    game:GetService("LogService").MessageOut:Connect(function(message, messageType)
+        if messageType == Enum.MessageType.MessageError then
+            LogPixecuteError("GameError", message)
+        end
+    end)
+    
+    game:GetService("ScriptContext").Error:Connect(function(message, trace, scriptInfo)
+        if scriptInfo == nil then
+            LogPixecuteError("ScriptError", tostring(message) .. " | Trace: " .. tostring(trace))
+        else
+            LogPixecuteError("GameError", "Script: " .. tostring(scriptInfo.Name) .. " | " .. tostring(message) .. " | Trace: " .. tostring(trace))
+        end
+    end)
+end)
 
 LogVDError("System", "Script Injected Successfully")
 LogVDError("EnvCheck", "hookfunction: " .. tostring(typeof(hookfunction) == "function" and "Supported" or "Nil"))
@@ -2001,17 +2026,6 @@ LogVDError("EnvCheck", "getrawmetatable: " .. tostring(typeof(getrawmetatable) =
 LogVDError("EnvCheck", "setreadonly: " .. tostring(typeof(setreadonly) == "function" and "Supported" or "Nil"))
 LogVDError("EnvCheck", "make_writeable: " .. tostring(typeof(make_writeable) == "function" and "Supported" or "Nil"))
 LogVDError("EnvCheck", "checkcaller: " .. tostring(typeof(checkcaller) == "function" and "Supported" or "Nil"))
-
-pcall(function()
-    game:GetService("LogService").MessageOut:Connect(function(message, messageType)
-        if messageType == Enum.MessageType.MessageError then
-            LogVDError("ROBLOX_ERROR", message)
-        end
-    end)
-    game:GetService("ScriptContext").Error:Connect(function(message, trace, script)
-        LogVDError("LUA_ERROR", tostring(script and script.Name or "Unknown") .. " | " .. tostring(message) .. " | Trace: " .. tostring(trace))
-    end)
-end)
 
 
 local Players = game:GetService("Players")
@@ -3983,8 +3997,8 @@ if hookfunction and checkcaller then
     local dummyEvent = Instance.new("RemoteEvent")
     oldFireServer = hookfunction(dummyEvent.FireServer, newcclosure(function(self, ...)
         if not checkcaller() then
-            local success, name = pcall(function() return self.Name end)
-            if success then
+            if typeof(self) == "Instance" then
+                local name = self.Name
                 local args = {...}
                 
                 if name == "Activate" and _G.VDInfFlashlight then
@@ -34582,7 +34596,7 @@ if not getgenv().KingsScourgeHooked then
     local oldNamecall
     local namecallFunc = function(self, ...)
         local method = getnamecallmethod()
-        if not checkcaller() and method == "FireServer" then
+        if not checkcaller() and method == "FireServer" and typeof(self) == "Instance" then
             if self.Name == "KingScourgeHit" then
                 local args = {...}
                 if getgenv().AutoPerfectActive or getgenv().AntiFailGenActive then
