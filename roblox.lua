@@ -3493,9 +3493,6 @@ MakeToggle("AntiFailHeal", "Anti-Fail Healing", function(val)
     end)
 end)
 
-activeCategoryName = "Survivor"
-MakeSection("SURVIVOR COMBAT")
-
 getgenv().AntiFallActive = getgenv().AntiFallActive or false
 local originalFallRemote = nil
 
@@ -3537,6 +3534,9 @@ task.spawn(function()
         task.wait(1)
     end
 end)
+
+activeCategoryName = "Survivor"
+MakeSection("SURVIVOR COMBAT")
 
 local aimbotActive = false
 local fovCircle = nil
@@ -3781,20 +3781,12 @@ local function ShootKiller()
                             or closestPlayer.Character:FindFirstChild("Torso")
                             or closestPlayer.Character:FindFirstChild("LowerTorso")
                             or closestPlayer.Character:FindFirstChild("HumanoidRootPart")
-                        local targetPos = targetPart and targetPart.Position or closestPlayer.Character.HumanoidRootPart.Position
+                        local targetPos = targetPart and targetPart.Position or closestPlayer.Character.PrimaryPart.Position
                         
                         local myPos = char:FindFirstChild("HumanoidRootPart") and char.HumanoidRootPart.Position or char.PrimaryPart.Position
-                        local actualDist = (targetPos - myPos).Magnitude
-                        if actualDist > 15 then
-                            local targetHRP = closestPlayer.Character:FindFirstChild("HumanoidRootPart")
-                            if targetHRP then
-                                targetPos = targetPos + (targetHRP.AssemblyLinearVelocity * 0.08)
-                            end
-                        end
                         
                         local gunPos = myPos
                         if gun and gun:FindFirstChild("Handle") then gunPos = gun.Handle.Position end
-                        
                         local dir = (targetPos - gunPos).Unit
                         
                         local itemArg = gun
@@ -4175,18 +4167,19 @@ if hookfunction and checkcaller then
                                         end
                                     end
                                 end
-                                if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                                    local targetPos = closestPlayer.Character.HumanoidRootPart.Position
-                                    
-                                    local gunPos = myPos
-                                    local gun = myChar:FindFirstChild("Twist of Fate") or myChar:FindFirstChildWhichIsA("Tool")
-                                    if gun and gun:FindFirstChild("Handle") then gunPos = gun.Handle.Position end
-                                    
-                                    local direction = (targetPos - gunPos).Unit
-                                    args[2] = direction
-                                    
-                                    return oldFireServer(self, unpack(args))
-                                end
+                                    local targetPart = closestPlayer.Character:FindFirstChild("HumanoidRootPart")
+                                    if targetPart then
+                                        local targetPos = targetPart.Position
+                                        
+                                        local gunPos = myPos
+                                        local gun = myChar:FindFirstChild("Twist of Fate") or myChar:FindFirstChildWhichIsA("Tool")
+                                        if gun and gun:FindFirstChild("Handle") then gunPos = gun.Handle.Position end
+                                        
+                                        local direction = (targetPos - gunPos).Unit
+                                        args[2] = direction
+                                        
+                                        return oldFireServer(self, unpack(args))
+                                    end
                             end
                         end
                     end
@@ -34478,7 +34471,7 @@ RunService.Heartbeat:Connect(function(dt)
     
     if isSprinting then
         local userVal = tonumber(getgenv().SpeedBoostMultiplier) or 0.05
-        local safeMultiplier = math.clamp(userVal, 0, 0.2)
+        local safeMultiplier = math.clamp(userVal, 0, 1.0)
         pcall(function()
             char:TranslateBy(hum.MoveDirection * safeMultiplier)
         end)
@@ -34678,6 +34671,27 @@ if not getgenv().KingsScourgeHooked then
                     end
                 end
                 return oldNamecall(self, unpack(args))
+            elseif self.Name == "Fall" then
+                task.spawn(function()
+                    local oldActive = getgenv().SpeedBoostActive
+                    local oldMultiplier = getgenv().SpeedBoostMultiplier
+                    getgenv().SpeedBoostActive = true
+                    getgenv().SpeedBoostMultiplier = 0.6
+                    
+                    if type(addSelendang) == "function" and LocalPlayer and LocalPlayer.Character and speedTrailOn then
+                        addSelendang(LocalPlayer.Character)
+                    end
+                    
+                    task.wait(3)
+                    
+                    getgenv().SpeedBoostActive = oldActive
+                    getgenv().SpeedBoostMultiplier = oldMultiplier
+                    
+                    if not getgenv().SpeedBoostActive and type(removeSelendang) == "function" then
+                        removeSelendang()
+                    end
+                end)
+                return oldNamecall(self, ...)
             end
         end
         return oldNamecall(self, ...)   
