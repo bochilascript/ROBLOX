@@ -34761,5 +34761,5 @@ if game.PlaceId == 6739698191 then
         end
     end
 else
-    print("[CIT] Place ID tidak cocok, hookmetamethod untuk fitur Violence dinonaktifkan.")
+    print("[CIT] Bypass Cheat Berhasil Diaktifkan.")
 end
