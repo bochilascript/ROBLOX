@@ -3500,6 +3500,16 @@ MakeToggle("AntiFall", "Anti Fall", function(val)
     getgenv().AntiFallActive = val
 end)
 
+getgenv().PerfectLandingActive = getgenv().PerfectLandingActive or false
+MakeToggle("PerfectLanding", "Perfect Landing", function(val)
+    getgenv().PerfectLandingActive = val
+end)
+
+getgenv().VaultLandingActive = getgenv().VaultLandingActive or false
+MakeToggle("VaultLanding", "Vault Landing", function(val)
+    getgenv().VaultLandingActive = val
+end)
+
 task.spawn(function()
     while true do
         pcall(function()
@@ -34673,6 +34683,7 @@ if not getgenv().KingsScourgeHooked then
                 return oldNamecall(self, unpack(args))
             elseif self.Name == "Fall" then
                 task.spawn(function()
+                    if not getgenv().PerfectLandingActive then return end
                     local oldActive = getgenv().SpeedBoostActive
                     local oldMultiplier = getgenv().SpeedBoostMultiplier
                     getgenv().SpeedBoostActive = true
@@ -34683,6 +34694,28 @@ if not getgenv().KingsScourgeHooked then
                     end
                     
                     task.wait(3)
+                    
+                    getgenv().SpeedBoostActive = oldActive
+                    getgenv().SpeedBoostMultiplier = oldMultiplier
+                    
+                    if not getgenv().SpeedBoostActive and type(removeSelendang) == "function" then
+                        removeSelendang()
+                    end
+                end)
+                return oldNamecall(self, ...)
+            elseif self.Name == "fastvault" then
+                task.spawn(function()
+                    if not getgenv().VaultLandingActive then return end
+                    local oldActive = getgenv().SpeedBoostActive
+                    local oldMultiplier = getgenv().SpeedBoostMultiplier
+                    getgenv().SpeedBoostActive = true
+                    getgenv().SpeedBoostMultiplier = 0.2
+                    
+                    if type(addSelendang) == "function" and LocalPlayer and LocalPlayer.Character and speedTrailOn then
+                        addSelendang(LocalPlayer.Character)
+                    end
+                    
+                    task.wait(2)
                     
                     getgenv().SpeedBoostActive = oldActive
                     getgenv().SpeedBoostMultiplier = oldMultiplier
