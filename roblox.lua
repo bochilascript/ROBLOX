@@ -34665,22 +34665,22 @@ if not getgenv().KingsScourgeHooked then
         local method = getnamecallmethod()
         if not checkcaller() and method == "FireServer" and typeof(self) == "Instance" then
             if self.Name == "KingScourgeHit" then
-                local args = table.pack(...)
+                local args = {n = select("#", ...), ...}
                 if getgenv().AutoPerfectActive or getgenv().AntiFailGenActive then
                     if args[2] == "fail" then
                         args[2] = "success"
                     end
                 end
-                return oldNamecall(self, table.unpack(args, 1, args.n))
+                return oldNamecall(self, unpack(args, 1, args.n))
             elseif self.Name == "Spearthrow" and getgenv().VeilAutoAim then
-                local args = table.pack(...)
+                local args = {n = select("#", ...), ...}
                 if type(getgenv().GetVeilAutoAimDir) == "function" then
                     local newDir = getgenv().GetVeilAutoAimDir()
                     if newDir then
                         args[1] = newDir
                     end
                 end
-                return oldNamecall(self, table.unpack(args, 1, args.n))
+                return oldNamecall(self, unpack(args, 1, args.n))
             elseif self.Name == "Fall" then
                 task.spawn(function()
                     if not getgenv().PerfectLandingActive then return end
