@@ -34732,7 +34732,18 @@ if not getgenv().KingsScourgeHooked then
     if type(hookmetamethod) == "function" then
         local safeClosure = type(newcclosure) == "function" and newcclosure(namecallFunc) or namecallFunc
         oldNamecall = hookmetamethod(game, "__namecall", safeClosure)
+        print("[CIT] hookmetamethod didukung! Fitur Veil Aim, Landing Boost, Auto Attack, Carry, & Resume Failsafe aktif (beserta Bypass Pengaman Auto Perfect).")
     else
-        warn("[CIT] Executor tidak mendukung hookmetamethod.")
+        warn("[CIT] Executor Anda tidak mendukung 'hookmetamethod'.")
+        warn("[CIT] Beberapa fitur berikut TIDAK AKAN BERFUNGSI:")
+        warn("[CIT] - Veil Auto Aim (Spearthrow)")
+        warn("[CIT] - Perfect Landing (Speed boost setelah jatuh)")
+        warn("[CIT] - Vault Landing (Speed boost setelah fast vault)")
+        warn("[CIT] - Auto Attack Killer")
+        warn("[CIT] - Auto Carry (Killer)")
+        warn("[CIT] - Resume Failsafe")
+        if type(Notify) == "function" then
+            Notify("Peringatan", "Executor tidak support hookmetamethod! Banyak fitur Auto/Violence tidak akan berfungsi.", 6)
+        end
     end
 end
