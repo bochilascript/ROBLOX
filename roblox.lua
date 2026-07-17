@@ -3119,6 +3119,7 @@ local function refreshObjectESP()
     clearObjectESPByTag("PalletESP")
     clearObjectESPByTag("WindowESP")
     clearObjectESPByTag("GateESP")
+    clearObjectESPByTag("ZombieESP")
 
     local myRoot = LocalPlayer.Character and getRoot(LocalPlayer.Character)
     local closestHook, closestDist = nil, math.huge
@@ -3170,6 +3171,10 @@ local function refreshObjectESP()
                     or (name:lower():find("lever") ~= nil))
                 local displayName = isLever and "Lever" or "Exit Gate"
                 createObjectESP("GateESP", obj, displayName, ESPColors.Gate, true)
+            elseif string.match(string.lower(name), "^scp%d*$") and ESPConfig.ZombieESP then
+                local num = string.match(string.lower(name), "^scp(%d*)$")
+                local dName = "SCP " .. (num == "" and "1" or num)
+                createObjectESP("ZombieESP", obj, dName, Color3.fromRGB(255, 128, 0), true)
             end
         end
     end
@@ -3189,6 +3194,9 @@ pcall(function()
             task.wait(1)
             refreshObjectESP()
             Notify("ESP Info", "New Generator Spawned!", 2)
+        elseif string.match(string.lower(descendant.Name), "^scp%d*$") and descendant:IsA("Model") and ESPConfig.ZombieESP then
+            task.wait(1)
+            refreshObjectESP()
         end
     end)
 end)
@@ -3249,6 +3257,11 @@ end)
 MakeToggle("GateESP", "Gate & Lever ESP", function(val)
     ESPConfig.GateESP = val
     if val then refreshObjectESP() else clearObjectESPByTag("GateESP") end
+end)
+
+MakeToggle("ZombieESP", "Zombie ESP", function(val)
+    ESPConfig.ZombieESP = val
+    if val then refreshObjectESP() else clearObjectESPByTag("ZombieESP") end
 end)
 
 MakeSection("ESP SETTINGS")
@@ -3428,6 +3441,13 @@ end)
 
 MakeToggle("VDSpeedBoost", "Speed Boost (Violence)", function(val)
     getgenv().SpeedBoostActive = val
+    if type(speedTrailOn) == "boolean" and speedTrailOn then
+        if val then
+            if type(addSelendang) == "function" and LocalPlayer and LocalPlayer.Character then addSelendang(LocalPlayer.Character) end
+        else
+            if type(speedOn) == "boolean" and not speedOn and type(removeSelendang) == "function" then removeSelendang() end
+        end
+    end
 end)
 
 MakeTextBox("Speed Boost Value (Studs)", getgenv().SpeedBoostMultiplier or 0.05, function(val)
@@ -3475,6 +3495,48 @@ end)
 
 activeCategoryName = "Survivor"
 MakeSection("SURVIVOR COMBAT")
+
+getgenv().AntiFallActive = getgenv().AntiFallActive or false
+local originalFallRemote = nil
+
+MakeToggle("AntiFall", "Anti Fall", function(val)
+    getgenv().AntiFallActive = val
+end)
+
+task.spawn(function()
+    while true do
+        pcall(function()
+            local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
+            if remotes then
+                local mechanics = remotes:FindFirstChild("Mechanics")
+                if mechanics then
+                    local fall = mechanics:FindFirstChild("Fall")
+                    
+                    if fall and not fall:GetAttribute("IsDummy") then
+                        originalFallRemote = fall:Clone()
+                        
+                        if getgenv().AntiFallActive then
+                            local dummy = Instance.new("RemoteEvent")
+                            dummy.Name = fall.Name
+                            dummy:SetAttribute("IsDummy", true)
+                            dummy.Parent = mechanics
+                            fall:Destroy()
+                        end
+                    elseif getgenv().AntiFallActive == false then
+                        if fall and fall:GetAttribute("IsDummy") then
+                            fall:Destroy()
+                        end
+                        if not mechanics:FindFirstChild("Fall") and originalFallRemote then
+                            local orig = originalFallRemote:Clone()
+                            orig.Parent = mechanics
+                        end
+                    end
+                end
+            end
+        end)
+        task.wait(1)
+    end
+end)
 
 local aimbotActive = false
 local fovCircle = nil
@@ -4927,7 +4989,7 @@ local function RefreshAllESP()
     stopPlayerESP()
     clearObjectESPByTag("All")
     if ESPConfig.PlayerESP then startPlayerESP() end
-    if ESPConfig.GeneratorESP or ESPConfig.HookESP or ESPConfig.PalletESP or ESPConfig.WindowESP or ESPConfig.GateESP then
+    if ESPConfig.GeneratorESP or ESPConfig.HookESP or ESPConfig.PalletESP or ESPConfig.WindowESP or ESPConfig.GateESP or ESPConfig.ZombieESP then
         refreshObjectESP()
     end
 end
@@ -9803,7 +9865,7 @@ function toggleSpeed()
 			updatingSpeed = false
 		end
 	else
-		removeSelendang()
+		if not getgenv().SpeedBoostActive then removeSelendang() end
 		setButtonActive(SpeedBtn, false)
 		if hum then
 			updatingSpeed = true
@@ -9828,7 +9890,7 @@ function toggleSpeedTrail()
 	local char = Player.Character
 	if speedTrailOn then
 		setButtonActive(SpeedTrailBtn, false) 
-		if speedOn and char then addSelendang(char) end
+		if (speedOn or getgenv().SpeedBoostActive) and char then addSelendang(char) end
 	else
 		setButtonActive(SpeedTrailBtn, true) 
 		removeSelendang()
@@ -9844,8 +9906,10 @@ end)
 Player.CharacterAdded:Connect(function(char)
 	task.wait(0.5)
 	setupSpeedListener(char)
-	if speedOn then
+	if speedOn or getgenv().SpeedBoostActive then
 		if speedTrailOn then addSelendang(char) end
+	end
+	if speedOn then
 		setButtonActive(SpeedBtn, true)
 	else
 		setButtonActive(SpeedBtn, false)
