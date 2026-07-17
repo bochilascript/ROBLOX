@@ -1971,6 +1971,17 @@ do
     end)
     local btnViolence = makeSmallBtn("Violence", 4)
     btnViolence.MouseButton1Click:Connect(function()
+        if game.PlaceId ~= 6739698191 then
+            pcall(function()
+                game:GetService("StarterGui"):SetCore("SendNotification", {
+                    Title = "Peringatan",
+                    Text = "Fitur Violence tidak didukung di game/place ini!",
+                    Duration = 5
+                })
+            end)
+            warn("[CIT] Fitur Violence tidak didukung di game/place ini!")
+            return
+        end
         local func = function()
 local errorCachePixecute = {}
 local function LogPixecuteError(category, msg)
@@ -1994,6 +2005,7 @@ local function LogPixecuteError(category, msg)
 end
 
 local function LogVDError(featureName, errorMsg)
+    if game.PlaceId ~= 6739698191 then return end
     LogPixecuteError("VD", featureName .. ": " .. tostring(errorMsg))
 end
 
@@ -34658,92 +34670,96 @@ if getgenv().InitializeAutoPerfect then
 end
 
 
-if not getgenv().KingsScourgeHooked then
-    getgenv().KingsScourgeHooked = true
-    local oldNamecall
-    local namecallFunc = function(self, ...)
-        local method = getnamecallmethod()
-        if not checkcaller() and method == "FireServer" and typeof(self) == "Instance" then
-            if self.Name == "KingScourgeHit" then
-                local args = {n = select("#", ...), ...}
-                if getgenv().AutoPerfectActive or getgenv().AntiFailGenActive then
-                    if args[2] == "fail" then
-                        args[2] = "success"
+if game.PlaceId == 6739698191 then
+    if not getgenv().KingsScourgeHooked then
+        getgenv().KingsScourgeHooked = true
+        local oldNamecall
+        local namecallFunc = function(self, ...)
+            local method = getnamecallmethod()
+            if not checkcaller() and method == "FireServer" and typeof(self) == "Instance" then
+                if self.Name == "KingScourgeHit" then
+                    local args = {n = select("#", ...), ...}
+                    if getgenv().AutoPerfectActive or getgenv().AntiFailGenActive then
+                        if args[2] == "fail" then
+                            args[2] = "success"
+                        end
                     end
+                    return oldNamecall(self, unpack(args, 1, args.n))
+                elseif self.Name == "Spearthrow" and getgenv().VeilAutoAim then
+                    local args = {n = select("#", ...), ...}
+                    if type(getgenv().GetVeilAutoAimDir) == "function" then
+                        local newDir = getgenv().GetVeilAutoAimDir()
+                        if newDir then
+                            args[1] = newDir
+                        end
+                    end
+                    return oldNamecall(self, unpack(args, 1, args.n))
+                elseif self.Name == "Fall" then
+                    task.spawn(function()
+                        if not getgenv().PerfectLandingActive then return end
+                        local oldActive = getgenv().SpeedBoostActive
+                        local oldMultiplier = getgenv().SpeedBoostMultiplier
+                        getgenv().SpeedBoostActive = true
+                        getgenv().SpeedBoostMultiplier = 0.6
+                        
+                        if type(addSelendang) == "function" and LocalPlayer and LocalPlayer.Character and speedTrailOn then
+                            addSelendang(LocalPlayer.Character)
+                        end
+                        
+                        task.wait(3)
+                        
+                        getgenv().SpeedBoostActive = oldActive
+                        getgenv().SpeedBoostMultiplier = oldMultiplier
+                        
+                        if not getgenv().SpeedBoostActive and type(removeSelendang) == "function" then
+                            removeSelendang()
+                        end
+                    end)
+                    return oldNamecall(self, ...)
+                elseif self.Name == "fastvault" then
+                    task.spawn(function()
+                        if not getgenv().VaultLandingActive then return end
+                        local oldActive = getgenv().SpeedBoostActive
+                        local oldMultiplier = getgenv().SpeedBoostMultiplier
+                        getgenv().SpeedBoostActive = true
+                        getgenv().SpeedBoostMultiplier = 0.2
+                        
+                        if type(addSelendang) == "function" and LocalPlayer and LocalPlayer.Character and speedTrailOn then
+                            addSelendang(LocalPlayer.Character)
+                        end
+                        
+                        task.wait(2)
+                        
+                        getgenv().SpeedBoostActive = oldActive
+                        getgenv().SpeedBoostMultiplier = oldMultiplier
+                        
+                        if not getgenv().SpeedBoostActive and type(removeSelendang) == "function" then
+                            removeSelendang()
+                        end
+                    end)
+                    return oldNamecall(self, ...)
                 end
-                return oldNamecall(self, unpack(args, 1, args.n))
-            elseif self.Name == "Spearthrow" and getgenv().VeilAutoAim then
-                local args = {n = select("#", ...), ...}
-                if type(getgenv().GetVeilAutoAimDir) == "function" then
-                    local newDir = getgenv().GetVeilAutoAimDir()
-                    if newDir then
-                        args[1] = newDir
-                    end
-                end
-                return oldNamecall(self, unpack(args, 1, args.n))
-            elseif self.Name == "Fall" then
-                task.spawn(function()
-                    if not getgenv().PerfectLandingActive then return end
-                    local oldActive = getgenv().SpeedBoostActive
-                    local oldMultiplier = getgenv().SpeedBoostMultiplier
-                    getgenv().SpeedBoostActive = true
-                    getgenv().SpeedBoostMultiplier = 0.6
-                    
-                    if type(addSelendang) == "function" and LocalPlayer and LocalPlayer.Character and speedTrailOn then
-                        addSelendang(LocalPlayer.Character)
-                    end
-                    
-                    task.wait(3)
-                    
-                    getgenv().SpeedBoostActive = oldActive
-                    getgenv().SpeedBoostMultiplier = oldMultiplier
-                    
-                    if not getgenv().SpeedBoostActive and type(removeSelendang) == "function" then
-                        removeSelendang()
-                    end
-                end)
-                return oldNamecall(self, ...)
-            elseif self.Name == "fastvault" then
-                task.spawn(function()
-                    if not getgenv().VaultLandingActive then return end
-                    local oldActive = getgenv().SpeedBoostActive
-                    local oldMultiplier = getgenv().SpeedBoostMultiplier
-                    getgenv().SpeedBoostActive = true
-                    getgenv().SpeedBoostMultiplier = 0.2
-                    
-                    if type(addSelendang) == "function" and LocalPlayer and LocalPlayer.Character and speedTrailOn then
-                        addSelendang(LocalPlayer.Character)
-                    end
-                    
-                    task.wait(2)
-                    
-                    getgenv().SpeedBoostActive = oldActive
-                    getgenv().SpeedBoostMultiplier = oldMultiplier
-                    
-                    if not getgenv().SpeedBoostActive and type(removeSelendang) == "function" then
-                        removeSelendang()
-                    end
-                end)
-                return oldNamecall(self, ...)
+            end
+            return oldNamecall(self, ...)   
+        end
+        if type(hookmetamethod) == "function" then
+            local safeClosure = type(newcclosure) == "function" and newcclosure(namecallFunc) or namecallFunc
+            oldNamecall = hookmetamethod(game, "__namecall", safeClosure)
+            print("[CIT] hookmetamethod didukung! Fitur Veil Aim, Landing Boost, Auto Attack, Carry, & Resume Failsafe aktif (beserta Bypass Pengaman Auto Perfect).")
+        else
+            warn("[CIT] Executor Anda tidak mendukung 'hookmetamethod'.")
+            warn("[CIT] Beberapa fitur berikut TIDAK AKAN BERFUNGSI:")
+            warn("[CIT] - Veil Auto Aim (Spearthrow)")
+            warn("[CIT] - Perfect Landing (Speed boost setelah jatuh)")
+            warn("[CIT] - Vault Landing (Speed boost setelah fast vault)")
+            warn("[CIT] - Auto Attack Killer")
+            warn("[CIT] - Auto Carry (Killer)")
+            warn("[CIT] - Resume Failsafe")
+            if type(Notify) == "function" then
+                Notify("Peringatan", "Executor tidak support hookmetamethod! Banyak fitur Auto/Violence tidak akan berfungsi.", 6)
             end
         end
-        return oldNamecall(self, ...)   
     end
-    if type(hookmetamethod) == "function" then
-        local safeClosure = type(newcclosure) == "function" and newcclosure(namecallFunc) or namecallFunc
-        oldNamecall = hookmetamethod(game, "__namecall", safeClosure)
-        print("[CIT] hookmetamethod didukung! Fitur Veil Aim, Landing Boost, Auto Attack, Carry, & Resume Failsafe aktif (beserta Bypass Pengaman Auto Perfect).")
-    else
-        warn("[CIT] Executor Anda tidak mendukung 'hookmetamethod'.")
-        warn("[CIT] Beberapa fitur berikut TIDAK AKAN BERFUNGSI:")
-        warn("[CIT] - Veil Auto Aim (Spearthrow)")
-        warn("[CIT] - Perfect Landing (Speed boost setelah jatuh)")
-        warn("[CIT] - Vault Landing (Speed boost setelah fast vault)")
-        warn("[CIT] - Auto Attack Killer")
-        warn("[CIT] - Auto Carry (Killer)")
-        warn("[CIT] - Resume Failsafe")
-        if type(Notify) == "function" then
-            Notify("Peringatan", "Executor tidak support hookmetamethod! Banyak fitur Auto/Violence tidak akan berfungsi.", 6)
-        end
-    end
+else
+    print("[CIT] Place ID tidak cocok, hookmetamethod untuk fitur Violence dinonaktifkan.")
 end
