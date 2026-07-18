@@ -3190,7 +3190,7 @@ local function refreshObjectESP()
             elseif string.match(string.lower(name), "^scp%d*$") and ESPConfig.ZombieESP then
                 local num = string.match(string.lower(name), "^scp(%d*)$")
                 local dName = "SCP " .. (num == "" and "1" or num)
-                createObjectESP("ZombieESP", obj, dName, Color3.fromRGB(255, 128, 0), true)
+                createObjectESP("ZombieESP", obj, dName, Color3.fromRGB(128, 0, 128), true)
             end
         end
     end
@@ -4676,43 +4676,30 @@ MakeButton("Instant Self Heal", function()
     end)
 end)
 
-local lastHealOthers = 0
-MakeToggle("AutoHealOthers", "Auto Heal Others", function(val)
-    _G.VDAutoHealOthers = val
-    if val then
-        task.spawn(function()
-            while _G.VDAutoHealOthers do
-                task.wait(0.5)
-                pcall(function()
-                    local myChar = LocalPlayer.Character
-                    local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
-                    if not myRoot then return end
-                    
-                    for _, p in ipairs(Players:GetPlayers()) do
-                        if p ~= LocalPlayer and p.Team == LocalPlayer.Team and p.Character then
-                            local root = p.Character:FindFirstChild("HumanoidRootPart")
-                            local hum = p.Character:FindFirstChild("Humanoid")
-                            if root and hum and hum.Health > 0 and hum.Health < 100 then
-                                local dist = (root.Position - myRoot.Position).Magnitude
-                                if dist < 15 then
-                                    if tick() - lastHealOthers > 60 then
-                                        lastHealOthers = tick()
-                                        local remotes = ReplicatedStorage:FindFirstChild("Remotes")
-                                        if remotes and remotes:FindFirstChild("Healing") then
-                                            local healEv = remotes.Healing:FindFirstChild("HealEvent")
-                                            if healEv then healEv:FireServer(root, true) end
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end)
+MakeButton("Instant Heal Others", function()
+    pcall(function()
+        local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+        if not (remotes and remotes:FindFirstChild("Healing")) then
+            UICommunicationEvent:Fire("ShowNotification", "Heal Others", "Remotes not found", 2)
+            return
+        end
+        local healEv = remotes.Healing:FindFirstChild("HealEvent")
+        if not healEv then return end
+        
+        local healedCount = 0
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Team == LocalPlayer.Team and p.Character then
+                local root = p.Character:FindFirstChild("HumanoidRootPart")
+                local hum = p.Character:FindFirstChild("Humanoid")
+                if root and hum and hum.Health > 0 and hum.Health < 100 then
+                    healEv:FireServer(root, true)
+                    healedCount = healedCount + 1
+                end
             end
-        end)
-    else
-        lastHealOthers = 0
-    end
+        end
+        
+        UICommunicationEvent:Fire("ShowNotification", "Heal Others", "Instantly healed " .. tostring(healedCount) .. " teammates!", 2)
+    end)
 end)
 
 MakeToggle("AutoVault", "Auto Vault (Windows/Pallets)", function(val)
