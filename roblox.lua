@@ -34706,7 +34706,7 @@ if placeId == 6739698191 or universeId == 93978595733734 or placeId == 939785957
                         local oldActive = getgenv().SpeedBoostActive
                         local oldMultiplier = getgenv().SpeedBoostMultiplier
                         getgenv().SpeedBoostActive = true
-                        getgenv().SpeedBoostMultiplier = 0.6
+                        getgenv().SpeedBoostMultiplier = 0.3
                         
                         if type(addSelendang) == "function" and LocalPlayer and LocalPlayer.Character and speedTrailOn then
                             addSelendang(LocalPlayer.Character)
@@ -34728,13 +34728,13 @@ if placeId == 6739698191 or universeId == 93978595733734 or placeId == 939785957
                         local oldActive = getgenv().SpeedBoostActive
                         local oldMultiplier = getgenv().SpeedBoostMultiplier
                         getgenv().SpeedBoostActive = true
-                        getgenv().SpeedBoostMultiplier = 0.2
+                        getgenv().SpeedBoostMultiplier = 0.3
                         
                         if type(addSelendang) == "function" and LocalPlayer and LocalPlayer.Character and speedTrailOn then
                             addSelendang(LocalPlayer.Character)
                         end
                         
-                        task.wait(2)
+                        task.wait(3)
                         
                         getgenv().SpeedBoostActive = oldActive
                         getgenv().SpeedBoostMultiplier = oldMultiplier
