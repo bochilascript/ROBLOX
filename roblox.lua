@@ -2796,9 +2796,9 @@ local ESPConfig = {
 }
 
 local ESPColors = {
-    Killer    = Color3.fromRGB(255, 30, 45),
+    Killer    = Color3.fromRGB(180, 50, 255),
     Survivor  = Color3.fromRGB(50, 255, 50),
-    Generator = Color3.fromRGB(180, 50, 255),
+    Generator = Color3.fromRGB(255, 128, 0),
     Hook      = Color3.fromRGB(255, 80, 80),
     Pallet    = Color3.fromRGB(255, 255, 50),
     Window = Color3.fromRGB(0, 255, 255),
@@ -3440,6 +3440,52 @@ local function MakeTextBox(text, defaultVal, callback)
     end)
     
     registerItem(frame)
+end
+
+local function getKillerPosition()
+    -- 1. Check players
+    local players = game:GetService("Players"):GetPlayers()
+    for _, p in ipairs(players) do
+        if p ~= LocalPlayer then
+            local role = p:GetAttribute("Role")
+            local teamName = p.Team and p.Team.Name or ""
+            if (role and string.lower(tostring(role)) == "killer") or string.lower(teamName) == "killer" then
+                local char = p.Character
+                local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Head"))
+                if root then
+                    return root.Position
+                end
+            end
+        end
+    end
+    -- 2. Fallback: Check workspace for models containing "Killer" or "Jason"
+    for _, obj in ipairs(workspace:GetChildren()) do
+        if obj:IsA("Model") and obj:FindFirstChildOfClass("Humanoid") and obj ~= LocalPlayer.Character then
+            local nameLower = string.lower(obj.Name)
+            if string.find(nameLower, "killer") or string.find(nameLower, "jason") then
+                local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Head")
+                if root then
+                    return root.Position
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local function getGatePoints()
+    local points = {}
+    local map = workspace:FindFirstChild("Map")
+    local searchFolder = map or workspace
+    for _, obj in ipairs(searchFolder:GetDescendants()) do
+        if obj.Name == "gate" and obj:IsA("BasePart") then
+            local parent = obj.Parent
+            if not (parent and parent.Name == "Gate") then
+                table.insert(points, obj)
+            end
+        end
+    end
+    return points
 end
 
 activeCategoryName = "Auto Features"
@@ -4847,21 +4893,100 @@ MakeButton("TP to Closest Generator", function()
     end
 end)
 
-MakeButton("TP to Escape / Gate", function()
+MakeButton("Instant Escape", function()
+    local root = LocalPlayer.Character and getRoot(LocalPlayer.Character)
+    if not root then Notify("Teleport", "No character found", 2) return end
+
+    local map = workspace:FindFirstChild("Map")
+    local searchFolder = map or workspace
+    local targetPart = nil
+    
+    for _, obj in ipairs(searchFolder:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            local nameLower = string.lower(obj.Name)
+            if nameLower == "fininhsline" or nameLower == "fininshline" or nameLower == "finishline" or nameLower == "fininshilne" then
+                targetPart = obj
+                break
+            end
+        end
+    end
+
+    if targetPart then
+        root.CFrame = targetPart.CFrame * CFrame.new(0, 3, 0)
+        Notify("Teleport", "Teleported to escape line!", 3)
+    else
+        Notify("Teleport", "Escape line (Fininhsline) not found", 2)
+    end
+end)
+
+MakeButton("TP to Left Portal Gate", function()
     local root = LocalPlayer.Character and getRoot(LocalPlayer.Character)
     if not root then Notify("Teleport", "No character found", 2) return end
 
     for _, obj in ipairs(workspace:GetDescendants()) do
-        if (obj.Name == "Escape" or obj.Name == "Gate") and obj:IsA("Model") then
-            local part = obj:FindFirstChildWhichIsA("BasePart")
-            if part then
-                root.CFrame = part.CFrame * CFrame.new(0, 5, 0)
-                Notify("Teleport", "Moved to " .. obj.Name, 3)
+        if obj.Name == "Gate" and obj:IsA("Model") then
+            local leftGate = obj:FindFirstChild("LeftGate")
+            if leftGate and leftGate:IsA("BasePart") then
+                root.CFrame = leftGate.CFrame * CFrame.new(0, 3, 0)
+                Notify("Teleport", "Moved to Left Portal Gate", 3)
                 return
             end
         end
     end
-    Notify("Teleport", "No escape zone found", 2)
+    Notify("Teleport", "Left Portal Gate not found", 2)
+end)
+
+MakeButton("TP to Right Portal Gate", function()
+    local root = LocalPlayer.Character and getRoot(LocalPlayer.Character)
+    if not root then Notify("Teleport", "No character found", 2) return end
+
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj.Name == "Gate" and obj:IsA("Model") then
+            local rightGate = obj:FindFirstChild("RightGate")
+            if rightGate and rightGate:IsA("BasePart") then
+                root.CFrame = rightGate.CFrame * CFrame.new(0, 3, 0)
+                Notify("Teleport", "Moved to Right Portal Gate", 3)
+                return
+            end
+        end
+    end
+    Notify("Teleport", "Right Portal Gate not found", 2)
+end)
+
+MakeButton("TP to Gate (Furthest from Killer)", function()
+    local root = LocalPlayer.Character and getRoot(LocalPlayer.Character)
+    if not root then Notify("Teleport", "No character found", 2) return end
+
+    local gatePoints = getGatePoints()
+    if #gatePoints == 0 then
+        Notify("Teleport", "No gate points found", 2)
+        return
+    end
+
+    local killerPos = getKillerPosition()
+    local targetGate = nil
+    
+    if killerPos then
+        local maxDist = -1
+        for _, g in ipairs(gatePoints) do
+            local dist = (g.Position - killerPos).Magnitude
+            if dist > maxDist then
+                maxDist = dist
+                targetGate = g
+            end
+        end
+    else
+        targetGate = gatePoints[math.random(1, #gatePoints)]
+        Notify("Teleport", "Killer not found, teleported to random gate point", 3)
+    end
+
+    if targetGate then
+        root.CFrame = targetGate.CFrame * CFrame.new(0, 3, 0)
+        if killerPos then
+            local dist = (targetGate.Position - killerPos).Magnitude
+            Notify("Teleport", "Teleported to furthest gate (" .. math.floor(dist) .. "m from Killer)", 3)
+        end
+    end
 end)
 
 MakeButton("Safe TP to Generator (Tween)", function()
@@ -34467,9 +34592,50 @@ getgenv().SpeedBoostMultiplier = getgenv().SpeedBoostMultiplier or 0.05
 
 local ActualPlayerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 
+getgenv().TempSpeedBoostMultiplier = 0
+local tempBoosts = {}
+getgenv().ApplyTempSpeedBoost = function(multiplier, duration)
+    local boost = { mult = multiplier, expires = tick() + duration }
+    table.insert(tempBoosts, boost)
+    
+    if type(addSelendang) == "function" and LocalPlayer and LocalPlayer.Character and speedTrailOn then
+        addSelendang(LocalPlayer.Character)
+    end
+    
+    local function updateTempMultiplier()
+        local maxMult = 0
+        local now = tick()
+        for i = #tempBoosts, 1, -1 do
+            local b = tempBoosts[i]
+            if now >= b.expires then
+                table.remove(tempBoosts, i)
+            else
+                if b.mult > maxMult then
+                    maxMult = b.mult
+                end
+            end
+        end
+        getgenv().TempSpeedBoostMultiplier = maxMult
+        
+        if maxMult <= 0 and not getgenv().SpeedBoostActive and type(removeSelendang) == "function" then
+            removeSelendang()
+        end
+    end
+    
+    updateTempMultiplier()
+    
+    task.spawn(function()
+        task.wait(duration)
+        updateTempMultiplier()
+    end)
+end
+
 local _speedBoostFrameCounter = 0
 RunService.Heartbeat:Connect(function(dt)
-    if not getgenv().SpeedBoostActive then return end
+    local tempMult = getgenv().TempSpeedBoostMultiplier or 0
+    local speedBoostActive = getgenv().SpeedBoostActive
+    if not speedBoostActive and tempMult <= 0 then return end
+    
     _speedBoostFrameCounter = _speedBoostFrameCounter + 1
     if _speedBoostFrameCounter % 3 ~= 0 then return end
     
@@ -34495,8 +34661,14 @@ RunService.Heartbeat:Connect(function(dt)
     end)
     if hum.WalkSpeed > 15 then isSprinting = true end
     
-    if isSprinting then
-        local userVal = tonumber(getgenv().SpeedBoostMultiplier) or 0.05
+    if isSprinting or tempMult > 0 then
+        local userVal = 0
+        if speedBoostActive then
+            userVal = tonumber(getgenv().SpeedBoostMultiplier) or 0.05
+        end
+        if tempMult > userVal then
+            userVal = tempMult
+        end
         local safeMultiplier = math.clamp(userVal, 0, 1.0)
         pcall(function()
             char:TranslateBy(hum.MoveDirection * safeMultiplier)
@@ -34600,6 +34772,7 @@ getgenv().InitializeAutoPerfect = function()
                 if HeartbeatConnection then HeartbeatConnection:Disconnect() end
                 
                 local hasPressedForThisCycle = false
+                local lastDiff = nil
                 HeartbeatConnection = RunService.Heartbeat:Connect(function()
                     if not getgenv().AutoPerfectActive then
                         if HeartbeatConnection then HeartbeatConnection:Disconnect() HeartbeatConnection = nil end
@@ -34607,16 +34780,25 @@ getgenv().InitializeAutoPerfect = function()
                     end
                     
                     local lr, gr = line.Rotation % 360, goal.Rotation % 360
-                    local ss, se = (gr + 104) % 360, (gr + 112) % 360
+                    local currentDiff = (lr - gr) % 360
                     
-                    
-                    local diff = (lr - gr) % 360
-                    if diff < 90 or diff > 130 then
+                    if currentDiff < 90 or currentDiff > 150 then
                         hasPressedForThisCycle = false
                     end
                     
                     if not hasPressedForThisCycle then
-                        if (ss > se and (lr >= ss or lr <= se)) or (lr >= ss and lr <= se) then
+                        local shouldPress = false
+                        if currentDiff >= 104 and currentDiff <= 112 then
+                            shouldPress = true
+                        elseif lastDiff then
+                            local sweep = (currentDiff - lastDiff) % 360
+                            local targetOffset = (108 - lastDiff) % 360
+                            if sweep < 90 and targetOffset <= sweep then
+                                shouldPress = true
+                            end
+                        end
+                        
+                        if shouldPress then
                             hasPressedForThisCycle = true
                             local VirtualInputManager = game:GetService("VirtualInputManager")
                             VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
@@ -34624,10 +34806,10 @@ getgenv().InitializeAutoPerfect = function()
                                 task.wait(0.01)
                                 VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
                             end)
-                            
-                            
                         end
                     end
+                    
+                    lastDiff = currentDiff
                 end)
             else
                 if HeartbeatConnection then 
@@ -34643,6 +34825,110 @@ getgenv().InitializeAutoPerfect = function()
     end)
 end
 
+local function SetupStateBoosts(char)
+    local hum = char:WaitForChild("Humanoid", 10)
+    if not hum then return end
+
+    local spawnTime = tick()
+    local lastVaultTime = 0
+    local lastGroundedY = 0
+    local fallStart = 0
+    local fallStartY = 0
+    local isValidFall = false
+    
+    local function getDistanceToGround()
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not root then return 0 end
+        local raycastParams = RaycastParams.new()
+        raycastParams.FilterDescendantsInstances = {char}
+        raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+        
+        local raycastResult = workspace:Raycast(root.Position, Vector3.new(0, -30, 0), raycastParams)
+        if raycastResult then
+            return raycastResult.Distance
+        end
+        return 30
+    end
+
+    local stateConnection
+    stateConnection = hum.StateChanged:Connect(function(oldState, newState)
+        if not char or not char.Parent or not hum or not hum.Parent then
+            stateConnection:Disconnect()
+            return
+        end
+        
+        -- Capture the ground Y position before leaving the ground
+        if newState == Enum.HumanoidStateType.Freefall or newState == Enum.HumanoidStateType.Jumping then
+            if oldState == Enum.HumanoidStateType.Running or oldState == Enum.HumanoidStateType.RunningNoPhysics or oldState == Enum.HumanoidStateType.Landed then
+                local root = char:FindFirstChild("HumanoidRootPart")
+                if root then
+                    lastGroundedY = root.Position.Y
+                end
+            end
+        end
+
+        if newState == Enum.HumanoidStateType.Freefall then
+            fallStart = tick()
+            local root = char:FindFirstChild("HumanoidRootPart")
+            fallStartY = root and root.Position.Y or 0
+            
+            -- Check if character is actually high in the air (prevents crouching/hit triggers)
+            local dist = getDistanceToGround()
+            isValidFall = dist > 5.5
+        elseif newState == Enum.HumanoidStateType.Landed then
+            local fallDuration = tick() - fallStart
+            local timeSinceLastVault = tick() - lastVaultTime
+            local timeSinceSpawn = tick() - spawnTime
+            
+            local root = char:FindFirstChild("HumanoidRootPart")
+            local fallDistance = 0
+            local netDrop = 0
+            if root then
+                if fallStartY > 0 then
+                    fallDistance = fallStartY - root.Position.Y
+                end
+                if lastGroundedY > 0 then
+                    netDrop = lastGroundedY - root.Position.Y
+                end
+            end
+            
+            -- Must be a valid air fall, duration > 0.15s, vertical fall distance > 4, net drop > 2.5 studs
+            if isValidFall and fallDuration > 0.15 and fallDistance > 4 and netDrop > 2.5 and getgenv().PerfectLandingActive and timeSinceLastVault > 2.2 and timeSinceSpawn > 4 then
+                if type(getgenv().ApplyTempSpeedBoost) == "function" then
+                    getgenv().ApplyTempSpeedBoost(0.3, 3)
+                end
+            end
+            isValidFall = false
+        end
+    end)
+
+    local function hookCheckInterractable(ci)
+        local attrConnection
+        attrConnection = ci:GetAttributeChangedSignal("isVaulting"):Connect(function()
+            if not char or not char.Parent or not ci or not ci.Parent then
+                attrConnection:Disconnect()
+                return
+            end
+            if ci:GetAttribute("isVaulting") == true and getgenv().VaultLandingActive then
+                lastVaultTime = tick()
+                if type(getgenv().ApplyTempSpeedBoost) == "function" then
+                    getgenv().ApplyTempSpeedBoost(0.1, 2)
+                end
+            end
+        end)
+    end
+
+    local existingCI = char:FindFirstChild("CheckInterractable")
+    if existingCI then
+        hookCheckInterractable(existingCI)
+    end
+    char.ChildAdded:Connect(function(child)
+        if child.Name == "CheckInterractable" then
+            hookCheckInterractable(child)
+        end
+    end)
+end
+
 LocalPlayer.CharacterAdded:Connect(function(char)
     if HeartbeatConnection then HeartbeatConnection:Disconnect() end
     if VisibilityConnection then VisibilityConnection:Disconnect() end
@@ -34653,11 +34939,17 @@ LocalPlayer.CharacterAdded:Connect(function(char)
         end
     end)
     
+    task.spawn(SetupStateBoosts, char)
+    
     task.wait(1)
     if getgenv().InitializeAutoPerfect then
         getgenv().InitializeAutoPerfect()
     end
 end)
+
+if LocalPlayer.Character then
+    task.spawn(SetupStateBoosts, LocalPlayer.Character)
+end
 
 ActualPlayerGui.ChildAdded:Connect(function(child)
     if child.Name == "SkillCheckPromptGui" then
@@ -34700,50 +34992,6 @@ if placeId == 6739698191 or universeId == 93978595733734 or placeId == 939785957
                         end
                     end
                     return oldNamecall(self, unpack(args, 1, args.n))
-                elseif self.Name == "Fall" then
-                    task.spawn(function()
-                        if not getgenv().PerfectLandingActive then return end
-                        local oldActive = getgenv().SpeedBoostActive
-                        local oldMultiplier = getgenv().SpeedBoostMultiplier
-                        getgenv().SpeedBoostActive = true
-                        getgenv().SpeedBoostMultiplier = 0.3
-                        
-                        if type(addSelendang) == "function" and LocalPlayer and LocalPlayer.Character and speedTrailOn then
-                            addSelendang(LocalPlayer.Character)
-                        end
-                        
-                        task.wait(3)
-                        
-                        getgenv().SpeedBoostActive = oldActive
-                        getgenv().SpeedBoostMultiplier = oldMultiplier
-                        
-                        if not getgenv().SpeedBoostActive and type(removeSelendang) == "function" then
-                            removeSelendang()
-                        end
-                    end)
-                    return oldNamecall(self, ...)
-                elseif self.Name == "fastvault" then
-                    task.spawn(function()
-                        if not getgenv().VaultLandingActive then return end
-                        local oldActive = getgenv().SpeedBoostActive
-                        local oldMultiplier = getgenv().SpeedBoostMultiplier
-                        getgenv().SpeedBoostActive = true
-                        getgenv().SpeedBoostMultiplier = 0.3
-                        
-                        if type(addSelendang) == "function" and LocalPlayer and LocalPlayer.Character and speedTrailOn then
-                            addSelendang(LocalPlayer.Character)
-                        end
-                        
-                        task.wait(3)
-                        
-                        getgenv().SpeedBoostActive = oldActive
-                        getgenv().SpeedBoostMultiplier = oldMultiplier
-                        
-                        if not getgenv().SpeedBoostActive and type(removeSelendang) == "function" then
-                            removeSelendang()
-                        end
-                    end)
-                    return oldNamecall(self, ...)
                 end
             end
             return oldNamecall(self, ...)   
@@ -34751,18 +34999,14 @@ if placeId == 6739698191 or universeId == 93978595733734 or placeId == 939785957
         if type(hookmetamethod) == "function" then
             local safeClosure = type(newcclosure) == "function" and newcclosure(namecallFunc) or namecallFunc
             oldNamecall = hookmetamethod(game, "__namecall", safeClosure)
-            print("[CIT] hookmetamethod didukung! Fitur Veil Aim, Landing Boost, Auto Attack, Carry, & Resume Failsafe aktif (beserta Bypass Pengaman Auto Perfect).")
+            print("[CIT] hookmetamethod didukung! Fitur Veil Aim & Bypass Pengaman Auto Perfect aktif.")
         else
             warn("[CIT] Executor Anda tidak mendukung 'hookmetamethod'.")
             warn("[CIT] Beberapa fitur berikut TIDAK AKAN BERFUNGSI:")
             warn("[CIT] - Veil Auto Aim (Spearthrow)")
-            warn("[CIT] - Perfect Landing (Speed boost setelah jatuh)")
-            warn("[CIT] - Vault Landing (Speed boost setelah fast vault)")
-            warn("[CIT] - Auto Attack Killer")
-            warn("[CIT] - Auto Carry (Killer)")
-            warn("[CIT] - Resume Failsafe")
+            warn("[CIT] - Bypass Pengaman Auto Perfect (KingScourgeHit)")
             if type(Notify) == "function" then
-                Notify("Peringatan", "Executor tidak support hookmetamethod! Banyak fitur Auto/Violence tidak akan berfungsi.", 6)
+                Notify("Peringatan", "Executor tidak support hookmetamethod! Beberapa fitur Violence tidak akan berfungsi.", 6)
             end
         end
     end
