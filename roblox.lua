@@ -1971,7 +1971,9 @@ do
     end)
     local btnViolence = makeSmallBtn("Violence", 4)
     btnViolence.MouseButton1Click:Connect(function()
-        if game.PlaceId ~= 6739698191 then
+        local universeId = game.GameId
+        local placeId = game.PlaceId
+        if placeId ~= 6739698191 and universeId ~= 93978595733734 and placeId ~= 93978595733734 then
             pcall(function()
                 game:GetService("StarterGui"):SetCore("SendNotification", {
                     Title = "Peringatan",
@@ -2005,7 +2007,9 @@ local function LogPixecuteError(category, msg)
 end
 
 local function LogVDError(featureName, errorMsg)
-    if game.PlaceId ~= 6739698191 then return end
+    local universeId = game.GameId
+    local placeId = game.PlaceId
+    if placeId ~= 6739698191 and universeId ~= 93978595733734 and placeId ~= 93978595733734 then return end
     LogPixecuteError("VD", featureName .. ": " .. tostring(errorMsg))
 end
 
@@ -34670,7 +34674,9 @@ if getgenv().InitializeAutoPerfect then
 end
 
 
-if game.PlaceId == 6739698191 then
+local universeId = game.GameId
+local placeId = game.PlaceId
+if placeId == 6739698191 or universeId == 93978595733734 or placeId == 93978595733734 then
     if not getgenv().KingsScourgeHooked then
         getgenv().KingsScourgeHooked = true
         local oldNamecall
@@ -34761,5 +34767,5 @@ if game.PlaceId == 6739698191 then
         end
     end
 else
-    print("[CIT] Bypass Cheat Berhasil Diaktifkan.")
+    print("[CIT] BypassAnticheat Diaktifkan")
 end
