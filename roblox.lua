@@ -3621,16 +3621,16 @@ MakeSlider("Perfect Duration", 1, 10, 3, function(val)
 end)
 
 getgenv().VaultLandingActive = getgenv().VaultLandingActive or false
-getgenv().VaultLandingSpeed = getgenv().VaultLandingSpeed or 0.1
-getgenv().VaultLandingDuration = getgenv().VaultLandingDuration or 2
+getgenv().VaultLandingSpeed = getgenv().VaultLandingSpeed or 0.2
+getgenv().VaultLandingDuration = getgenv().VaultLandingDuration or 3
 
 MakeToggle("VaultLanding", "Vault Landing", function(val)
     getgenv().VaultLandingActive = val
 end)
-MakeSlider("Vault Speed", 0, 1.0, 0.1, function(val)
+MakeSlider("Vault Speed", 0, 1.0, 0.2, function(val)
     getgenv().VaultLandingSpeed = val
 end, 2)
-MakeSlider("Vault Duration", 1, 10, 2, function(val)
+MakeSlider("Vault Duration", 1, 10, 3, function(val)
     getgenv().VaultLandingDuration = val
 end)
 
@@ -5114,7 +5114,7 @@ MakeToggle("AutoSelfGen", "Auto Self Gen", function(val)
                     local killerPos = getKillerPosition()
                     if killerPos then
                         local distToKiller = (root.Position - killerPos).Magnitude
-                        if distToKiller < 100 then
+                        if distToKiller < 70 then
                             local isWorking = false
                             
                             for _, obj in ipairs(workspace:GetDescendants()) do
@@ -5178,6 +5178,92 @@ MakeToggle("AutoSelfGen", "Auto Self Gen", function(val)
                                     task.wait(3)
                                 end
                             end
+                        end
+                    end
+                end)
+            end
+        end)
+    end
+end)
+
+MakeToggle("AutoFarmGen", "Auto Farm Gen", function(val)
+    _G.VDAutoFarmGen = val
+    if val then
+        task.spawn(function()
+            while _G.VDAutoFarmGen do
+                task.wait(1.5)
+                pcall(function()
+                    local lp = game:GetService("Players").LocalPlayer
+                    local root = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+                    if not root then return end
+
+                    -- Check if we are currently near an INCOMPLETE gen
+                    local currentIncompleteGen = nil
+                    for _, obj in ipairs(workspace:GetDescendants()) do
+                        if obj.Name == "Generator" and obj:IsA("Model") then
+                            local prog = obj:GetAttribute("RepairProgress") or obj:GetAttribute("Progress") or 0
+                            if prog < 1 then
+                                local part = obj:FindFirstChild("Main") or obj:FindFirstChildWhichIsA("BasePart")
+                                if part and (root.Position - part.Position).Magnitude < 18 then
+                                    currentIncompleteGen = obj
+                                    break
+                                end
+                            end
+                        end
+                    end
+
+                    -- If not near an incomplete gen (e.g. current gen just hit 100%), find a new one!
+                    if not currentIncompleteGen then
+                        local killerPos = getKillerPosition()
+                        local targetGen = nil
+                        local maxDistFromKiller = -1
+
+                        for _, obj in ipairs(workspace:GetDescendants()) do
+                            if obj.Name == "Generator" and obj:IsA("Model") then
+                                local prog = obj:GetAttribute("RepairProgress") or obj:GetAttribute("Progress") or 0
+                                if prog < 1 then
+                                    local part = obj:FindFirstChild("Main") or obj:FindFirstChildWhichIsA("BasePart")
+                                    if part then
+                                        -- If killer exists, prioritize furthest. Otherwise just pick any.
+                                        local d = killerPos and (part.Position - killerPos).Magnitude or math.random(1, 100)
+                                        if d > maxDistFromKiller then
+                                            maxDistFromKiller = d
+                                            targetGen = part
+                                        end
+                                    end
+                                end
+                            end
+                        end
+
+                        if targetGen then
+                            if root.Anchored then root.Anchored = false end
+                            pcall(function() 
+                                local vim = game:GetService("VirtualInputManager")
+                                vim:SendKeyEvent(true, Enum.KeyCode.W, false, game) 
+                                task.wait(0.05) 
+                                vim:SendKeyEvent(false, Enum.KeyCode.W, false, game) 
+                            end)
+                            
+                            local safeCF = targetGen.CFrame * CFrame.new(0, 5, 3)
+                            local params = RaycastParams.new()
+                            params.FilterType = Enum.RaycastFilterType.Exclude
+                            params.FilterDescendantsInstances = {lp.Character, targetGen.Parent}
+                            
+                            local offsets = { CFrame.new(0, 0, 3), CFrame.new(0, 0, -3), CFrame.new(3, 0, 0), CFrame.new(-3, 0, 0) }
+                            for _, offset in ipairs(offsets) do
+                                local checkCF = targetGen.CFrame * offset
+                                local origin = targetGen.Position
+                                local dir = (checkCF.Position - origin)
+                                local hit = workspace:Raycast(origin, dir, params)
+                                if not hit or not hit.Instance.CanCollide then
+                                    safeCF = checkCF * CFrame.new(0, 3, 0)
+                                    break
+                                end
+                            end
+                            
+                            root.CFrame = safeCF
+                            if Notify then Notify("Auto Farm Gen", "Moved to new incomplete Gen!", 2) end
+                            task.wait(3)
                         end
                     end
                 end)
