@@ -2555,6 +2555,8 @@ local function MakeSection(text)
     registerItem(frame)
 end
 
+getgenv().ViolenceConfigRegistry = {}
+
 local function MakeToggle(configKey, text, callback, defaultVal)
     local state = defaultVal or false
 
@@ -2626,7 +2628,7 @@ local function MakeToggle(configKey, text, callback, defaultVal)
 
     registerItem(frame)
 
-    return {
+    local obj = {
         SetState = function(v, silent)
             state = v
             updateVisual()
@@ -2634,6 +2636,12 @@ local function MakeToggle(configKey, text, callback, defaultVal)
         end,
         GetState = function() return state end
     }
+    
+    if getgenv().ViolenceConfigRegistry then
+        getgenv().ViolenceConfigRegistry[configKey] = { Type = "Toggle", Obj = obj }
+    end
+
+    return obj
 end
 
 local function MakeSlider(text, min, max, default, callback, decimals)
@@ -2747,6 +2755,23 @@ local function MakeSlider(text, min, max, default, callback, decimals)
     end)
 
     registerItem(frame)
+
+    local obj = {
+        SetState = function(v, silent)
+            value = math.clamp(v, min, max)
+            valLabel.Text = tostring(value)
+            local relX = (value - min) / (max - min)
+            sliderFill.Size = UDim2.new(relX, 0, 1, 0)
+            if callback and not silent then task.spawn(callback, value) end
+        end,
+        GetState = function() return value end
+    }
+    
+    if getgenv().ViolenceConfigRegistry then
+        getgenv().ViolenceConfigRegistry[text] = { Type = "Slider", Obj = obj, Default = default or min }
+    end
+    
+    return obj
 end
 
 local function MakeButton(text, callback)
@@ -3484,6 +3509,11 @@ local function MakeTextBox(text, defaultVal, callback)
     end)
     
     registerItem(frame)
+    
+    return {
+        GetText = function() return box.Text end,
+        SetText = function(txt) box.Text = tostring(txt) end
+    }
 end
 
 local function getKillerPosition()
@@ -5081,8 +5111,9 @@ MakeButton("TP to Closest Generator", function()
 
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj.Name == "Generator" and obj:IsA("Model") then
-            local prog = obj:GetAttribute("RepairProgress") or 0
-            if prog < 1 then
+            local prog = obj:GetAttribute("RepairProgress") or obj:GetAttribute("Progress") or 0
+            local pct = math.floor(prog > 1 and prog or (prog * 100))
+            if pct < 100 then
                 local part = obj:FindFirstChild("Main") or obj:FindFirstChildWhichIsA("BasePart")
                 if part then
                     local d = (root.Position - part.Position).Magnitude
@@ -5133,8 +5164,9 @@ MakeToggle("AutoSelfGen", "Auto Self Gen", function(val)
 
                                 for _, obj in ipairs(workspace:GetDescendants()) do
                                     if obj.Name == "Generator" and obj:IsA("Model") then
-                                        local prog = obj:GetAttribute("RepairProgress") or 0
-                                        if prog < 1 then
+                                        local prog = obj:GetAttribute("RepairProgress") or obj:GetAttribute("Progress") or 0
+                                        local pct = math.floor(prog > 1 and prog or (prog * 100))
+                                        if pct < 100 then
                                             local part = obj:FindFirstChild("Main") or obj:FindFirstChildWhichIsA("BasePart")
                                             if part then
                                                 local d = (part.Position - killerPos).Magnitude
@@ -5148,6 +5180,10 @@ MakeToggle("AutoSelfGen", "Auto Self Gen", function(val)
                                 end
 
                                 if targetGen then
+                                    if _G.VDLockOwner == "Self" and _G.VDLockTime and (tick() - _G.VDLockTime) < 4 then return end
+                                    _G.VDLockTime = tick()
+                                    _G.VDLockOwner = "Self"
+                                    
                                     if root then root.Anchored = false end
                                     pcall(function() 
                                         local vim = game:GetService("VirtualInputManager")
@@ -5176,6 +5212,7 @@ MakeToggle("AutoSelfGen", "Auto Self Gen", function(val)
                                     root.CFrame = safeCF
                                     if Notify then Notify("Auto Self Gen", "Killer near! Teleported to safe far generator.", 3) end
                                     task.wait(3)
+                                    _G.VDLockOwner = nil
                                 end
                             end
                         end
@@ -5202,7 +5239,8 @@ MakeToggle("AutoFarmGen", "Auto Farm Gen", function(val)
                     for _, obj in ipairs(workspace:GetDescendants()) do
                         if obj.Name == "Generator" and obj:IsA("Model") then
                             local prog = obj:GetAttribute("RepairProgress") or obj:GetAttribute("Progress") or 0
-                            if prog < 1 then
+                            local pct = math.floor(prog > 1 and prog or (prog * 100))
+                            if pct < 100 then
                                 local part = obj:FindFirstChild("Main") or obj:FindFirstChildWhichIsA("BasePart")
                                 if part and (root.Position - part.Position).Magnitude < 18 then
                                     currentIncompleteGen = obj
@@ -5221,7 +5259,8 @@ MakeToggle("AutoFarmGen", "Auto Farm Gen", function(val)
                         for _, obj in ipairs(workspace:GetDescendants()) do
                             if obj.Name == "Generator" and obj:IsA("Model") then
                                 local prog = obj:GetAttribute("RepairProgress") or obj:GetAttribute("Progress") or 0
-                                if prog < 1 then
+                                local pct = math.floor(prog > 1 and prog or (prog * 100))
+                                if pct < 100 then
                                     local part = obj:FindFirstChild("Main") or obj:FindFirstChildWhichIsA("BasePart")
                                     if part then
                                         -- If killer exists, prioritize furthest. Otherwise just pick any.
@@ -5236,6 +5275,10 @@ MakeToggle("AutoFarmGen", "Auto Farm Gen", function(val)
                         end
 
                         if targetGen then
+                            if _G.VDLockTime and (tick() - _G.VDLockTime) < 4 then return end
+                            _G.VDLockTime = tick()
+                            _G.VDLockOwner = "Farm"
+                            
                             if root.Anchored then root.Anchored = false end
                             pcall(function() 
                                 local vim = game:GetService("VirtualInputManager")
@@ -5264,6 +5307,7 @@ MakeToggle("AutoFarmGen", "Auto Farm Gen", function(val)
                             root.CFrame = safeCF
                             if Notify then Notify("Auto Farm Gen", "Moved to new incomplete Gen!", 2) end
                             task.wait(3)
+                            if _G.VDLockOwner == "Farm" then _G.VDLockOwner = nil end
                         end
                     end
                 end)
@@ -5386,8 +5430,9 @@ MakeButton("Safe TP to Generator (Tween)", function()
 
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj.Name == "Generator" and obj:IsA("Model") then
-            local prog = obj:GetAttribute("RepairProgress") or 0
-            if prog < 1 then
+            local prog = obj:GetAttribute("RepairProgress") or obj:GetAttribute("Progress") or 0
+            local pct = math.floor(prog > 1 and prog or (prog * 100))
+            if pct < 100 then
                 local part = obj:FindFirstChild("Main") or obj:FindFirstChildWhichIsA("BasePart")
                 if part then
                     local d = (root.Position - part.Position).Magnitude
@@ -5412,6 +5457,90 @@ MakeButton("Safe TP to Generator (Tween)", function()
 end)
 
 activeCategoryName = "Settings"
+MakeSection("CONFIG MANAGER (VIOLENCE)")
+
+local configNameBox = MakeTextBox("Config Name", "default_config")
+
+local function SaveViolenceConfig()
+    local name = configNameBox.GetText()
+    if not name or name == "" then Notify("Config", "Please enter a config name", 2) return end
+    
+    local configData = {}
+    for key, item in pairs(getgenv().ViolenceConfigRegistry) do
+        if item.Obj and item.Obj.GetState then
+            configData[key] = item.Obj.GetState()
+        end
+    end
+    
+    local HttpService = game:GetService("HttpService")
+    local success, json = pcall(function() return HttpService:JSONEncode(configData) end)
+    
+    if success then
+        pcall(function()
+            if not isfolder("VIOLENCE_CONFIG") then makefolder("VIOLENCE_CONFIG") end
+            writefile("VIOLENCE_CONFIG/" .. name .. ".json", json)
+            Notify("Config", "Saved config: " .. name, 2)
+        end)
+    else
+        Notify("Config", "Failed to encode config", 2)
+    end
+end
+
+local function LoadViolenceConfig()
+    local name = configNameBox.GetText()
+    if not name or name == "" then Notify("Config", "Please enter a config name", 2) return end
+    
+    local HttpService = game:GetService("HttpService")
+    pcall(function()
+        if isfile("VIOLENCE_CONFIG/" .. name .. ".json") then
+            local json = readfile("VIOLENCE_CONFIG/" .. name .. ".json")
+            local configData = HttpService:JSONDecode(json)
+            
+            for key, val in pairs(configData) do
+                local item = getgenv().ViolenceConfigRegistry[key]
+                if item and item.Obj and item.Obj.SetState then
+                    item.Obj.SetState(val, true)
+                end
+            end
+            Notify("Config", "Loaded config: " .. name, 2)
+        else
+            Notify("Config", "Config not found: " .. name, 2)
+        end
+    end)
+end
+
+local function DeleteViolenceConfig()
+    local name = configNameBox.GetText()
+    if not name or name == "" then Notify("Config", "Please enter a config name", 2) return end
+    
+    pcall(function()
+        if isfile("VIOLENCE_CONFIG/" .. name .. ".json") then
+            delfile("VIOLENCE_CONFIG/" .. name .. ".json")
+            Notify("Config", "Deleted config: " .. name, 2)
+        else
+            Notify("Config", "Config not found: " .. name, 2)
+        end
+    end)
+end
+
+local function UnloadViolenceConfig()
+    for key, item in pairs(getgenv().ViolenceConfigRegistry) do
+        if item.Obj and item.Obj.SetState then
+            if item.Type == "Toggle" then
+                item.Obj.SetState(false, true)
+            elseif item.Type == "Slider" then
+                item.Obj.SetState(item.Default or 0, true)
+            end
+        end
+    end
+    Notify("Config", "Unloaded all Violence settings!", 2)
+end
+
+MakeButton("Save Config", SaveViolenceConfig)
+MakeButton("Load Config", LoadViolenceConfig)
+MakeButton("Delete Config", DeleteViolenceConfig)
+MakeButton("Unload (Reset All)", UnloadViolenceConfig)
+
 MakeSection("DEBUG")
 
 MakeButton("Print All Remotes", function()
