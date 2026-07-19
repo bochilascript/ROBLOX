@@ -685,7 +685,7 @@ VersionLabel.TextSize = 14
 VersionLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 VersionLabel.TextXAlignment = Enum.TextXAlignment.Right
 VersionLabel.TextYAlignment = Enum.TextYAlignment.Center
-VersionLabel.Text = "v3.9.0"
+VersionLabel.Text = "v3.9.1"
 VersionLabel.ZIndex = 15
 VersionLabel.Parent = MainFrame
 do
@@ -4621,8 +4621,13 @@ killAllToggleObj = MakeToggle("KillAll", "Kill All (Teleport & One Hit)", functi
                             if carryRemotes then
                                 local carryEvent = carryRemotes:FindFirstChild("CarrySurvivorEvent")
                                 if carryEvent then
-                                    carryEvent:FireServer(char)
-                                    task.wait(0.3)
+                                    myRoot.CFrame = root.CFrame
+                                    task.wait(0.1)
+                                    local VirtualInputManager = game:GetService("VirtualInputManager")
+                                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
+                                    task.wait(0.05)
+                                    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+                                    task.wait(0.5)
                                     
                                     local hooks = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("Hooks")
                                     local bestPoint = nil
@@ -4631,23 +4636,34 @@ killAllToggleObj = MakeToggle("KillAll", "Kill All (Teleport & One Hit)", functi
                                         for _, hookModel in ipairs(hooks:GetChildren()) do
                                             local pt = hookModel:FindFirstChild("HookPoint")
                                             if pt then
-                                                local dist = (pt.Position - myRoot.Position).Magnitude
-                                                if dist < minDist then
-                                                    minDist = dist
-                                                    bestPoint = pt
+                                                local occupied = false
+                                                for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
+                                                    if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                                                        if (p.Character.HumanoidRootPart.Position - pt.Position).Magnitude < 4 then
+                                                            occupied = true
+                                                            break
+                                                        end
+                                                    end
+                                                end
+                                                
+                                                if not occupied then
+                                                    local dist = (pt.Position - myRoot.Position).Magnitude
+                                                    if dist < minDist then
+                                                        minDist = dist
+                                                        bestPoint = pt
+                                                    end
                                                 end
                                             end
                                         end
                                     end
                                     
                                     if bestPoint then
-                                        myRoot.CFrame = bestPoint.CFrame * CFrame.new(0, 0, 2)
+                                        myRoot.CFrame = bestPoint.CFrame * CFrame.new(0, 0, 1)
                                         task.wait(0.3)
-                                        local hookEvent = carryRemotes:FindFirstChild("HookEvent")
-                                        if hookEvent then hookEvent:FireServer(bestPoint) end
-                                        task.wait(0.2)
-                                        local hookCommit = carryRemotes:FindFirstChild("HookCommit")
-                                        if hookCommit then hookCommit:FireServer(bestPoint) end
+                                        local VirtualInputManager = game:GetService("VirtualInputManager")
+                                        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
+                                        task.wait(0.05)
+                                        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
                                         task.wait(0.5)
                                     end
                                 end
