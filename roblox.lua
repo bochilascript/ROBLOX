@@ -2636,7 +2636,7 @@ local function MakeToggle(configKey, text, callback, defaultVal)
     }
 end
 
-local function MakeSlider(text, min, max, default, callback)
+local function MakeSlider(text, min, max, default, callback, decimals)
     local value = default or min
 
     local frame = Instance.new("Frame", Content)
@@ -2698,7 +2698,13 @@ local function MakeSlider(text, min, max, default, callback)
     local sliding = false
     local function update(input)
         local relX = math.clamp((input.Position.X - sliderBg.AbsolutePosition.X) / sliderBg.AbsoluteSize.X, 0, 1)
-        value = math.floor(min + (max - min) * relX)
+        local rawValue = min + (max - min) * relX
+        if decimals then
+            local mult = 10^decimals
+            value = math.floor(rawValue * mult + 0.5) / mult
+        else
+            value = math.floor(rawValue)
+        end
         sliderFill.Size = UDim2.new(relX, 0, 1, 0)
         valLabel.Text = tostring(value)
         if callback then callback(value) end
@@ -2725,6 +2731,12 @@ local function MakeSlider(text, min, max, default, callback)
         local num = tonumber(valLabel.Text)
         if num then
             value = math.clamp(num, min, max)
+            if decimals then
+                local mult = 10^decimals
+                value = math.floor(value * mult + 0.5) / mult
+            else
+                value = math.floor(value)
+            end
             valLabel.Text = tostring(value)
             local relX = (value - min) / (max - min)
             sliderFill.Size = UDim2.new(relX, 0, 1, 0)
@@ -2796,8 +2808,8 @@ local ESPConfig = {
 }
 
 local ESPColors = {
-    Killer    = Color3.fromRGB(180, 50, 255),
-    Survivor  = Color3.fromRGB(50, 255, 50),
+    Killer    = Color3.fromRGB(255, 30, 45),
+    Survivor  = Color3.fromRGB(40, 100, 255),
     Generator = Color3.fromRGB(255, 128, 0),
     Hook      = Color3.fromRGB(255, 80, 80),
     Pallet    = Color3.fromRGB(255, 255, 50),
@@ -2829,6 +2841,14 @@ local function CreatePlayerESP(plr)
 
     local teamColor = plr.Team and plr.Team.TeamColor.Color or Color3.fromRGB(255, 30, 45)
     local role = plr:GetAttribute("Role")
+    if not role and plr.Team then
+        if plr.Team.Name == "Killer" then
+            role = "Killer"
+        elseif plr.Team.Name == "Survivor" or plr.Team.Name == "Survivors" then
+            role = "Survivor"
+        end
+    end
+    
     local espColor = teamColor
     if role == "Killer" then
         espColor = ESPColors.Killer
@@ -2874,13 +2894,33 @@ local function CreatePlayerESP(plr)
             if myChar and getRoot(myChar) and plr.Character:FindFirstChildOfClass("Humanoid") then
                 local studs = math.floor((getRoot(myChar).Position - getRoot(plr.Character).Position).Magnitude)
                 local hp = plr.Character:FindFirstChildOfClass("Humanoid").Health
+                
+                local currentRole = plr:GetAttribute("Role")
+                if not currentRole and plr.Team then
+                    if plr.Team.Name == "Killer" then
+                        currentRole = "Killer"
+                    elseif plr.Team.Name == "Survivor" or plr.Team.Name == "Survivors" then
+                        currentRole = "Survivor"
+                    end
+                end
+                
+                local currentEspColor = plr.Team and plr.Team.TeamColor.Color or Color3.fromRGB(255, 30, 45)
+                if currentRole == "Killer" then
+                    currentEspColor = ESPColors.Killer
+                elseif currentRole == "Survivor" then
+                    currentEspColor = ESPColors.Survivor
+                end
+                
+                highlight.FillColor = currentEspColor
+                label.TextColor3 = currentEspColor
 
                 highlight.Enabled = true
                 billboard.Enabled = true
                 local roleTag = ""
-                if role == "Killer" then roleTag = " [KILLER]"
-                elseif role == "Survivor" then roleTag = " [SURVIVOR]" end
-                label.Text = plr.DisplayName .. roleTag .. "\nHP: " .. string.format("%.0f", hp) .. " | " .. studs .. "m"
+                if currentRole == "Killer" then roleTag = "[KILLER]"
+                elseif currentRole == "Survivor" then roleTag = "[SURVIVOR]" end
+                
+                label.Text = string.format("%s\n%s\n(@%s)\nHP: %.0f | %sm", roleTag, plr.DisplayName, plr.Name, hp, studs)
             end
         end)
         table.insert(playerESPConns, conn)
@@ -3431,11 +3471,15 @@ local function MakeTextBox(text, defaultVal, callback)
     Instance.new("UICorner", box).CornerRadius = UDim.new(0, 4)
 
     box.FocusLost:Connect(function(enterPressed)
-        local num = tonumber(box.Text)
-        if num then
-            if callback then callback(num) end
+        if type(defaultVal) == "number" then
+            local num = tonumber(box.Text)
+            if num then
+                if callback then callback(num) end
+            else
+                box.Text = tostring(getgenv().SpeedBoostMultiplier or 0.05)
+            end
         else
-            box.Text = tostring(getgenv().SpeedBoostMultiplier)
+            if callback then callback(box.Text) end
         end
     end)
     
@@ -3563,13 +3607,31 @@ MakeToggle("AntiFall", "Anti Fall", function(val)
 end)
 
 getgenv().PerfectLandingActive = getgenv().PerfectLandingActive or false
+getgenv().PerfectLandingSpeed = getgenv().PerfectLandingSpeed or 0.3
+getgenv().PerfectLandingDuration = getgenv().PerfectLandingDuration or 3
+
 MakeToggle("PerfectLanding", "Perfect Landing", function(val)
     getgenv().PerfectLandingActive = val
 end)
+MakeSlider("Perfect Speed", 0, 1.0, 0.3, function(val)
+    getgenv().PerfectLandingSpeed = val
+end, 2)
+MakeSlider("Perfect Duration", 1, 10, 3, function(val)
+    getgenv().PerfectLandingDuration = val
+end)
 
 getgenv().VaultLandingActive = getgenv().VaultLandingActive or false
+getgenv().VaultLandingSpeed = getgenv().VaultLandingSpeed or 0.1
+getgenv().VaultLandingDuration = getgenv().VaultLandingDuration or 2
+
 MakeToggle("VaultLanding", "Vault Landing", function(val)
     getgenv().VaultLandingActive = val
+end)
+MakeSlider("Vault Speed", 0, 1.0, 0.1, function(val)
+    getgenv().VaultLandingSpeed = val
+end, 2)
+MakeSlider("Vault Duration", 1, 10, 2, function(val)
+    getgenv().VaultLandingDuration = val
 end)
 
 task.spawn(function()
@@ -3617,6 +3679,9 @@ local camera = workspace.CurrentCamera
 local userInputService = game:GetService("UserInputService")
 local runService = game:GetService("RunService")
 
+_G.AimbotTargetType = "Killer"
+_G.AimbotSurvivorName = ""
+
 MakeToggle("AimbotToggle", "Aimbot", function(val)
     aimbotActive = val
     if val then
@@ -3625,8 +3690,47 @@ MakeToggle("AimbotToggle", "Aimbot", function(val)
                 if gp then return end
                 if aimbotActive and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
                     local char = LocalPlayer.Character
-                    local gun = char and (char:FindFirstChild("Twist of Fate") or char:FindFirstChildWhichIsA("Tool"))
-                    if gun and (gun.Name == "Twist of Fate" or gun:FindFirstChild("Handle")) then
+                    if not char then return end
+                    
+                    local hrp = char:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        local isNearGen = false
+                        local mapFolder = workspace:FindFirstChild("Map") or workspace:FindFirstChild("MapLighting")
+                        local rootArea = mapFolder or workspace
+                        for _, obj in ipairs(rootArea:GetDescendants()) do
+                            if obj.Name == "Generator" and obj:IsA("Model") then
+                                local part = obj:FindFirstChild("Main") or obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+                                if part then
+                                    if (part.Position - hrp.Position).Magnitude < 10 then
+                                        isNearGen = true
+                                        break
+                                    end
+                                end
+                            end
+                        end
+                        if isNearGen then return end
+                    end
+                    
+                    local gun = char:FindFirstChild("Twist of Fate") 
+                        or LocalPlayer.Backpack:FindFirstChild("Twist of Fate")
+                        
+                    local skinGun = char:FindFirstChild("EmperorGun") 
+                        or char:FindFirstChild("Emperor") 
+                        or char:FindFirstChild("Awp")
+                        or (char:FindFirstChild("Right Arm") and (char["Right Arm"]:FindFirstChild("EmperorGun") or char["Right Arm"]:FindFirstChild("Emperor") or char["Right Arm"]:FindFirstChild("Awp")))
+
+                    if not gun and skinGun then
+                        local dummy = Instance.new("Tool")
+                        dummy.Name = "Twist of Fate"
+                        pcall(function() dummy.Parent = char end)
+                        gun = dummy
+                    end
+                    
+                    if not gun then
+                        gun = char:FindFirstChildWhichIsA("Tool") or LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool")
+                    end
+
+                    if gun and (gun.Name == "Twist of Fate" or gun:FindFirstChild("Handle") or skinGun) then
                         local remote = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
                         if remote and remote:FindFirstChild("Items") and remote.Items:FindFirstChild("Twist of Fate") then
                             local twistObj = remote.Items["Twist of Fate"]
@@ -3778,6 +3882,25 @@ end)
 activeCategoryName = "Survivor"
 MakeSection("AUTO ESCAPE")
 
+_G.AutoShootTargetType = "Killer"
+_G.AutoShootSurvivorName = ""
+
+MakeToggle("AutoShootTargetKiller", "Auto Shoot Target: Killer", function(val)
+    if val then _G.AutoShootTargetType = "Killer" end
+end)
+
+MakeToggle("AutoShootTargetSurvivor", "Auto Shoot Target: Survivor", function(val)
+    if val then _G.AutoShootTargetType = "Survivor" end
+end)
+
+MakeTextBox("Auto Shoot Target Survivor Name", "", function(val)
+    _G.AutoShootSurvivorName = tostring(val)
+end)
+
+MakeToggle("AutoShootTargetSCP", "Auto Shoot Target: SCP/Zombie", function(val)
+    if val then _G.AutoShootTargetType = "SCP" end
+end)
+
 local function ShootKiller()
     local char = LocalPlayer.Character
     if not char then return end
@@ -3815,32 +3938,73 @@ local function ShootKiller()
         task.wait(0.1)
     end
     
-    local closestPlayer = nil
-    local shortestDistance = 60
+    local closestTarget = nil
+    local shortestDistance = math.huge
+    local targetType = _G.AutoShootTargetType or "Killer"
+    local targetName = _G.AutoShootSurvivorName or ""
     
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
-            if p:GetAttribute("Role") == "Killer" or (p.Team and p.Team.Name == "Killer") then
-                closestPlayer = p
-                break
-            end
-        end
-    end
-    
-    if not closestPlayer then
+    if targetType == "Killer" or targetType == "Survivor" then
         for _, p in ipairs(Players:GetPlayers()) do
             if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
-                if p.Team and LocalPlayer.Team and p.Team == LocalPlayer.Team then continue end
-                local dist = (p.Character.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude
-                if dist < shortestDistance then
-                    shortestDistance = dist
-                    closestPlayer = p
+                local isValid = false
+                if targetType == "Killer" and (p:GetAttribute("Role") == "Killer" or (p.Team and p.Team.Name == "Killer")) then
+                    isValid = true
+                elseif targetType == "Survivor" and targetName ~= "" then
+                    if string.find(string.lower(p.DisplayName), string.lower(targetName)) or string.find(string.lower(p.Name), string.lower(targetName)) then
+                        isValid = true
+                    end
+                end
+                
+                if isValid then
+                    local dist = (p.Character.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude
+                    if dist < shortestDistance then
+                        shortestDistance = dist
+                        closestTarget = p.Character
+                    end
+                end
+            end
+        end
+        
+        if not closestTarget then
+            for _, p in ipairs(Players:GetPlayers()) do
+                if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
+                    local isValid = false
+                    if targetType == "Killer" and (p:GetAttribute("Role") == "Killer" or (p.Team and p.Team.Name == "Killer")) then
+                        isValid = true
+                    elseif targetType == "Survivor" and targetName ~= "" then
+                        if string.find(string.lower(p.DisplayName), string.lower(targetName)) or string.find(string.lower(p.Name), string.lower(targetName)) then
+                            isValid = true
+                        end
+                    end
+                    
+                    if isValid then
+                        local dist = (p.Character.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude
+                        if dist < shortestDistance then
+                            shortestDistance = dist
+                            closestTarget = p.Character
+                        end
+                    end
+                end
+            end
+        end
+    elseif targetType == "SCP" then
+        local mapFolder = workspace:FindFirstChild("Map") or workspace:FindFirstChild("MapLighting")
+        local rootArea = mapFolder or workspace
+        for _, obj in ipairs(rootArea:GetDescendants()) do
+            if obj:IsA("Model") and string.match(string.lower(obj.Name), "^scp%d*$") then
+                local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Head") or obj.PrimaryPart
+                if root then
+                    local dist = (root.Position - char.HumanoidRootPart.Position).Magnitude
+                    if dist < shortestDistance then
+                        shortestDistance = dist
+                        closestTarget = obj
+                    end
                 end
             end
         end
     end
     
-    if closestPlayer then
+    if closestTarget then
         local remote = ReplicatedStorage:FindFirstChild("Remotes")
         if remote then
             local items = remote:FindFirstChild("Items")
@@ -3849,11 +4013,11 @@ local function ShootKiller()
                 if twist then
                     local fireRemote = twist:FindFirstChild("Fire") or twist:FindFirstChild("VisualizeBullet")
                     if fireRemote then
-                        local targetPart = closestPlayer.Character:FindFirstChild("UpperTorso")
-                            or closestPlayer.Character:FindFirstChild("Torso")
-                            or closestPlayer.Character:FindFirstChild("LowerTorso")
-                            or closestPlayer.Character:FindFirstChild("HumanoidRootPart")
-                        local targetPos = targetPart and targetPart.Position or closestPlayer.Character.PrimaryPart.Position
+                        local targetPart = closestTarget:FindFirstChild("UpperTorso")
+                            or closestTarget:FindFirstChild("Torso")
+                            or closestTarget:FindFirstChild("LowerTorso")
+                            or closestTarget:FindFirstChild("HumanoidRootPart")
+                        local targetPos = targetPart and targetPart.Position or closestTarget.PrimaryPart.Position
                         
                         local myPos = char:FindFirstChild("HumanoidRootPart") and char.HumanoidRootPart.Position or char.PrimaryPart.Position
                         
@@ -3902,7 +4066,9 @@ local function ShootKiller()
                             fireRemote:FireServer(itemArg, dir)
                         end)
                         if success then
-                            Notify("Auto Escape", "Shot fired: " .. tostring(fireRemote.Name) .. " with " .. tostring(itemArg.Name), 3)
+                            local targetDisplay = targetType
+                            if targetType == "SCP" then targetDisplay = "SCP/Zombie" end
+                            Notify("Auto Escape", "Shot fired at " .. targetDisplay .. "!", 3)
                         else
                             Notify("Auto Escape", "Shoot Error: " .. tostring(err), 4)
                             warn("[CIT ERROR] Shoot failed:", err)
@@ -3920,7 +4086,9 @@ local function ShootKiller()
             Notify("Auto Escape", "Remotes folder not found in ReplicatedStorage!", 3)
         end
     else
-        Notify("Auto Escape", "Killer not found nearby!", 3)
+        local targetDisplay = targetType
+        if targetType == "SCP" then targetDisplay = "SCP/Zombie" end
+        Notify("Auto Escape", targetDisplay .. " not found nearby!", 3)
     end
 end
 
@@ -3957,7 +4125,7 @@ local function CreateMobileEscapeButton()
     mobileEscapeBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     mobileEscapeBtn.BorderColor3 = Color3.fromRGB(255, 50, 50)
     mobileEscapeBtn.BorderSizePixel = 2
-    mobileEscapeBtn.Text = "SHOOT\nKILLER"
+    mobileEscapeBtn.Text = "AUTO\nSHOOT"
     mobileEscapeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     mobileEscapeBtn.Font = Enum.Font.GothamBold
     mobileEscapeBtn.TextSize = 10
@@ -4001,7 +4169,7 @@ if UserInputService.TouchEnabled then
     CreateMobileEscapeButton()
 end
 
-MakeButton("Shoot Killer (Escape Carry) [E]", function()
+MakeButton("Auto Shoot (Escape Carry) [E]", function()
     ShootKiller()
 end)
 
@@ -4447,6 +4615,44 @@ killAllToggleObj = MakeToggle("KillAll", "Kill All (Teleport & One Hit)", functi
                             end
                             task.wait() 
                         end
+                        
+                        if hum and (hum.WalkSpeed < 8 or hum.PlatformStand) then
+                            local carryRemotes = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Carry")
+                            if carryRemotes then
+                                local carryEvent = carryRemotes:FindFirstChild("CarrySurvivorEvent")
+                                if carryEvent then
+                                    carryEvent:FireServer(char)
+                                    task.wait(0.3)
+                                    
+                                    local hooks = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("Hooks")
+                                    local bestPoint = nil
+                                    local minDist = math.huge
+                                    if hooks then
+                                        for _, hookModel in ipairs(hooks:GetChildren()) do
+                                            local pt = hookModel:FindFirstChild("HookPoint")
+                                            if pt then
+                                                local dist = (pt.Position - myRoot.Position).Magnitude
+                                                if dist < minDist then
+                                                    minDist = dist
+                                                    bestPoint = pt
+                                                end
+                                            end
+                                        end
+                                    end
+                                    
+                                    if bestPoint then
+                                        myRoot.CFrame = bestPoint.CFrame * CFrame.new(0, 0, 2)
+                                        task.wait(0.3)
+                                        local hookEvent = carryRemotes:FindFirstChild("HookEvent")
+                                        if hookEvent then hookEvent:FireServer(bestPoint) end
+                                        task.wait(0.2)
+                                        local hookCommit = carryRemotes:FindFirstChild("HookCommit")
+                                        if hookCommit then hookCommit:FireServer(bestPoint) end
+                                        task.wait(0.5)
+                                    end
+                                end
+                            end
+                        end
                         task.wait(0.05)
                     end
                 end)
@@ -4880,6 +5086,92 @@ MakeButton("TP to Closest Generator", function()
     end
 end)
 
+MakeToggle("AutoSelfGen", "Auto Self Gen", function(val)
+    _G.VDAutoSelfGen = val
+    if val then
+        task.spawn(function()
+            while _G.VDAutoSelfGen do
+                task.wait(1)
+                pcall(function()
+                    local lp = game:GetService("Players").LocalPlayer
+                    local root = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+                    if not root then return end
+
+                    local killerPos = getKillerPosition()
+                    if killerPos then
+                        local distToKiller = (root.Position - killerPos).Magnitude
+                        if distToKiller < 100 then
+                            local isWorking = false
+                            
+                            for _, obj in ipairs(workspace:GetDescendants()) do
+                                if obj.Name == "Generator" and obj:IsA("Model") then
+                                    local part = obj:FindFirstChild("Main") or obj:FindFirstChildWhichIsA("BasePart")
+                                    if part and (root.Position - part.Position).Magnitude < 20 and root.Anchored then
+                                        isWorking = true
+                                        break
+                                    end
+                                end
+                            end
+
+                            if isWorking then
+                                local targetGen = nil
+                                local maxDistFromKiller = -1
+
+                                for _, obj in ipairs(workspace:GetDescendants()) do
+                                    if obj.Name == "Generator" and obj:IsA("Model") then
+                                        local prog = obj:GetAttribute("RepairProgress") or 0
+                                        if prog < 1 then
+                                            local part = obj:FindFirstChild("Main") or obj:FindFirstChildWhichIsA("BasePart")
+                                            if part then
+                                                local d = (part.Position - killerPos).Magnitude
+                                                if d > maxDistFromKiller then
+                                                    maxDistFromKiller = d
+                                                    targetGen = part
+                                                end
+                                            end
+                                        end
+                                    end
+                                end
+
+                                if targetGen then
+                                    if root then root.Anchored = false end
+                                    pcall(function() 
+                                        local vim = game:GetService("VirtualInputManager")
+                                        vim:SendKeyEvent(true, Enum.KeyCode.W, false, game) 
+                                        task.wait(0.05) 
+                                        vim:SendKeyEvent(false, Enum.KeyCode.W, false, game) 
+                                    end)
+                                    
+                                    local safeCF = targetGen.CFrame * CFrame.new(0, 5, 3)
+                                    local params = RaycastParams.new()
+                                    params.FilterType = Enum.RaycastFilterType.Exclude
+                                    params.FilterDescendantsInstances = {lp.Character, targetGen.Parent}
+                                    
+                                    local offsets = { CFrame.new(0, 0, 3), CFrame.new(0, 0, -3), CFrame.new(3, 0, 0), CFrame.new(-3, 0, 0) }
+                                    for _, offset in ipairs(offsets) do
+                                        local checkCF = targetGen.CFrame * offset
+                                        local origin = targetGen.Position
+                                        local dir = (checkCF.Position - origin)
+                                        local hit = workspace:Raycast(origin, dir, params)
+                                        if not hit or not hit.Instance.CanCollide then
+                                            safeCF = checkCF * CFrame.new(0, 3, 0)
+                                            break
+                                        end
+                                    end
+                                    
+                                    root.CFrame = safeCF
+                                    if Notify then Notify("Auto Self Gen", "Killer near! Teleported to safe far generator.", 3) end
+                                    task.wait(3)
+                                end
+                            end
+                        end
+                    end
+                end)
+            end
+        end)
+    end
+end)
+
 MakeButton("Instant Escape", function()
     local root = LocalPlayer.Character and getRoot(LocalPlayer.Character)
     if not root then Notify("Teleport", "No character found", 2) return end
@@ -4887,19 +5179,30 @@ MakeButton("Instant Escape", function()
     local map = workspace:FindFirstChild("Map")
     local searchFolder = map or workspace
     local targetPart = nil
+    local lowestY = math.huge
     
     for _, obj in ipairs(searchFolder:GetDescendants()) do
         if obj:IsA("BasePart") then
             local nameLower = string.lower(obj.Name)
             if nameLower == "fininhsline" or nameLower == "fininshline" or nameLower == "finishline" or nameLower == "fininshilne" then
-                targetPart = obj
-                break
+                if obj.Position.Y < lowestY then
+                    lowestY = obj.Position.Y
+                    targetPart = obj
+                end
             end
         end
     end
 
     if targetPart then
-        root.CFrame = targetPart.CFrame * CFrame.new(0, 3, 0)
+        if root then root.Anchored = false end
+        root.CFrame = targetPart.CFrame * CFrame.new(0, 2, 0)
+        pcall(function()
+            if firetouchinterest then
+                firetouchinterest(root, targetPart, 0)
+                task.wait(0.1)
+                firetouchinterest(root, targetPart, 1)
+            end
+        end)
         Notify("Teleport", "Teleported to escape line!", 3)
     else
         Notify("Teleport", "Escape line (Fininhsline) not found", 2)
@@ -34882,7 +35185,7 @@ local function SetupStateBoosts(char)
             -- Must be a valid air fall, duration > 0.15s, vertical fall distance > 4, net drop > 2.5 studs
             if isValidFall and fallDuration > 0.15 and fallDistance > 4 and netDrop > 2.5 and getgenv().PerfectLandingActive and timeSinceLastVault > 2.2 and timeSinceSpawn > 4 then
                 if type(getgenv().ApplyTempSpeedBoost) == "function" then
-                    getgenv().ApplyTempSpeedBoost(0.3, 3)
+                    getgenv().ApplyTempSpeedBoost(getgenv().PerfectLandingSpeed or 0.3, getgenv().PerfectLandingDuration or 3)
                 end
             end
             isValidFall = false
@@ -34890,19 +35193,22 @@ local function SetupStateBoosts(char)
     end)
 
     local function hookCheckInterractable(ci)
-        local attrConnection
-        attrConnection = ci:GetAttributeChangedSignal("isVaulting"):Connect(function()
-            if not char or not char.Parent or not ci or not ci.Parent then
-                attrConnection:Disconnect()
-                return
-            end
-            if ci:GetAttribute("isVaulting") == true and getgenv().VaultLandingActive then
-                lastVaultTime = tick()
-                if type(getgenv().ApplyTempSpeedBoost) == "function" then
-                    getgenv().ApplyTempSpeedBoost(0.1, 2)
+        local connections = {}
+        for _, attr in ipairs({"isVaulting", "isSliding", "isDroppingPallet"}) do
+            local attrConnection = ci:GetAttributeChangedSignal(attr):Connect(function()
+                if not char or not char.Parent or not ci or not ci.Parent then
+                    for _, c in ipairs(connections) do c:Disconnect() end
+                    return
                 end
-            end
-        end)
+                if ci:GetAttribute(attr) == true and getgenv().VaultLandingActive then
+                    lastVaultTime = tick()
+                    if type(getgenv().ApplyTempSpeedBoost) == "function" then
+                        getgenv().ApplyTempSpeedBoost(getgenv().VaultLandingSpeed or 0.1, getgenv().VaultLandingDuration or 2)
+                    end
+                end
+            end)
+            table.insert(connections, attrConnection)
+        end
     end
 
     local existingCI = char:FindFirstChild("CheckInterractable")
@@ -34912,6 +35218,42 @@ local function SetupStateBoosts(char)
     char.ChildAdded:Connect(function(child)
         if child.Name == "CheckInterractable" then
             hookCheckInterractable(child)
+        end
+    end)
+
+    local proxConnection
+    proxConnection = game:GetService("RunService").Heartbeat:Connect(function()
+        if not char or not char.Parent or not hum or not hum.Parent then
+            proxConnection:Disconnect()
+            return
+        end
+        if getgenv().VaultLandingActive then
+            local root = char:FindFirstChild("HumanoidRootPart")
+            if root and hum.MoveDirection.Magnitude > 0 then
+                local isOffGround = (hum.FloorMaterial == Enum.Material.Air) or (hum:GetState() == Enum.HumanoidStateType.Freefall) or (hum:GetState() == Enum.HumanoidStateType.Jumping)
+                if isOffGround then
+                    if not getgenv().GlobalVaultCache then
+                        getgenv().GlobalVaultCache = {}
+                        for _, obj in ipairs(workspace:GetDescendants()) do
+                            if obj:IsA("BasePart") and (string.find(obj.Name, "VaultTrigger") or string.find(obj.Name, "PalletPointSlide")) then
+                                table.insert(getgenv().GlobalVaultCache, obj)
+                            end
+                        end
+                    end
+                    
+                    if tick() - lastVaultTime > 2 then
+                        for _, vault in ipairs(getgenv().GlobalVaultCache) do
+                            if vault.Parent and (root.Position - vault.Position).Magnitude < 5 then
+                                lastVaultTime = tick()
+                                if type(getgenv().ApplyTempSpeedBoost) == "function" then
+                                    getgenv().ApplyTempSpeedBoost(getgenv().VaultLandingSpeed or 0.1, getgenv().VaultLandingDuration or 2)
+                                end
+                                break
+                            end
+                        end
+                    end
+                end
+            end
         end
     end)
 end
