@@ -4621,12 +4621,9 @@ killAllToggleObj = MakeToggle("KillAll", "Kill All (Teleport & One Hit)", functi
                             if carryRemotes then
                                 local carryEvent = carryRemotes:FindFirstChild("CarrySurvivorEvent")
                                 if carryEvent then
-                                    myRoot.CFrame = root.CFrame
-                                    task.wait(0.1)
-                                    local VirtualInputManager = game:GetService("VirtualInputManager")
-                                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
-                                    task.wait(0.05)
-                                    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+                                    myRoot.CFrame = CFrame.lookAt((root.CFrame * CFrame.new(0,0,1.5)).Position, root.Position)
+                                    task.wait(0.2)
+                                    carryEvent:FireServer(char)
                                     task.wait(0.5)
                                     
                                     local hooks = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("Hooks")
@@ -4658,12 +4655,13 @@ killAllToggleObj = MakeToggle("KillAll", "Kill All (Teleport & One Hit)", functi
                                     end
                                     
                                     if bestPoint then
-                                        myRoot.CFrame = bestPoint.CFrame * CFrame.new(0, 0, 1)
-                                        task.wait(0.3)
-                                        local VirtualInputManager = game:GetService("VirtualInputManager")
-                                        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
-                                        task.wait(0.05)
-                                        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+                                        myRoot.CFrame = CFrame.lookAt((bestPoint.CFrame * CFrame.new(0,0,1.5)).Position, bestPoint.Position)
+                                        task.wait(0.2)
+                                        local hookEvent = carryRemotes:FindFirstChild("HookEvent")
+                                        if hookEvent then hookEvent:FireServer(bestPoint) end
+                                        task.wait(0.2)
+                                        local hookCommit = carryRemotes:FindFirstChild("HookCommit")
+                                        if hookCommit then hookCommit:FireServer(bestPoint) end
                                         task.wait(0.5)
                                     end
                                 end
