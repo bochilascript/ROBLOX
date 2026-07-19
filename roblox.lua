@@ -685,7 +685,7 @@ VersionLabel.TextSize = 14
 VersionLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 VersionLabel.TextXAlignment = Enum.TextXAlignment.Right
 VersionLabel.TextYAlignment = Enum.TextYAlignment.Center
-VersionLabel.Text = "v3.8.0"
+VersionLabel.Text = "v3.9.0"
 VersionLabel.ZIndex = 15
 VersionLabel.Parent = MainFrame
 do
