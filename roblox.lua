@@ -2317,7 +2317,7 @@ end
 
 local RefreshBtn = Instance.new("TextButton", Header)
 RefreshBtn.Size = UDim2.new(0, 20, 0, 20)
-RefreshBtn.Position = UDim2.new(1, -74, 0.5, -10)
+RefreshBtn.Position = UDim2.new(1, -50, 0.5, -10)
 RefreshBtn.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
 RefreshBtn.Text = "R"
 RefreshBtn.TextColor3 = Theme.Text
@@ -2325,18 +2325,6 @@ RefreshBtn.Font = Enum.Font.GothamBold
 RefreshBtn.TextSize = 12
 Instance.new("UICorner", RefreshBtn).CornerRadius = UDim.new(0, 5)
 Instance.new("UIStroke", RefreshBtn).Color = Theme.Border
-
-
-local MinBtn = Instance.new("TextButton", Header)
-MinBtn.Size = UDim2.new(0, 20, 0, 20)
-MinBtn.Position = UDim2.new(1, -50, 0.5, -10)
-MinBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
-MinBtn.Text = "-"
-MinBtn.TextColor3 = Theme.Text
-MinBtn.Font = Enum.Font.GothamBold
-MinBtn.TextSize = 16
-Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(0, 5)
-Instance.new("UIStroke", MinBtn).Color = Theme.Border
 
 local CloseBtn = Instance.new("TextButton", Header)
 CloseBtn.Size = UDim2.new(0, 20, 0, 20)
@@ -2348,8 +2336,6 @@ CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.TextSize = 12
 Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 5)
 Instance.new("UIStroke", CloseBtn).Color = Theme.Border
-
-
 local BodyFrame = Instance.new("Frame", MainFrame)
 BodyFrame.Name = "Body"
 BodyFrame.Size = UDim2.new(1, 0, 1, -HEADER_HEIGHT)
@@ -2580,22 +2566,38 @@ VDResizeHandle.InputBegan:Connect(function(input)
     end
 end)
 
+local VDMiniFrame = Instance.new("ImageButton")
+VDMiniFrame.Size = UDim2.new(0, 45, 0, 45)
+VDMiniFrame.Position = UDim2.new(0.5, 30, 0, 8)
+VDMiniFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
+VDMiniFrame.BackgroundTransparency = 0.05
+VDMiniFrame.Image = "https://files.catbox.moe/79jbsm.jpg"
+VDMiniFrame.ScaleType = Enum.ScaleType.Fit
+VDMiniFrame.Visible = true
+VDMiniFrame.Active = true
+VDMiniFrame.Draggable = true
+VDMiniFrame.Parent = ScreenGui
+
+local vdMiniCorner = Instance.new("UICorner")
+vdMiniCorner.CornerRadius = UDim.new(0, 10)
+vdMiniCorner.Parent = VDMiniFrame
+local vdMiniStroke = Instance.new("UIStroke")
+vdMiniStroke.Color = Color3.fromRGB(255, 255, 255)
+vdMiniStroke.Thickness = 1.5
+vdMiniStroke.Parent = VDMiniFrame
+
 local function toggleViolenceUI()
     if not ScreenGui.Enabled then return end 
-    minimized = not minimized
-    VDResizeHandle.Visible = not minimized
-    TweenService:Create(MainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
-        Size = minimized and minSize or fullSize
-    }):Play()
-    BodyFrame.Visible = not minimized
-    if ModalFix then ModalFix.Modal = not minimized end
+    MainFrame.Visible = not MainFrame.Visible
 end
 
-MinBtn.MouseButton1Click:Connect(toggleViolenceUI)
+VDMiniFrame.MouseButton1Click:Connect(toggleViolenceUI)
 
 UserInputService.InputBegan:Connect(function(input, processed)
-    if not processed and input.KeyCode == Enum.KeyCode.RightAlt then
-        toggleViolenceUI()
+    if not processed and not UserInputService:GetFocusedTextBox() then
+        if input.KeyCode == Enum.KeyCode.RightAlt then
+            toggleViolenceUI()
+        end
     end
 end)
 
