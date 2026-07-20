@@ -35149,8 +35149,13 @@ getgenv().ApplyTempSpeedBoost = function(multiplier, duration)
     end)
 end
 
+if getgenv().VDSpeedBoostConnection then
+    getgenv().VDSpeedBoostConnection:Disconnect()
+    getgenv().VDSpeedBoostConnection = nil
+end
+
 local _speedBoostFrameCounter = 0
-RunService.Heartbeat:Connect(function(dt)
+getgenv().VDSpeedBoostConnection = RunService.Heartbeat:Connect(function(dt)
     local tempMult = getgenv().TempSpeedBoostMultiplier or 0
     local speedBoostActive = getgenv().SpeedBoostActive
     if not speedBoostActive and tempMult <= 0 then return end
