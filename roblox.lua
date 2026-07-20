@@ -2571,12 +2571,27 @@ VDMiniFrame.Size = UDim2.new(0, 45, 0, 45)
 VDMiniFrame.Position = UDim2.new(0.5, 30, 0, 8)
 VDMiniFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
 VDMiniFrame.BackgroundTransparency = 0.05
-VDMiniFrame.Image = "https://files.catbox.moe/79jbsm.jpg"
 VDMiniFrame.ScaleType = Enum.ScaleType.Fit
 VDMiniFrame.Visible = true
 VDMiniFrame.Active = true
 VDMiniFrame.Draggable = true
 VDMiniFrame.Parent = ScreenGui
+
+task.spawn(function()
+    local ok, data = pcall(function() return game:HttpGet("https://files.catbox.moe/79jbsm.jpg") end)
+    if ok and data and type(writefile) == "function" then
+        local fileName = "pixecute_vd_logo.jpg"
+        pcall(function() writefile(fileName, data) end)
+        local getasset = (typeof(getcustomasset) == "function" and getcustomasset)
+            or (typeof(getsynasset) == "function" and getsynasset)
+        if getasset then
+            local assetPath = getasset(fileName)
+            if assetPath and assetPath ~= "" then
+                VDMiniFrame.Image = assetPath
+            end
+        end
+    end
+end)
 
 local vdMiniCorner = Instance.new("UICorner")
 vdMiniCorner.CornerRadius = UDim.new(0, 10)
@@ -35450,9 +35465,14 @@ getgenv().InitializeAutoPerfect = function()
                                     local absPos = checkBtn.AbsolutePosition
                                     local absSize = checkBtn.AbsoluteSize
                                     if absPos and absSize and absSize.X > 0 and absSize.Y > 0 then
+                                        local sg = checkBtn:FindFirstAncestorWhichIsA("ScreenGui")
                                         local inset = game:GetService("GuiService"):GetGuiInset()
-                                        local cx = absPos.X + (absSize.X / 2) + inset.X
-                                        local cy = absPos.Y + (absSize.Y / 2) + inset.Y
+                                        local cx = absPos.X + (absSize.X / 2)
+                                        local cy = absPos.Y + (absSize.Y / 2)
+                                        if not sg or not sg.IgnoreGuiInset then
+                                            cx = cx + inset.X
+                                            cy = cy + inset.Y
+                                        end
                                         VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, true, game, 1)
                                         task.delay(0.05, function() 
                                             pcall(function() VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, false, game, 1) end)
