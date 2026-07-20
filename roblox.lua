@@ -3011,6 +3011,7 @@ local function CreatePlayerESP(plr)
         label.TextColor3 = espColor
         label.TextStrokeTransparency = 0.2
         label.TextYAlignment = Enum.TextYAlignment.Bottom
+        label.RichText = true
         label.ZIndex = 10
 
         local conn
@@ -3052,7 +3053,7 @@ local function CreatePlayerESP(plr)
                 if currentRole == "Killer" then roleTag = "[KILLER]"
                 elseif currentRole == "Survivor" then roleTag = "[SURVIVOR]" end
                 
-                label.Text = string.format("%s\n%s\n(@%s)\nHP: %.0f | %sm", roleTag, plr.DisplayName, plr.Name, hp, studs)
+                label.Text = string.format("%s\n<font size=\"11\">%s\n(@%s)\nHP: %.0f | %sm</font>", roleTag, plr.DisplayName, plr.Name, hp, studs)
             end
         end)
         table.insert(playerESPConns, conn)
