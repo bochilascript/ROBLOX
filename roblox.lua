@@ -2578,9 +2578,9 @@ VDMiniFrame.Draggable = true
 VDMiniFrame.Parent = ScreenGui
 
 task.spawn(function()
-    local ok, data = pcall(function() return game:HttpGet("https://files.catbox.moe/79jbsm.jpg") end)
+    local ok, data = pcall(function() return game:HttpGet("https://cdn.phototourl.com/free/2026-07-20-8d7ad0b1-1b67-4b74-9a7f-3ea780201e63.jpg") end)
     if ok and data and type(writefile) == "function" then
-        local fileName = "pixecute_vd_logo.jpg"
+        local fileName = "pixecute_vd_logov1.png"
         pcall(function() writefile(fileName, data) end)
         local getasset = (typeof(getcustomasset) == "function" and getcustomasset)
             or (typeof(getsynasset) == "function" and getsynasset)
@@ -35439,10 +35439,18 @@ getgenv().InitializeAutoPerfect = function()
                                     local pgui = ActualPlayerGui
                                     local controls = pgui:FindFirstChild("Controls") or (pgui:FindFirstChild("Survivor-mob") and pgui["Survivor-mob"]:FindFirstChild("Controls"))
                                     if controls and controls:FindFirstChild("action") then
-                                        return controls.action:FindFirstChild("check")
+                                        local check = controls.action:FindFirstChild("check")
+                                        if check and check.Visible then
+                                            return controls.action
+                                        end
                                     end
                                     local actionFolder = pgui:FindFirstChild("action")
-                                    if actionFolder then return actionFolder:FindFirstChild("check") end
+                                    if actionFolder then 
+                                        local check = actionFolder:FindFirstChild("check")
+                                        if check and check.Visible then
+                                            return actionFolder
+                                        end
+                                    end
                                     return nil
                                 end
                                 
