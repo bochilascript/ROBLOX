@@ -2230,8 +2230,8 @@ UICommunicationEvent.Event:Connect(function(action, ...)
     end
 end)
 
-local WINDOW_WIDTH = 520
-local WINDOW_HEIGHT = 500
+local WINDOW_WIDTH = 500
+local WINDOW_HEIGHT = 300
 local HEADER_HEIGHT = 32
 local LEFT_PANEL_WIDTH = 140
 
@@ -2497,14 +2497,28 @@ local minimized = false
 local fullSize = UDim2.new(0, WINDOW_WIDTH, 0, WINDOW_HEIGHT)
 local minSize = UDim2.new(0, WINDOW_WIDTH, 0, HEADER_HEIGHT)
 
-local VDResizeHandle = Instance.new("TextButton")
+local VDResizeHandle = Instance.new("Frame")
 VDResizeHandle.Name = "VDResizeHandle"
-VDResizeHandle.Text = ""
-VDResizeHandle.Size = UDim2.new(0, 25, 0, 25)
-VDResizeHandle.Position = UDim2.new(1, -25, 1, -25)
-VDResizeHandle.BackgroundTransparency = 1
+VDResizeHandle.Active = true
+VDResizeHandle.Size = UDim2.new(0, 28, 0, 28)
+VDResizeHandle.Position = UDim2.new(1, -32, 1, -32)
+VDResizeHandle.BackgroundTransparency = 0.1
+VDResizeHandle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 VDResizeHandle.ZIndex = 100
 VDResizeHandle.Parent = MainFrame
+
+local vdRhCorner = Instance.new("UICorner")
+vdRhCorner.CornerRadius = UDim.new(0, 6)
+vdRhCorner.Parent = VDResizeHandle
+
+local VDFallbackIcon = Instance.new("TextLabel")
+VDFallbackIcon.Size = UDim2.new(1, 0, 1, 0)
+VDFallbackIcon.BackgroundTransparency = 1
+VDFallbackIcon.Text = "⤡"
+VDFallbackIcon.TextColor3 = Color3.fromRGB(150, 150, 150)
+VDFallbackIcon.TextSize = 20
+VDFallbackIcon.Font = Enum.Font.GothamBold
+VDFallbackIcon.Parent = VDResizeHandle
 
 local vdResizing = false
 local vdResizeStartMouse = nil
@@ -35381,10 +35395,9 @@ getgenv().InitializeAutoPerfect = function()
                             pcall(function()
                                 local survivorMob = ActualPlayerGui:FindFirstChild("Survivor-mob")
                                 local controls = survivorMob and survivorMob:FindFirstChild("Controls")
-                                local mobGui = controls and controls:FindFirstChild("Gui-mob")
-                                
-                                if mobGui then
-                                    local checkBtn = mobGui:FindFirstChild("action") and mobGui.action:FindFirstChild("check")
+                                local actionFolder = controls and controls:FindFirstChild("action")
+                                if actionFolder then
+                                    local checkBtn = actionFolder:FindFirstChild("check")
                                     if checkBtn and checkBtn.Visible then
                                         if firesignal then
                                             pcall(function() firesignal(checkBtn.MouseButton1Down) end)
