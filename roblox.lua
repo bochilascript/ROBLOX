@@ -733,27 +733,33 @@ do
     end)
     ResizeHandle.Parent = MainFrame
     local resizing = false
-    local resizeStartPos = nil
+    local resizeStartMouse = nil
     local resizeStartSize = nil
+    local rsConnection = nil
     ResizeHandle.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             resizing = true
-            resizeStartPos = input.Position
+            resizeStartMouse = UserInputService:GetMouseLocation()
             resizeStartSize = MainFrame.Size
-            input.Changed:Connect(function()
+            
+            if rsConnection then rsConnection:Disconnect() end
+            rsConnection = RunService.RenderStepped:Connect(function()
+                local currentMouse = UserInputService:GetMouseLocation()
+                local delta = currentMouse - resizeStartMouse
+                local newWidth = math.max(500, resizeStartSize.X.Offset + delta.X)
+                local newHeight = math.max(300, resizeStartSize.Y.Offset + delta.Y)
+                MainFrame.Size = UDim2.new(0, newWidth, 0, newHeight)
+                MainFrameSize = MainFrame.Size
+            end)
+            
+            local releaseConn
+            releaseConn = input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
                     resizing = false
+                    if rsConnection then rsConnection:Disconnect() rsConnection = nil end
+                    if releaseConn then releaseConn:Disconnect() end
                 end
             end)
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if resizing and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - resizeStartPos
-            local newWidth = math.max(500, resizeStartSize.X.Offset + delta.X)
-            local newHeight = math.max(300, resizeStartSize.Y.Offset + delta.Y)
-            MainFrame.Size = UDim2.new(0, newWidth, 0, newHeight)
-            MainFrameSize = MainFrame.Size
         end
     end)
 end
@@ -2491,9 +2497,54 @@ local minimized = false
 local fullSize = UDim2.new(0, WINDOW_WIDTH, 0, WINDOW_HEIGHT)
 local minSize = UDim2.new(0, WINDOW_WIDTH, 0, HEADER_HEIGHT)
 
+local VDResizeHandle = Instance.new("TextButton")
+VDResizeHandle.Name = "VDResizeHandle"
+VDResizeHandle.Text = ""
+VDResizeHandle.Size = UDim2.new(0, 25, 0, 25)
+VDResizeHandle.Position = UDim2.new(1, -25, 1, -25)
+VDResizeHandle.BackgroundTransparency = 1
+VDResizeHandle.ZIndex = 100
+VDResizeHandle.Parent = MainFrame
+
+local vdResizing = false
+local vdResizeStartMouse = nil
+local vdResizeStartSize = nil
+local vdRsConnection = nil
+
+VDResizeHandle.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        vdResizing = true
+        vdResizeStartMouse = UserInputService:GetMouseLocation()
+        vdResizeStartSize = MainFrame.Size
+        
+        if vdRsConnection then vdRsConnection:Disconnect() end
+        vdRsConnection = RunService.RenderStepped:Connect(function()
+            local currentMouse = UserInputService:GetMouseLocation()
+            local delta = currentMouse - vdResizeStartMouse
+            local newWidth = math.max(400, vdResizeStartSize.X.Offset + delta.X)
+            local newHeight = math.max(250, vdResizeStartSize.Y.Offset + delta.Y)
+            MainFrame.Size = UDim2.new(0, newWidth, 0, newHeight)
+            WINDOW_WIDTH = newWidth
+            WINDOW_HEIGHT = newHeight
+            fullSize = UDim2.new(0, WINDOW_WIDTH, 0, WINDOW_HEIGHT)
+            minSize = UDim2.new(0, WINDOW_WIDTH, 0, HEADER_HEIGHT)
+        end)
+        
+        local releaseConn
+        releaseConn = input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                vdResizing = false
+                if vdRsConnection then vdRsConnection:Disconnect() vdRsConnection = nil end
+                if releaseConn then releaseConn:Disconnect() end
+            end
+        end)
+    end
+end)
+
 local function toggleViolenceUI()
     if not ScreenGui.Enabled then return end 
     minimized = not minimized
+    VDResizeHandle.Visible = not minimized
     TweenService:Create(MainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
         Size = minimized and minSize or fullSize
     }):Play()
@@ -35326,6 +35377,38 @@ getgenv().InitializeAutoPerfect = function()
                             hasPressedForThisCycle = true
                             local VirtualInputManager = game:GetService("VirtualInputManager")
                             VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
+                            
+                            pcall(function()
+                                local survivorMob = ActualPlayerGui:FindFirstChild("Survivor-mob")
+                                local controls = survivorMob and survivorMob:FindFirstChild("Controls")
+                                local mobGui = controls and controls:FindFirstChild("Gui-mob")
+                                
+                                if mobGui then
+                                    local checkBtn = mobGui:FindFirstChild("action") and mobGui.action:FindFirstChild("check")
+                                    if checkBtn and checkBtn.Visible then
+                                        if firesignal then
+                                            pcall(function() firesignal(checkBtn.MouseButton1Down) end)
+                                            pcall(function() firesignal(checkBtn.MouseButton1Click) end)
+                                            pcall(function() firesignal(checkBtn.Activated) end)
+                                        elseif getconnections then
+                                            for _, conn in ipairs(getconnections(checkBtn.MouseButton1Down)) do pcall(function() conn:Function() end) end
+                                            for _, conn in ipairs(getconnections(checkBtn.MouseButton1Click)) do pcall(function() conn:Function() end) end
+                                            for _, conn in ipairs(getconnections(checkBtn.Activated)) do pcall(function() conn:Function() end) end
+                                        end
+                                        
+                                        local absPos = checkBtn.AbsolutePosition
+                                        local absSize = checkBtn.AbsoluteSize
+                                        if absPos and absSize then
+                                            local cx, cy = absPos.X + (absSize.X / 2), absPos.Y + (absSize.Y / 2) + 36
+                                            VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, true, game, 1)
+                                            task.delay(0.05, function() 
+                                                VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, false, game, 1) 
+                                            end)
+                                        end
+                                    end
+                                end
+                            end)
+
                             task.spawn(function()
                                 task.wait(0.01)
                                 VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
