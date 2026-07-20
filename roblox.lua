@@ -2511,6 +2511,14 @@ local vdRhCorner = Instance.new("UICorner")
 vdRhCorner.CornerRadius = UDim.new(0, 6)
 vdRhCorner.Parent = VDResizeHandle
 
+local VDResizeIcon = Instance.new("ImageLabel")
+VDResizeIcon.Size = UDim2.new(1, -8, 1, -8)
+VDResizeIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
+VDResizeIcon.AnchorPoint = Vector2.new(0.5, 0.5)
+VDResizeIcon.BackgroundTransparency = 1
+VDResizeIcon.ZIndex = 101
+VDResizeIcon.Parent = VDResizeHandle
+
 local VDFallbackIcon = Instance.new("TextLabel")
 VDFallbackIcon.Size = UDim2.new(1, 0, 1, 0)
 VDFallbackIcon.BackgroundTransparency = 1
@@ -2519,6 +2527,23 @@ VDFallbackIcon.TextColor3 = Color3.fromRGB(150, 150, 150)
 VDFallbackIcon.TextSize = 20
 VDFallbackIcon.Font = Enum.Font.GothamBold
 VDFallbackIcon.Parent = VDResizeHandle
+
+task.spawn(function()
+    local ok, data = pcall(function() return game:HttpGet("https://files.catbox.moe/xw1ggt.webp") end)
+    if ok and data and type(writefile) == "function" then
+        local fileName = "pixecute_vd_resize.png"
+        pcall(function() writefile(fileName, data) end)
+        local getasset = (typeof(getcustomasset) == "function" and getcustomasset)
+            or (typeof(getsynasset) == "function" and getsynasset)
+        if getasset then
+            local assetPath = getasset(fileName)
+            if assetPath and assetPath ~= "" then
+                VDResizeIcon.Image = assetPath
+                VDFallbackIcon.Visible = false
+            end
+        end
+    end
+end)
 
 local vdResizing = false
 local vdResizeStartMouse = nil
@@ -35393,31 +35418,41 @@ getgenv().InitializeAutoPerfect = function()
                             VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
                             
                             pcall(function()
-                                local survivorMob = ActualPlayerGui:FindFirstChild("Survivor-mob")
-                                local controls = survivorMob and survivorMob:FindFirstChild("Controls")
-                                local actionFolder = controls and controls:FindFirstChild("action")
-                                if actionFolder then
-                                    local checkBtn = actionFolder:FindFirstChild("check")
-                                    if checkBtn and checkBtn.Visible then
-                                        if firesignal then
-                                            pcall(function() firesignal(checkBtn.MouseButton1Down) end)
-                                            pcall(function() firesignal(checkBtn.MouseButton1Click) end)
-                                            pcall(function() firesignal(checkBtn.Activated) end)
-                                        elseif getconnections then
-                                            for _, conn in ipairs(getconnections(checkBtn.MouseButton1Down)) do pcall(function() conn:Function() end) end
-                                            for _, conn in ipairs(getconnections(checkBtn.MouseButton1Click)) do pcall(function() conn:Function() end) end
-                                            for _, conn in ipairs(getconnections(checkBtn.Activated)) do pcall(function() conn:Function() end) end
+                                local function getMobileCheckBtn()
+                                    local pgui = ActualPlayerGui
+                                    local controls = pgui:FindFirstChild("Controls") or (pgui:FindFirstChild("Survivor-mob") and pgui["Survivor-mob"]:FindFirstChild("Controls"))
+                                    if controls and controls:FindFirstChild("action") then
+                                        return controls.action:FindFirstChild("check")
+                                    end
+                                    local actionFolder = pgui:FindFirstChild("action")
+                                    if actionFolder then return actionFolder:FindFirstChild("check") end
+                                    return nil
+                                end
+                                
+                                local checkBtn = getMobileCheckBtn()
+                                if checkBtn then
+                                    if firesignal then
+                                        pcall(function() firesignal(checkBtn.InputBegan, {UserInputType = Enum.UserInputType.Touch, UserInputState = Enum.UserInputState.Begin}) end)
+                                        pcall(function() firesignal(checkBtn.InputBegan, {UserInputType = Enum.UserInputType.MouseButton1, UserInputState = Enum.UserInputState.Begin}) end)
+                                        pcall(function() firesignal(checkBtn.MouseButton1Down) end)
+                                        pcall(function() firesignal(checkBtn.MouseButton1Click) end)
+                                        pcall(function() firesignal(checkBtn.Activated) end)
+                                    elseif getconnections then
+                                        for _, conn in ipairs(getconnections(checkBtn.InputBegan)) do
+                                            pcall(function() conn:Function({UserInputType = Enum.UserInputType.Touch, UserInputState = Enum.UserInputState.Begin}) end)
                                         end
-                                        
-                                        local absPos = checkBtn.AbsolutePosition
-                                        local absSize = checkBtn.AbsoluteSize
-                                        if absPos and absSize then
-                                            local cx, cy = absPos.X + (absSize.X / 2), absPos.Y + (absSize.Y / 2) + 36
-                                            VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, true, game, 1)
-                                            task.delay(0.05, function() 
-                                                VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, false, game, 1) 
-                                            end)
-                                        end
+                                        for _, conn in ipairs(getconnections(checkBtn.MouseButton1Down)) do pcall(function() conn:Function() end) end
+                                        for _, conn in ipairs(getconnections(checkBtn.MouseButton1Click)) do pcall(function() conn:Function() end) end
+                                    end
+                                    
+                                    local absPos = checkBtn.AbsolutePosition
+                                    local absSize = checkBtn.AbsoluteSize
+                                    if absPos and absSize and absSize.X > 0 and absSize.Y > 0 then
+                                        local cx, cy = absPos.X + (absSize.X / 2), absPos.Y + (absSize.Y / 2) + 36
+                                        VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, true, game, 1)
+                                        task.delay(0.05, function() 
+                                            pcall(function() VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, false, game, 1) end)
+                                        end)
                                     end
                                 end
                             end)
