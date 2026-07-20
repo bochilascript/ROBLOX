@@ -35450,7 +35450,9 @@ getgenv().InitializeAutoPerfect = function()
                                     local absPos = checkBtn.AbsolutePosition
                                     local absSize = checkBtn.AbsoluteSize
                                     if absPos and absSize and absSize.X > 0 and absSize.Y > 0 then
-                                        local cx, cy = absPos.X + (absSize.X / 2), absPos.Y + (absSize.Y / 2) + 36
+                                        local inset = game:GetService("GuiService"):GetGuiInset()
+                                        local cx = absPos.X + (absSize.X / 2) + inset.X
+                                        local cy = absPos.Y + (absSize.Y / 2) + inset.Y
                                         VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, true, game, 1)
                                         task.delay(0.05, function() 
                                             pcall(function() VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, false, game, 1) end)
