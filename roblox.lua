@@ -16156,7 +16156,7 @@ end
 function loadRSpy()
     local success, err = pcall(function()
         print("[CIT Debug] Initializing Remote Spy...")
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/bochilascript/ROBLOX/refs/heads/main/spy.lua"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/ltseverydayyou/uuuuuuu/refs/heads/main/SimpleSpyRework.luau"))()
     end)
     if not success then
         warn("[CIT Debug] Remote Spy Error: " .. tostring(err))
