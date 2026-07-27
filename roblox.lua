@@ -1,4 +1,4 @@
-local Player = game.Players.LocalPlayer
+local Player = game:GetService("Players").LocalPlayer
 function getSafeGuiParent()
     if gethui then
         local s, h = pcall(gethui)
