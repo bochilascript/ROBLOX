@@ -1,4 +1,4 @@
-local Player = game:GetService("Players").LocalPlayer
+local Player = game.Players.LocalPlayer
 function getSafeGuiParent()
     if gethui then
         local s, h = pcall(gethui)
@@ -3876,7 +3876,34 @@ MakeToggle("AimbotToggle", "Aimbot", function(val)
                             if fireRemote then
                                 print("[CIT DEBUG] Aimbot Click Triggered. Tool:", tostring(gun), "Remote:", tostring(fireRemote.Name))
                                 local success, err = pcall(function()
-                                    fireRemote:FireServer(gun, Vector3.new(0,0,0))
+                                    local pcallSuccess = pcall(function()
+                                        local char = game:GetService("Players").LocalPlayer.Character
+                                        if char then
+                                            local tof = char:FindFirstChild("Twist of Fate")
+                                            if tof then
+                                                local rArm = tof:FindFirstChild("Right Arm")
+                                                if rArm and rArm:FindFirstChild("gun") then
+                                                    local args = {
+                                                        [1] = rArm.gun,
+                                                        [2] = Vector3.new(0, 0, 0)
+                                                    }
+                                                    local items = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes") and game:GetService("ReplicatedStorage").Remotes:FindFirstChild("Items")
+                                                    if items then
+                                                        local targetRemote = items:GetChildren()[4]
+                                                        if targetRemote and targetRemote:FindFirstChild("Fire") then
+                                                            targetRemote.Fire:FireServer(unpack(args))
+                                                            return -- Prevent firing the old one if this succeeds
+                                                        end
+                                                    end
+                                                end
+                                            end
+                                        end
+                                        error("Fallback")
+                                    end)
+
+                                    if not pcallSuccess then
+                                        fireRemote:FireServer(gun, Vector3.new(0,0,0))
+                                    end
                                 end)
                                 if not success then
                                     warn("[CIT DEBUG] Aimbot FireServer failed:", err)
@@ -4172,13 +4199,15 @@ local function ShootKiller()
                                 skinInRightArm = twistOfFateTool["Right Arm"]:FindFirstChild("EmperorGun")
                                     or twistOfFateTool["Right Arm"]:FindFirstChild("Emperor")
                                     or twistOfFateTool["Right Arm"]:FindFirstChild("Awp")
+                                    or twistOfFateTool["Right Arm"]:FindFirstChild("gun")
                             end
                             
                             local skinGun = skinInRightArm
                                 or character:FindFirstChild("EmperorGun") 
                                 or character:FindFirstChild("Emperor") 
                                 or character:FindFirstChild("Awp")
-                                or (character:FindFirstChild("Right Arm") and (character["Right Arm"]:FindFirstChild("EmperorGun") or character["Right Arm"]:FindFirstChild("Emperor") or character["Right Arm"]:FindFirstChild("Awp")))
+                                or character:FindFirstChild("gun")
+                                or (character:FindFirstChild("Right Arm") and (character["Right Arm"]:FindFirstChild("EmperorGun") or character["Right Arm"]:FindFirstChild("Emperor") or character["Right Arm"]:FindFirstChild("Awp") or character["Right Arm"]:FindFirstChild("gun")))
                             
                             if skinGun then
                                 itemArg = skinGun
@@ -4203,6 +4232,9 @@ local function ShootKiller()
                         local success, err = pcall(function()
                             fireRemote:FireServer(itemArg, dir)
                         end)
+                        
+
+                        
                         if success then
                             local targetDisplay = targetType
                             if targetType == "SCP" then targetDisplay = "SCP/Zombie" end
