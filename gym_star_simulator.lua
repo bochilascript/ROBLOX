@@ -429,6 +429,25 @@ task.spawn(function()
             end
         end)
     end
+
+    if not getgenv().GymStarToggles["AntiAFK"] then
+        getgenv().GymStarToggles["AntiAFK"] = true
+        AntiAFKBtn.Text = "Anti-AFK: ON"
+        AntiAFKBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        if not antiAFKConnection then
+            antiAFKConnection = LocalPlayer.Idled:Connect(function()
+                VirtualUser:CaptureController()
+                VirtualUser:ClickButton2(Vector2.new())
+            end)
+        end
+    end
+
+    if not getgenv().GymStarToggles["AutoClick"] then
+        getgenv().GymStarToggles["AutoClick"] = true
+        AutoClickBtn.Text = "Auto Click: ON"
+        AutoClickBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        toggleNativeAutoClick(true)
+    end
 end)
 
 -- ==========================================
