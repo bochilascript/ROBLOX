@@ -32660,6 +32660,11 @@ do
     flyV3Active = false
     flyV3Movers = {}
     flyV3Enabled = false
+    local flyV3BaseSpeed = 50 * 4.5
+    local currentFlyV3Speed = flyV3BaseSpeed
+    local flyV3MaxSpeed = flyV3BaseSpeed * 3
+    local flyV3AccelRate = (flyV3MaxSpeed - flyV3BaseSpeed) / 1.5
+    local flyV3OldGravity = workspace.Gravity
     MiniButtons = {}
     function toggleFlyV3(state)
         if state == nil then
@@ -32668,6 +32673,10 @@ do
             flyV3Active = state
         end
         if not flyV3Active then
+            currentFlyV3Speed = flyV3BaseSpeed
+            if flyV3OldGravity then
+                workspace.Gravity = flyV3OldGravity
+            end
             if toggleNoclip then toggleNoclip(false) end
             for _, mover in ipairs(flyV3Movers) do
                 if mover and mover.Parent then mover:Destroy() end
@@ -32686,6 +32695,9 @@ do
             end
             for _, t in pairs(animTracks) do if t.IsPlaying then t:Stop() end end
         else
+            currentFlyV3Speed = flyV3BaseSpeed
+            flyV3OldGravity = workspace.Gravity > 0 and workspace.Gravity or 196.2
+            workspace.Gravity = 0
             if toggleNoclip then toggleNoclip(true) end
             if Player.Character and Player.Character:FindFirstChild("Humanoid") then
                 Player.Character.Humanoid.PlatformStand = true
@@ -33321,16 +33333,25 @@ do
             end)
         end
     end)
-    RunService.Heartbeat:Connect(function()
+    RunService.Heartbeat:Connect(function(dt)
         if not flyV3Active then return end
         local char = Player.Character
         local primaryPart = char and char.PrimaryPart
         local camera = workspace.CurrentCamera
         if primaryPart then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum and not hum.PlatformStand then
+                hum.PlatformStand = true
+            end
+            if typeof(checkAndBreakExternalWelds) == "function" then
+                pcall(checkAndBreakExternalWelds)
+            end
+
             local bodyVelocity, bodyGyro = unpack(flyV3Movers)
             if not bodyVelocity then
                 bodyVelocity = Instance.new("BodyVelocity")
                 bodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+                bodyVelocity.P = 1250
                 bodyGyro = Instance.new("BodyGyro")
                 bodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
                 bodyGyro.P = 9e4
@@ -33339,14 +33360,25 @@ do
                 bodyAngularVelocity.MaxTorque = Vector3.yAxis * 9e9
                 bodyAngularVelocity.P = 9e9
                 flyV3Movers = { bodyVelocity, bodyGyro, bodyAngularVelocity }
+                bodyVelocity.Parent = primaryPart
+                bodyGyro.Parent = primaryPart
+            else
+                if bodyVelocity.Parent ~= primaryPart then bodyVelocity.Parent = primaryPart end
+                if bodyGyro.Parent ~= primaryPart then bodyGyro.Parent = primaryPart end
             end
+
             local camCFrame = camera.CFrame
             local velocity = Vector3.zero
             local rotation = camCFrame.Rotation
             local isFocused = UserInputService:GetFocusedTextBox() ~= nil
+            local isForward = false
+
             if not isFocused and UserInputService:IsKeyDown(Enum.KeyCode.W) then
                 velocity += camCFrame.LookVector
                 rotation *= CFrame.Angles(math.rad(-40), 0, 0)
+                if not UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                    isForward = true
+                end
             end
             if not isFocused and UserInputService:IsKeyDown(Enum.KeyCode.S) then
                 velocity -= camCFrame.LookVector
@@ -33366,26 +33398,39 @@ do
             if not isFocused and UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
                 velocity -= Vector3.yAxis
             end
+
             local isPC = not isFocused and (UserInputService:IsKeyDown(Enum.KeyCode.W) or UserInputService:IsKeyDown(Enum.KeyCode.S) or UserInputService:IsKeyDown(Enum.KeyCode.A) or UserInputService:IsKeyDown(Enum.KeyCode.D))
-            if not isPC then
-                local hum = char and char:FindFirstChild("Humanoid")
-                if hum and hum.MoveDirection.Magnitude > 0 then
-                    local flatLook = (camCFrame.LookVector * Vector3.new(1, 0, 1)).Unit
-                    local flatRight = (camCFrame.RightVector * Vector3.new(1, 0, 1)).Unit
-                    local forwardInput = hum.MoveDirection:Dot(flatLook)
-                    local rightInput = hum.MoveDirection:Dot(flatRight)
-                    velocity += (camCFrame.LookVector * forwardInput) + (camCFrame.RightVector * rightInput)
-                    rotation *= CFrame.Angles(math.rad(-40 * forwardInput), 0, math.rad(-40 * rightInput))
+            if not isPC and hum and hum.MoveDirection.Magnitude > 0 then
+                local flatLook = (camCFrame.LookVector * Vector3.new(1, 0, 1)).Unit
+                local flatRight = (camCFrame.RightVector * Vector3.new(1, 0, 1)).Unit
+                local forwardInput = hum.MoveDirection:Dot(flatLook)
+                local rightInput = hum.MoveDirection:Dot(flatRight)
+                velocity += (camCFrame.LookVector * forwardInput) + (camCFrame.RightVector * rightInput)
+                rotation *= CFrame.Angles(math.rad(-40 * forwardInput), 0, math.rad(-40 * rightInput))
+                if forwardInput > 0.2 then
+                    isForward = true
                 end
             end
-            local tweenInfo = TweenInfo.new(0.5)
-            TweenService:Create(bodyVelocity, tweenInfo, { Velocity = velocity * 50 * 4.5 }):Play()
-            bodyVelocity.Parent = primaryPart
-            TweenService:Create(bodyGyro, tweenInfo, { CFrame = rotation }):Play()
-            bodyGyro.Parent = primaryPart
-            
-            
+
+            local step = (typeof(dt) == "number" and dt > 0) and dt or (1 / 60)
             local isMoving = velocity.Magnitude > 0
+            if isForward and isMoving then
+                currentFlyV3Speed = math.min(currentFlyV3Speed + (step * flyV3AccelRate), flyV3MaxSpeed)
+            else
+                currentFlyV3Speed = math.max(currentFlyV3Speed - (step * flyV3AccelRate * 1.5), flyV3BaseSpeed)
+            end
+
+            local moveDir = isMoving and velocity.Unit or Vector3.zero
+            local targetVelocity = moveDir * currentFlyV3Speed
+            local lerpAlpha = math.clamp(step * 14, 0, 1)
+
+            bodyVelocity.Velocity = bodyVelocity.Velocity:Lerp(targetVelocity, lerpAlpha)
+            if not isMoving and bodyVelocity.Velocity.Magnitude < 0.5 then
+                bodyVelocity.Velocity = Vector3.zero
+            end
+
+            bodyGyro.CFrame = bodyGyro.CFrame:Lerp(rotation, lerpAlpha)
+
             if isMoving then
                 if animTracks.Idle and animTracks.Idle.IsPlaying then animTracks.Idle:Stop() end
                 if animTracks.Fly and not animTracks.Fly.IsPlaying then animTracks.Fly:Play() end
