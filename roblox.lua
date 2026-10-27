@@ -35,6 +35,7 @@ ShiftLockShortcutConn = nil
 SpeedShortcutConn = nil
 FlyV3ShortcutConn = nil
 FreecamShortcutConn = nil
+XRayShortcutConn = nil 
 MiniFrameToggleConn = nil
 ChattedConn = nil
 TextChatConn = nil
@@ -127,7 +128,7 @@ local LangDict = {
     ["CmdBarPH"] = { EN = "Type command... (ex: swp name)", ID = "Ketik perintah... (cth: swp nama)" },
     ["FriendList"] = { EN = "Friend List", ID = "Daftar Teman" },
     ["ShortcutsKey"] = { EN = "Shortcuts", ID = "Shortcut PC" },
-    ["ShortcutsDesc"] = { EN = "<b><font color=\"rgb(255, 60, 60)\">[</font></b>  - Open / Close GUI\n<b><font color=\"rgb(255, 60, 60)\">]</font></b>  - Toggle Speed Hack\n<b><font color=\"rgb(255, 60, 60)\">\\</font></b>  - Toggle Jump Power\n<b><font color=\"rgb(255, 60, 60)\">-</font></b>  - Toggle Speed Trail\n<b><font color=\"rgb(255, 60, 60)\">=</font></b>  - Toggle Jump Trail\n<b><font color=\"rgb(255, 60, 60)\">'</font></b>  - Open Command Bar\n<b><font color=\"rgb(255, 60, 60)\">0</font></b>  - Toggle Free Cam\n<b><font color=\"rgb(255, 60, 60)\">RightCtrl</font></b>  - Toggle Floating Logo\n<b><font color=\"rgb(255, 60, 60)\">RightAlt</font></b>  - Toggle VD Menu\n\n*Note for <b>\\</b>: Disable 'UI Navigation Toggle' in Roblox Settings for it to work properly.", ID = "<b><font color=\"rgb(255, 60, 60)\">[</font></b>  - Buka / Tutup GUI\n<b><font color=\"rgb(255, 60, 60)\">]</font></b>  - Aktif / Matikan Speed Hack\n<b><font color=\"rgb(255, 60, 60)\">\\</font></b>  - Aktif / Matikan Jump Power\n<b><font color=\"rgb(255, 60, 60)\">-</font></b>  - Aktif / Matikan Speed Trail\n<b><font color=\"rgb(255, 60, 60)\">=</font></b>  - Aktif / Matikan Jump Trail\n<b><font color=\"rgb(255, 60, 60)\">'</font></b>  - Buka Command Bar\n<b><font color=\"rgb(255, 60, 60)\">0</font></b>  - Kamera Bebas (Free Cam)\n<b><font color=\"rgb(255, 60, 60)\">RightCtrl</font></b>  - Sembunyikan Logo\n<b><font color=\"rgb(255, 60, 60)\">RightAlt</font></b>  - Buka / Tutup VD Menu\n\n*Catatan untuk <b>\\</b>: Matikan 'Tombol Navigasi UI' di Pengaturan Roblox agar pintasan berfungsi." },
+    ["ShortcutsDesc"] = { EN = "<b><font color=\"rgb(255, 60, 60)\">[</font></b>  - Open / Close GUI\n<b><font color=\"rgb(255, 60, 60)\">]</font></b>  - Toggle Speed Hack\n<b><font color=\"rgb(255, 60, 60)\">\\</font></b>  - Toggle Jump Power\n<b><font color=\"rgb(255, 60, 60)\">-</font></b>  - Toggle Speed Trail\n<b><font color=\"rgb(255, 60, 60)\">=</font></b>  - Toggle Jump Trail\n<b><font color=\"rgb(255, 60, 60)\">'</font></b>  - Open Command Bar\n<b><font color=\"rgb(255, 60, 60)\">0</font></b>  - Toggle Free Cam\n<b><font color=\"rgb(255, 60, 60)\">,</font></b>  - Toggle X-Ray\n<b><font color=\"rgb(255, 60, 60)\">RightCtrl</font></b>  - Toggle Floating Logo\n<b><font color=\"rgb(255, 60, 60)\">RightAlt</font></b>  - Toggle VD Menu\n\n*Note for <b>\\</b>: Disable 'UI Navigation Toggle' in Roblox Settings for it to work properly.", ID = "<b><font color=\"rgb(255, 60, 60)\">[</font></b>  - Buka / Tutup GUI\n<b><font color=\"rgb(255, 60, 60)\">]</font></b>  - Aktif / Matikan Speed Hack\n<b><font color=\"rgb(255, 60, 60)\">\\</font></b>  - Aktif / Matikan Jump Power\n<b><font color=\"rgb(255, 60, 60)\">-</font></b>  - Aktif / Matikan Speed Trail\n<b><font color=\"rgb(255, 60, 60)\">=</font></b>  - Aktif / Matikan Jump Trail\n<b><font color=\"rgb(255, 60, 60)\">'</font></b>  - Buka Command Bar\n<b><font color=\"rgb(255, 60, 60)\">0</font></b>  - Kamera Bebas (Free Cam)\n<b><font color=\"rgb(255, 60, 60)\">,</font></b>  - Aktif / Matikan X-Ray\n<b><font color=\"rgb(255, 60, 60)\">RightCtrl</font></b>  - Sembunyikan Logo\n<b><font color=\"rgb(255, 60, 60)\">RightAlt</font></b>  - Buka / Tutup VD Menu\n\n*Catatan untuk <b>\\</b>: Matikan 'Tombol Navigasi UI' di Pengaturan Roblox agar pintasan berfungsi." },
     ["CL_370"] = { EN = "- Massive UI update: Mobile draggable sliders for Speed & Jump Power\n- Safe Raycast landing algorithm for Fly V1 to prevent clipping\n- Draggable Mobile Command Bar\n- Added Config System (Auto-saves your settings locally)\n- Tab Rusuh Expansion: Added Hitbox Expander & Silent Aim\n- Custom Keybind Settings (Change hotkeys dynamically)\n- Added Free Cam shortcut (0), Hide Logo (RightCtrl), VD Menu (RightAlt) & Max Zoom noclip\n- Incremented version to v3.7.0", ID = "- Pembaruan UI Masif: Slider Mobile yang bisa digeser untuk Speed & Jump Power\n- Algoritma pendaratan aman Raycast untuk Fly V1 agar tidak nyangkut\n- Command Bar Mobile yang bisa di-drag\n- Sistem Config (Otomatis save settingan script)\n- Ekspansi Tab Rusuh: Menambahkan Hitbox Expander & Silent Aim\n- Kustomisasi Tombol/Keybind (Ganti pintasan sesuka hati)\n- Menambahkan shortcut Free Cam (0), Hide Logo (RightCtrl), VD Menu (RightAlt) & noclip Max Zoom\n- Menaikkan versi script menjadi v3.7.0" },
     ["CL_380"] = { EN = "- Perfected Loop Send Part (Bring Part to Target) using C++ TwoAttachment Physics\n- Loop Send Part now applies 100% smooth tracking regardless of ping or speed\n- Re-enabled collision on Loop Send Part for maximum fling impact\n- Increased Part Scanner render limit from 100 to 500 parts for extended map range\n- Incremented version to v3.8.0", ID = "- Menyempurnakan Loop Send Part (Serang Target) menggunakan sistem fisika otomatis C++ (TwoAttachment)\n- Loop Send Part sekarang 100% mulus melacak target tanpa patah-patah meskipun target berlari sangat cepat\n- Menyalakan kembali sistem tabrakan (Collision) pada Loop Send Part agar korban ter-fling dengan daya rusak maksimal\n- Menaikkan batas part yang terlihat di menu Part Scanner dari 100 menjadi 500 part agar menjangkau seluruh pulau\n- Menaikkan versi script menjadi v3.8.0" },
     ["CL_360"] = { EN = "- Added Shortcuts PC category to easily view keybinds\n- Added \\ shortcut to toggle Jump Power on/off\n- Improved Jump Trail size to be smaller and sleeker\n- Fixed active features cleanup not working properly when closing the GUI\n- Incremented version to v3.6.0", ID = "- Menambahkan kategori Shortcut PC untuk melihat pintasan keyboard\n- Menambahkan shortcut tombol \\ untuk mengaktifkan/mematikan Jump Power\n- Memperbaiki ukuran trail lompat agar lebih kecil dan ramping\n- Memperbaiki pembersihan fitur yang aktif saat GUI utama ditutup agar langsung mati\n- Menaikkan versi script menjadi v3.6.0" },
@@ -149,6 +150,7 @@ local LangDict = {
     ["Remote Spy"] = { EN = "Remote Spy", ID = "Remote Spy" },
     ["Execute Script"] = { EN = "Execute Script", ID = "Eksekusi Skrip" },
     ["Loop SendPart"] = { EN = "Loop SendPart", ID = "Loop Kirim Objek" },
+    ["Crosshair"] = { EN = "Crosshair", ID = "Crosshair" },
 }
 local translatableElements = {}
 function OneTimeUnanchor()
@@ -602,7 +604,7 @@ pcall(function()
     local coreGui = game:GetService("CoreGui")
     local gethui = (gethui or function() return nil end)
     local hui = gethui()
-    for _, guiName in ipairs({"CHCmdBarGUI", "PIXECUTE SPECTATE", "FriendListFrame", "PlayerListFrame", "CHCheatGUI"}) do
+    for _, guiName in ipairs({"CHCmdBarGUI", "PIXECUTE SPECTATE", "FriendListFrame", "PlayerListFrame", "CHCheatGUI", "MainCrosshairGui"}) do
         for _, parent in ipairs({PlayerGui, coreGui, hui}) do
             if parent then
                 for _, child in ipairs(parent:GetChildren()) do
@@ -973,7 +975,7 @@ do
         end
     end
     local rusuhKeywords = {"bringpart", "tarik objek", "spectator", "penonton", "noclip", "tembus tembok", "tendang", "unanchor", "lepas kunci", "fly", "terbang", "esp", "esp team", "quick tools", "quick", "anti fling", "antifling", "fling aura", "aura fling", "orbit fling", "orbit", "click yeet", "crash server", "touch fling", "touchfling", "vehicle fly", "terbang kendaraan", "auto clicker", "autoclicker", "spam click", "walk fling", "walkfling", "hitbox", "aimbot", "fling all", "flingall", "iflingall", "ifling all", "fling semua", "loop sendpart", "loop kirim objek", "sendpart"}
-    local utilityKeywords = {"free cam", "freecam", "kamera bebas", "click tp", "clicktp", "klik tp", "speed", "kecepatan", "save wp", "savewp", "swp", "simpan lokasi", "btools", "tween tp", "tweentp", "jump power", "jumppower", "jp", "tp tool", "tptool", "invisible", "tak terlihat", "visible", "terlihat", "fps & ping", "chat logs", "chatlogs", "part inspector", "inspektur objek", "shift lock", "shiftlock", "respawn", "anti afk", "antiafk", "command bar", "cmd", "infinite jump", "lampu", "swim", "berenang", "xray", "tembus pandang", "execute script", "eksekusi skrip", "low friction", "lowfriction"}
+    local utilityKeywords = {"free cam", "freecam", "kamera bebas", "click tp", "clicktp", "klik tp", "speed", "kecepatan", "save wp", "savewp", "swp", "simpan lokasi", "btools", "tween tp", "tweentp", "jump power", "jumppower", "jp", "tp tool", "tptool", "invisible", "tak terlihat", "visible", "terlihat", "fps & ping", "chat logs", "chatlogs", "part inspector", "inspektur objek", "shift lock", "shiftlock", "respawn", "anti afk", "antiafk", "command bar", "cmd", "infinite jump", "lampu", "swim", "berenang", "xray", "tembus pandang", "execute script", "eksekusi skrip", "low friction", "lowfriction", "crosshair"}
     local function matchesAny(text, keywords)
         local lower = string.lower(text or "")
         for _, k in ipairs(keywords) do
@@ -1167,6 +1169,10 @@ do
             moveBtnByNames("TweenTPBtn", "Tween TP", 30)
             moveBtnByNames("VisibleBtn", "Visible", 31)
             moveBtnByNames("XRayBtn", "XRay", 32)
+            moveBtnByNames("CrosshairBtn", "Crosshair", 33)
+            moveBox("CrosshairXBox", 34)
+            moveBox("CrosshairYBox", 35)
+            moveBox("CrosshairSizeBox", 36)
             for _, ch in ipairs(UtilityScroll:GetChildren()) do
                 if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
                     ch.Parent = ScrollFrame
@@ -1223,6 +1229,7 @@ do
                     if inst then inst.Parent = ScrollFrame inst.Visible = false end
                 end
                 restore("TPBox"); restore("FCBox"); restore("SpeedBox"); restore("SWPBox"); restore("LowFrictionBox")
+                restore("CrosshairXBox"); restore("CrosshairYBox"); restore("CrosshairSizeBox")
                 for _, ch in ipairs(UtilityScroll:GetChildren()) do
                     if ch:IsA("TextButton") and ch:GetAttribute("IsFixedWP") == true then
                         ch.Parent = ScrollFrame
@@ -1350,6 +1357,12 @@ do
         if typeof(JumpPowerBox) == "Instance" then
             JumpPowerBox.Visible = (cat == "Utility")
         end
+        local chXBox = ScrollFrame:FindFirstChild("CrosshairXBox") or (UtilityScroll and UtilityScroll:FindFirstChild("CrosshairXBox"))
+        local chYBox = ScrollFrame:FindFirstChild("CrosshairYBox") or (UtilityScroll and UtilityScroll:FindFirstChild("CrosshairYBox"))
+        local chSBox = ScrollFrame:FindFirstChild("CrosshairSizeBox") or (UtilityScroll and UtilityScroll:FindFirstChild("CrosshairSizeBox"))
+        if chXBox then chXBox.Visible = (cat == "Utility") end
+        if chYBox then chYBox.Visible = (cat == "Utility") end
+        if chSBox then chSBox.Visible = (cat == "Utility") end
         task.defer(function()
             ScrollFrame.CanvasPosition = Vector2.new(0, 0)
         end)
@@ -6206,6 +6219,15 @@ MiniFrameToggleConn = UserInputService.InputBegan:Connect(function(input, gpe)
         end
     end
 end)
+XRayShortcutConn = UserInputService.InputBegan:Connect(function(input, gpe)
+    if not gpe and not UserInputService:GetFocusedTextBox() then
+        if input.KeyCode == Enum.KeyCode.Comma then
+            if type(toggleXRay) == "function" then
+                toggleXRay()
+            end
+        end
+    end
+end)
 local CursorGui = Instance.new("ScreenGui")
 CursorGui.Name = "VD_CursorGui"
 CursorGui.DisplayOrder = 2147483647
@@ -6480,6 +6502,7 @@ CloseBtn.MouseButton1Click:Connect(function()
         if JumpPowerShortcutConn then pcall(function() JumpPowerShortcutConn:Disconnect() end) JumpPowerShortcutConn = nil end
         if FreecamShortcutConn then pcall(function() FreecamShortcutConn:Disconnect() end) FreecamShortcutConn = nil end
         if MiniFrameToggleConn then pcall(function() MiniFrameToggleConn:Disconnect() end) MiniFrameToggleConn = nil end
+        if XRayShortcutConn then pcall(function() XRayShortcutConn:Disconnect() end) XRayShortcutConn = nil end
         if speedTrailOn then pcall(toggleSpeedTrail) end
         if jumpTrailOn then pcall(toggleJumpTrail) end
         if SpeedTrailShortcutConn then pcall(function() SpeedTrailShortcutConn:Disconnect() end) SpeedTrailShortcutConn = nil end
@@ -6491,6 +6514,7 @@ CloseBtn.MouseButton1Click:Connect(function()
         if aimbotEnabled or aimbotActive then pcall(toggleAimbot, false) end
         if autoClickerActive then pcall(toggleAutoClicker, false) end
         if maxZoomActive then pcall(toggleMaxZoom, false) end
+        if mainCrosshairActive then pcall(toggleMainCrosshair, false) end
         if touchFlingActive then pcall(toggleTouchFling, false) end
         if clickTPEnabled then pcall(toggleClickTP, false) end
         if BToolsActive then pcall(toggleBTools, false) end
@@ -6500,7 +6524,8 @@ CloseBtn.MouseButton1Click:Connect(function()
         if vehicleFlyActive then pcall(toggleVehicleFly, false) end
         if SendPartActive then SendPartActive = false end
         local coreGui = game:GetService("CoreGui")
-        for _, guiName in ipairs({"CHCmdBarGUI", "PIXECUTE SPECTATE", "FriendListFrame", "PlayerListFrame"}) do
+        if mainCrosshairGui then pcall(function() mainCrosshairGui:Destroy() end) mainCrosshairGui = nil end
+        for _, guiName in ipairs({"CHCmdBarGUI", "PIXECUTE SPECTATE", "FriendListFrame", "PlayerListFrame", "MainCrosshairGui"}) do
             local g = coreGui:FindFirstChild(guiName)
             if g then pcall(function() g:Destroy() end) end
         end
@@ -12654,6 +12679,137 @@ function toggleXRay(state)
     end
 end
 XRayBtn.MouseButton1Click:Connect(toggleXRay)
+
+CrosshairBtn = createButton("", "Crosshair")
+CrosshairBtn.Name = "CrosshairBtn"
+local mainCrosshairActive = false
+local mainCrosshairGui = nil
+local mainCrosshairOffsetX = 0
+local mainCrosshairOffsetY = 0
+local mainCrosshairSize = 10
+function toggleMainCrosshair(state)
+    if state == nil then mainCrosshairActive = not mainCrosshairActive else mainCrosshairActive = state end
+    setButtonActive(CrosshairBtn, mainCrosshairActive)
+    if mainCrosshairActive then
+        if not mainCrosshairGui then
+            local cg = Instance.new("ScreenGui")
+            cg.Name = "MainCrosshairGui"
+            cg.ResetOnSpawn = false
+            cg.IgnoreGuiInset = true
+            pcall(function() cg.Parent = game:GetService("CoreGui") end)
+            if not cg.Parent then cg.Parent = LocalPlayer:WaitForChild("PlayerGui") end
+            local f = Instance.new("Frame")
+            f.Name = "Dot"
+            f.Size = UDim2.new(0, mainCrosshairSize, 0, mainCrosshairSize)
+            f.AnchorPoint = Vector2.new(0.5, 0.5)
+            f.Position = UDim2.new(0.5, mainCrosshairOffsetX, 0.5, mainCrosshairOffsetY)
+            f.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+            f.BorderSizePixel = 0
+            f.ZIndex = 999
+            local c = Instance.new("UICorner")
+            c.CornerRadius = UDim.new(1, 0)
+            c.Parent = f
+            f.Parent = cg
+            mainCrosshairGui = cg
+        end
+        mainCrosshairGui.Enabled = true
+    else
+        if mainCrosshairGui then mainCrosshairGui.Enabled = false end
+    end
+end
+CrosshairBtn.MouseButton1Click:Connect(function() toggleMainCrosshair() end)
+
+do
+    local CrosshairXBox = Instance.new("TextBox")
+    CrosshairXBox.Name = "CrosshairXBox"
+    CrosshairXBox.Text = tostring(mainCrosshairOffsetX)
+    CrosshairXBox.PlaceholderText = "X Offset (-200~200)"
+    CrosshairXBox.LayoutOrder = 34
+    CrosshairXBox.Size = UDim2.new(0, 150, 0, 35)
+    CrosshairXBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    CrosshairXBox.TextSize = 15
+    CrosshairXBox.Font = Enum.Font.GothamBold
+    CrosshairXBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CrosshairXBox.ClearTextOnFocus = false
+    CrosshairXBox.Parent = ScrollFrame
+    local cxc = Instance.new("UICorner")
+    cxc.CornerRadius = UDim.new(0, 8)
+    cxc.Parent = CrosshairXBox
+    local cxp = Instance.new("UIPadding")
+    cxp.PaddingLeft = UDim.new(0, 12)
+    cxp.Parent = CrosshairXBox
+    CrosshairXBox.FocusLost:Connect(function()
+        local n = tonumber(CrosshairXBox.Text)
+        if n then
+            n = math.clamp(n, -200, 200)
+            mainCrosshairOffsetX = n
+            if mainCrosshairGui and mainCrosshairGui:FindFirstChild("Dot") then
+                mainCrosshairGui.Dot.Position = UDim2.new(0.5, mainCrosshairOffsetX, 0.5, mainCrosshairOffsetY)
+            end
+        end
+        CrosshairXBox.Text = tostring(mainCrosshairOffsetX)
+    end)
+
+    local CrosshairYBox = Instance.new("TextBox")
+    CrosshairYBox.Name = "CrosshairYBox"
+    CrosshairYBox.Text = tostring(mainCrosshairOffsetY)
+    CrosshairYBox.PlaceholderText = "Y Offset (-200~200)"
+    CrosshairYBox.LayoutOrder = 35
+    CrosshairYBox.Size = UDim2.new(0, 150, 0, 35)
+    CrosshairYBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    CrosshairYBox.TextSize = 15
+    CrosshairYBox.Font = Enum.Font.GothamBold
+    CrosshairYBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CrosshairYBox.ClearTextOnFocus = false
+    CrosshairYBox.Parent = ScrollFrame
+    local cyc = Instance.new("UICorner")
+    cyc.CornerRadius = UDim.new(0, 8)
+    cyc.Parent = CrosshairYBox
+    local cyp = Instance.new("UIPadding")
+    cyp.PaddingLeft = UDim.new(0, 12)
+    cyp.Parent = CrosshairYBox
+    CrosshairYBox.FocusLost:Connect(function()
+        local n = tonumber(CrosshairYBox.Text)
+        if n then
+            n = math.clamp(n, -200, 200)
+            mainCrosshairOffsetY = n
+            if mainCrosshairGui and mainCrosshairGui:FindFirstChild("Dot") then
+                mainCrosshairGui.Dot.Position = UDim2.new(0.5, mainCrosshairOffsetX, 0.5, mainCrosshairOffsetY)
+            end
+        end
+        CrosshairYBox.Text = tostring(mainCrosshairOffsetY)
+    end)
+
+    local CrosshairSizeBox = Instance.new("TextBox")
+    CrosshairSizeBox.Name = "CrosshairSizeBox"
+    CrosshairSizeBox.Text = tostring(mainCrosshairSize)
+    CrosshairSizeBox.PlaceholderText = "Size (2-30)"
+    CrosshairSizeBox.LayoutOrder = 36
+    CrosshairSizeBox.Size = UDim2.new(0, 150, 0, 35)
+    CrosshairSizeBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    CrosshairSizeBox.TextSize = 15
+    CrosshairSizeBox.Font = Enum.Font.GothamBold
+    CrosshairSizeBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CrosshairSizeBox.ClearTextOnFocus = false
+    CrosshairSizeBox.Parent = ScrollFrame
+    local csc = Instance.new("UICorner")
+    csc.CornerRadius = UDim.new(0, 8)
+    csc.Parent = CrosshairSizeBox
+    local csp = Instance.new("UIPadding")
+    csp.PaddingLeft = UDim.new(0, 12)
+    csp.Parent = CrosshairSizeBox
+    CrosshairSizeBox.FocusLost:Connect(function()
+        local n = tonumber(CrosshairSizeBox.Text)
+        if n then
+            n = math.clamp(n, 2, 30)
+            mainCrosshairSize = n
+            if mainCrosshairGui and mainCrosshairGui:FindFirstChild("Dot") then
+                mainCrosshairGui.Dot.Size = UDim2.new(0, mainCrosshairSize, 0, mainCrosshairSize)
+            end
+        end
+        CrosshairSizeBox.Text = tostring(mainCrosshairSize)
+    end)
+end
 
 RSpyBtn = createButton("", "Remote Spy")
 RSpyBtn.Name = "RSpyBtn"
@@ -33764,6 +33920,7 @@ local success, err = pcall(function()
         { name = "lowfriction", aliases = {"lf"}, desc = "Aktifkan/nonaktifkan Low Friction. Opsional: atur nilai friction (0-1).", usage = "[nilai]" },
         { name = "swim", aliases = {"berenang"}, desc = "Aktifkan/nonaktifkan fitur berenang.", usage = "" },
         { name = "xray", aliases = {"tembuspandang"}, desc = "Aktifkan/nonaktifkan tembus pandang.", usage = "" },
+        { name = "crosshair", aliases = {"ch"}, desc = "Aktifkan/nonaktifkan crosshair di tengah layar.", usage = "" },
         { name = "rspy", aliases = {"remotespy"}, desc = "Muat SimpleSpyV3.", usage = "" },
         { name = "loopsendpart", aliases = {"lsp"}, desc = "Aktifkan loop sendpart ke target.", usage = " [nama]" },
         { name = "spectate", aliases = {"spectator", "view"}, desc = "Buka menu Spectator.", usage = "" },
@@ -34244,6 +34401,8 @@ local success, err = pcall(function()
             toggleSwim()
         elseif cmd == "xray" then
             toggleXRay()
+        elseif cmd == "crosshair" or cmd == "ch" then
+            toggleMainCrosshair()
         elseif cmd == "rspy" then
             loadRSpy()
         elseif cmd == "loopsendpart" or cmd == "lsp" then
